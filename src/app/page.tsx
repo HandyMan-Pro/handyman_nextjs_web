@@ -69,6 +69,19 @@ export default function DashboardPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
+  const prefillRole = (role: 'admin' | 'provider' | 'handyman') => {
+    if (role === 'admin') {
+      setUsername('admin');
+      setPassword('admin123');
+    } else if (role === 'provider') {
+      setUsername('sarah@provider.com');
+      setPassword('password123');
+    } else if (role === 'handyman') {
+      setUsername('david@handyman.com');
+      setPassword('password123');
+    }
+  };
+
   // Landing page states
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -1312,8 +1325,8 @@ export default function DashboardPage() {
 
         {/* Login Modal Overlay */}
         {showLoginModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-2xl relative">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111112]/95 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-2xl relative">
               
               {/* Close Button */}
               <button 
@@ -1323,17 +1336,25 @@ export default function DashboardPage() {
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="sm:mx-auto sm:w-full z-10">
-                <div className="flex justify-center">
-                  <div className="bg-indigo-600 p-3 rounded-2xl text-white shadow-xl shadow-indigo-600/30 animate-bounce">
-                    <Wrench className="w-8 h-8" />
+              <div className="sm:mx-auto sm:w-full z-10 text-center">
+                {/* Custom Logo (Blue/Purple House with Wrench/Hammer shape inside) */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-[#5E5CE6]/10 rounded-2xl flex items-center justify-center border border-[#5E5CE6]/25">
+                    <svg className="w-10 h-10 text-[#5E5CE6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor" fillOpacity="0.2" />
+                      <path d="M14.7 12.8a1.5 1.5 0 0 0-2-2l-3.5 3.5a1.5 1.5 0 0 0 2 2z" />
+                      <path d="m9.2 14.3-3 3" />
+                      <path d="m11.2 12.3 3-3" />
+                      <path d="M16 8h2v2h-2z" />
+                    </svg>
                   </div>
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
-                  Handyman Pro Operations
+                
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">
+                  Sign In
                 </h2>
-                <p className="mt-2 text-center text-sm text-zinc-450 font-medium">
-                  Sign in to access your admin control panel
+                <p className="mt-1.5 text-sm text-zinc-400 font-medium">
+                  Login to your account to continue
                 </p>
               </div>
 
@@ -1345,59 +1366,86 @@ export default function DashboardPage() {
                   </div>
                 )}
                 
-                <form onSubmit={handleLogin} className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-5">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                      Admin Username
+                    <label className="block text-sm font-semibold text-zinc-300 mb-2">
+                      Email <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
-                        <UserIcon className="h-4.5 w-4.5" />
-                      </div>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                        className="block w-full pl-11 pr-4 py-3.5 bg-zinc-950/50 border border-zinc-850 rounded-2xl text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-semibold"
-                        placeholder="admin"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      className="block w-full px-4 py-3 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm font-medium"
+                      placeholder="Enter Email"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                      Password
+                    <label className="block text-sm font-semibold text-zinc-300 mb-2">
+                      Password <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
-                        <Lock className="h-4.5 w-4.5" />
-                      </div>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="block w-full pl-11 pr-4 py-3.5 bg-zinc-950/50 border border-zinc-850 rounded-2xl text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-semibold"
-                        placeholder="••••••••"
-                      />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="block w-full px-4 py-3 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm font-medium"
+                      placeholder="Enter Password"
+                    />
+                    <div className="flex justify-end mt-2">
+                      <a href="#" className="text-xs font-semibold text-[#5E5CE6] hover:underline">
+                        Forgot Password?
+                      </a>
                     </div>
                   </div>
 
-                  <div>
+                  {/* Prefill Credentials Role Selection */}
+                  <div className="flex items-center justify-between gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => prefillRole('admin')}
+                      className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
+                    >
+                      Demo Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => prefillRole('provider')}
+                      className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
+                    >
+                      Provider
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => prefillRole('handyman')}
+                      className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
+                    >
+                      Handyman
+                    </button>
+                  </div>
+
+                  <div className="pt-2">
                     <button
                       type="submit"
                       disabled={loginLoading}
-                      className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-2xl shadow-lg shadow-indigo-600/20 text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-all disabled:opacity-55 cursor-pointer"
+                      className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all disabled:opacity-55 cursor-pointer shadow-lg shadow-[#5E5CE6]/20"
                     >
                       {loginLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
-                        "Access Admin Panel"
+                        "Login"
                       )}
                     </button>
                   </div>
                 </form>
+
+                <div className="mt-6 text-center text-xs text-zinc-400 font-medium">
+                  Don't Have An Account?{' '}
+                  <a href="#" className="text-[#5E5CE6] hover:underline font-bold ml-1">
+                    Sign Up
+                  </a>
+                </div>
               </div>
             </div>
           </div>
