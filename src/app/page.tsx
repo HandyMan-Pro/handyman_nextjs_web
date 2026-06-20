@@ -177,6 +177,12 @@ export default function DashboardPage() {
     if (token) {
       setIsAuthenticated(true);
     }
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark');
+    } else {
+      setIsDarkMode(true);
+    }
     setAuthLoading(false);
     fetchProviders();
     fetchServicesAndCategories();
@@ -190,6 +196,12 @@ export default function DashboardPage() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    const nextTheme = !isDarkMode;
+    setIsDarkMode(nextTheme);
+    localStorage.setItem('theme', nextTheme ? 'dark' : 'light');
+  };
 
   // Sync data whenever activeTab changes or login status changes
   useEffect(() => {
@@ -819,11 +831,11 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               {/* Theme Toggle */}
               <button 
-                onClick={() => setIsDarkMode(!isDarkMode)} 
+                onClick={toggleTheme} 
                 className="p-2 rounded-xl text-zinc-500 hover:text-indigo-600 dark:text-zinc-450 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
                 title="Toggle Dark Mode"
               >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-500" />}
               </button>
 
               {/* Login Button */}
@@ -1467,10 +1479,18 @@ export default function DashboardPage() {
           </nav>
         </div>
 
-        <div>
+        <div className="space-y-2">
+          <button 
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-slate-650 hover:bg-slate-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50 font-medium text-sm text-left transition-all cursor-pointer"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
+          </button>
+          
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 font-medium text-sm text-left transition-all"
+            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 font-medium text-sm text-left transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
@@ -1498,9 +1518,18 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Header Theme Toggle */}
+            <button 
+              onClick={toggleTheme}
+              className="flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-zinc-850 text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              title="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-500" />}
+            </button>
+
             <button 
               onClick={handleLogout}
-              className="md:hidden flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-red-600 hover:bg-red-50"
+              className="md:hidden flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
             >
               <LogOut className="w-5 h-5" />
             </button>
