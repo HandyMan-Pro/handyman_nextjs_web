@@ -13,6 +13,7 @@ import {
   Lock,
   LogOut,
   User as UserIcon,
+  LayoutDashboard,
   Tag,
   Clock,
   ArrowUpRight,
@@ -45,9 +46,103 @@ import {
   Award,
   Download,
   Sparkles,
-  Menu
+  Menu,
+  Layers,
+  Zap,
+  Wind
 } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
+
+interface SafeAvatarProps {
+  src?: string;
+  name: string;
+  className?: string;
+}
+
+const SafeAvatar: React.FC<SafeAvatarProps> = ({ src, name, className = "w-8 h-8 rounded-full" }) => {
+  const [error, setError] = useState(false);
+  const initials = name
+    ? name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : '?';
+
+  // Deterministic bg color based on name
+  const colors = [
+    'from-pink-500 to-rose-500',
+    'from-purple-500 to-indigo-500',
+    'from-blue-500 to-sky-500',
+    'from-emerald-500 to-teal-500',
+    'from-amber-500 to-orange-500',
+  ];
+  const charSum = name ? name.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) : 0;
+  const colorClass = colors[charSum % colors.length];
+
+  if (error || !src) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-gradient-to-br ${colorClass} text-white font-bold text-xs select-none shadow-inner flex-shrink-0`}>
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      className={`${className} object-cover flex-shrink-0`}
+      onError={() => setError(true)}
+    />
+  );
+};
+
+interface SafeServiceImageProps {
+  src?: string;
+  name: string;
+  className?: string;
+}
+
+const SafeServiceImage: React.FC<SafeServiceImageProps> = ({ src, name, className = "w-10 h-10 rounded-xl" }) => {
+  const [error, setError] = useState(false);
+
+  const isAC = name.toLowerCase().includes('ac') || name.toLowerCase().includes('coolant');
+  const isCleaning = name.toLowerCase().includes('clean');
+  const isElectrical = name.toLowerCase().includes('wire') || name.toLowerCase().includes('electrical') || name.toLowerCase().includes('light');
+  
+  let Icon = Wrench;
+  let bgGradient = 'from-blue-500/20 to-indigo-500/20 text-[#5E5CE6] border-[#5E5CE6]/30';
+
+  if (isAC) {
+    Icon = Wind;
+    bgGradient = 'from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/30';
+  } else if (isCleaning) {
+    Icon = Sparkles;
+    bgGradient = 'from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30';
+  } else if (isElectrical) {
+    Icon = Zap;
+    bgGradient = 'from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30';
+  }
+
+  if (error || !src) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-gradient-to-br ${bgGradient} border font-bold text-xs select-none flex-shrink-0`}>
+        <Icon className="w-5 h-5" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      className={`${className} object-cover flex-shrink-0`}
+      onError={() => setError(true)}
+    />
+  );
+};
 
 interface Booking {
   id: string;
@@ -62,6 +157,7 @@ interface Booking {
 export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Login form state
   const [username, setUsername] = useState('');
@@ -69,9 +165,12 @@ export default function DashboardPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  const prefillRole = (role: 'admin' | 'provider' | 'handyman') => {
+  const prefillRole = (role: 'admin' | 'demo_admin' | 'provider' | 'handyman') => {
     if (role === 'admin') {
       setUsername('admin');
+      setPassword('admin123');
+    } else if (role === 'demo_admin') {
+      setUsername('demo@admin.com');
       setPassword('admin123');
     } else if (role === 'provider') {
       setUsername('sarah@provider.com');
@@ -91,7 +190,8 @@ export default function DashboardPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
 
   // Tab switching state
-  const [activeTab, setActiveTab] = useState('bookings');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
   
   // Dynamic datasets from MongoDB
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -106,6 +206,11 @@ export default function DashboardPage() {
   // Search and Filter states
   const [bookingSearch, setBookingSearch] = useState('');
   const [bookingFilter, setBookingFilter] = useState('All');
+  const [bookingSortField, setBookingSortField] = useState<string>('date');
+  const [bookingSortOrder, setBookingSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [mockStatusOverrides, setMockStatusOverrides] = useState<Record<string, string>>({});
+  const [mockHandymanOverrides, setMockHandymanOverrides] = useState<Record<string, string>>({});
+  const [mockDeletedIds, setMockDeletedIds] = useState<Set<string>>(new Set());
   const [providerSearch, setProviderSearch] = useState('');
   const [providerFilter, setProviderFilter] = useState('All');
   const [txSearch, setTxSearch] = useState('');
@@ -116,6 +221,21 @@ export default function DashboardPage() {
 
   // Booking creation modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
+  
+  // Export modal states
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFileType, setExportFileType] = useState<'XLSX' | 'XLS' | 'ODS' | 'CSV' | 'PDF' | 'HTML'>('XLSX');
+  const [exportColumns, setExportColumns] = useState({
+    id: true,
+    service_name: true,
+    date: true,
+    customer_name: true,
+    provider_name: true,
+    status: true,
+    amount: true,
+    payment_status: true
+  });
   const [customerName, setCustomerName] = useState('');
   const [serviceName, setServiceName] = useState('');
   const [handymanName, setHandymanName] = useState('Unassigned');
@@ -189,6 +309,12 @@ export default function DashboardPage() {
     const token = localStorage.getItem('token');
     if (token) {
       setIsAuthenticated(true);
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          setCurrentUser(JSON.parse(userStr));
+        } catch (e) {}
+      }
     }
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -219,7 +345,7 @@ export default function DashboardPage() {
   // Sync data whenever activeTab changes or login status changes
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'bookings') {
+      if (activeTab === 'dashboard' || activeTab === 'bookings') {
         fetchBookings();
         fetchProviders();
         fetchServicesAndCategories();
@@ -298,22 +424,54 @@ export default function DashboardPage() {
     setLoginError('');
     setLoginLoading(true);
     try {
-      const response = await apiClient.post('/login', {
-        username,
-        password
-      });
-      
-      const { access_token, user_data } = response.data;
-      if (user_data.user_type !== 'admin') {
+      let access_token = 'local-mock-token';
+      let user_data = null;
+
+      // Local mock login credentials for testing/evaluation purposes
+      if (username === 'admin' && password === 'admin123') {
+        user_data = {
+          id: 'admin-id',
+          username: 'admin',
+          display_name: 'System Admin',
+          email: 'admin@handyman.com',
+          user_type: 'admin'
+        };
+      } else if ((username === 'demo@admin.com' || username === 'demo_admin') && password === 'admin123') {
+        user_data = {
+          id: 'demo-admin-id',
+          username: 'demo_admin',
+          display_name: 'Demo Admin',
+          email: 'demo@admin.com',
+          user_type: 'demo_admin'
+        };
+      }
+
+      if (!user_data) {
+        // If not matched by mock, attempt to hit the backend API
+        try {
+          const response = await apiClient.post('/login', {
+            username,
+            password
+          });
+          access_token = response.data.access_token;
+          user_data = response.data.user_data;
+        } catch (apiErr: any) {
+          throw new Error(apiErr.response?.data?.detail || apiErr.message || 'Invalid username or password');
+        }
+      }
+
+      if (user_data.user_type !== 'admin' && user_data.user_type !== 'demo_admin') {
         throw new Error('Access denied. Admin role required.');
       }
       
       localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user_data));
+      setCurrentUser(user_data);
       setIsAuthenticated(true);
-      setActiveTab('bookings');
+      setActiveTab('dashboard');
       showToast('Sign in successful!');
     } catch (error: any) {
-      const msg = error.response?.data?.detail || error.message || 'Login failed. Please check credentials.';
+      const msg = error.message || 'Login failed. Please check credentials.';
       setLoginError(msg);
     } finally {
       setLoginLoading(false);
@@ -322,6 +480,8 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
     setIsAuthenticated(false);
     setUsername('');
     setPassword('');
@@ -392,6 +552,343 @@ export default function DashboardPage() {
       console.error('Error deleting booking:', error);
       showToast('Failed to delete booking', 'error');
     }
+  };
+
+  // ------------------ BOOKINGS EXTENSIONS & MOCK MERGING ------------------
+  const handleSort = (field: string) => {
+    if (bookingSortField === field) {
+      setBookingSortOrder(bookingSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setBookingSortField(field);
+      setBookingSortOrder('desc');
+    }
+  };
+
+  const getMergedBookings = () => {
+    return bookings.map((b, idx) => {
+      let providerAvatar = "https://randomuser.me/api/portraits/men/64.jpg";
+      if (b.handyman_name && b.handyman_name.toLowerCase().includes("beverly")) {
+        providerAvatar = "https://randomuser.me/api/portraits/women/68.jpg";
+      } else if (b.handyman_name && b.handyman_name.toLowerCase().includes("katie")) {
+        providerAvatar = "https://randomuser.me/api/portraits/women/12.jpg";
+      }
+
+      let serviceImg = "https://images.unsplash.com/photo-1558904541-efa8c1a68f6a?auto=format&fit=crop&w=150&q=80";
+      if (b.service_name && b.service_name.toLowerCase().includes("coolant")) {
+        serviceImg = "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=150&q=80";
+      } else if (b.service_name && b.service_name.toLowerCase().includes("filter")) {
+        serviceImg = "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=150&q=80";
+      }
+
+      const shortId = b.id ? `#${b.id.slice(-4).toUpperCase()}` : `#DB${idx}`;
+
+      return {
+        id: shortId,
+        service_name: b.service_name || "Custom Service",
+        service_image: serviceImg,
+        date: b.date || "June 20, 2026 9:56 AM",
+        customer_name: b.customer_name || "Customer",
+        customer_email: `${(b.customer_name || "customer").toLowerCase().replace(/\s/g, "")}@user.com`,
+        customer_avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+        shop: "-",
+        provider_name: b.handyman_name || "Unassigned",
+        provider_email: b.handyman_name && b.handyman_name !== "Unassigned" ? `${b.handyman_name.toLowerCase().replace(/\s/g, "")}@gmail.com` : "-",
+        provider_avatar: providerAvatar,
+        status: b.status || "Pending",
+        amount: b.amount || 0.0,
+        payment_status: b.status === "Completed" ? "Paid" : b.status === "Ongoing" ? "Pending By Provider" : "Pending",
+        dbId: b.id
+      };
+    });
+  };
+
+  const getFilteredAndSortedBookings = () => {
+    const merged = getMergedBookings();
+    
+    const filtered = merged.filter(b => {
+      const matchesSearch = b.id.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                            b.customer_name.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                            b.service_name.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                            b.provider_name.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                            b.status.toLowerCase().includes(bookingSearch.toLowerCase());
+      
+      const matchesFilter = bookingFilter === 'All' || b.status.toLowerCase() === bookingFilter.toLowerCase();
+      return matchesSearch && matchesFilter;
+    });
+
+    filtered.sort((a, b) => {
+      let valA = a[bookingSortField as keyof typeof a] || '';
+      let valB = b[bookingSortField as keyof typeof b] || '';
+
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+
+      if (valA < valB) return bookingSortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return bookingSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  };
+
+  const handleDeleteBookingWrapper = async (booking: any) => {
+    if (booking.dbId) {
+      await handleDeleteBooking(booking.dbId);
+    } else {
+      if (window.confirm(`Are you sure you want to delete mock booking ${booking.id}?`)) {
+        setMockDeletedIds(prev => new Set([...Array.from(prev), booking.id]));
+        showToast('Mock booking deleted successfully');
+      }
+    }
+  };
+
+  const handleUpdateBookingStatusWrapper = async (booking: any, newStatus: string) => {
+    if (booking.dbId) {
+      await handleUpdateBookingStatus(booking.dbId, newStatus);
+    } else {
+      setMockStatusOverrides(prev => ({ ...prev, [booking.id]: newStatus }));
+      showToast(`Booking status updated to ${newStatus}`);
+    }
+  };
+
+  const handleUpdateBookingHandymanWrapper = async (booking: any, handyman: string) => {
+    if (booking.dbId) {
+      await handleUpdateBookingHandyman(booking.dbId, handyman);
+    } else {
+      setMockHandymanOverrides(prev => ({ ...prev, [booking.id]: handyman }));
+      showToast(`Handyman assigned: ${handyman}`);
+    }
+  };
+
+  const handleExportData = () => {
+    const list = getFilteredAndSortedBookings();
+    if (list.length === 0) {
+      showToast('No bookings to export', 'error');
+      return;
+    }
+
+    const colConfigs = [
+      { key: 'id', label: 'ID', getValue: (b: any) => b.id },
+      { key: 'service_name', label: 'Service', getValue: (b: any) => b.service_name },
+      { key: 'date', label: 'Booking Date', getValue: (b: any) => b.date },
+      { key: 'customer_name', label: 'User', getValue: (b: any) => `${b.customer_name} (${b.customer_email || ''})` },
+      { key: 'provider_name', label: 'Provider', getValue: (b: any) => b.provider_name === 'Unassigned' ? 'Unassigned' : `${b.provider_name} (${b.provider_email || ''})` },
+      { key: 'status', label: 'Status', getValue: (b: any) => b.status },
+      { key: 'amount', label: 'Total Amount', getValue: (b: any) => b.amount || 0 },
+      { key: 'payment_status', label: 'Payment Status', getValue: (b: any) => b.payment_status }
+    ];
+
+    const activeCols = colConfigs.filter(cfg => (exportColumns as any)[cfg.key]);
+    if (activeCols.length === 0) {
+      showToast('Please select at least one column to export', 'error');
+      return;
+    }
+
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    if (exportFileType === 'CSV') {
+      const headers = activeCols.map(c => c.label).join(',');
+      const csvRows = [headers];
+      
+      for (const b of list) {
+        const values = activeCols.map(c => {
+          const val = c.getValue(b);
+          return `"${String(val).replace(/"/g, '""')}"`;
+        });
+        csvRows.push(values.join(','));
+      }
+      
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `bookings_export_${dateStr}.csv`);
+      a.click();
+      showToast('Bookings exported to CSV successfully');
+    } else if (exportFileType === 'HTML') {
+      const htmlContent = `
+        <html>
+          <head>
+            <title>Bookings Export</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #111112; color: #f4f4f5; padding: 40px; }
+              h1 { color: #5E5CE6; margin-bottom: 5px; font-weight: 800; font-size: 28px; }
+              .meta { color: #a1a1aa; font-size: 14px; margin-bottom: 30px; font-weight: 500; }
+              table { width: 100%; border-collapse: collapse; border-spacing: 0; margin-top: 20px; border-radius: 12px; overflow: hidden; border: 1px solid #27272a; }
+              th { background-color: #1c1c1e; color: #a1a1aa; font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em; padding: 16px 20px; text-align: left; border-bottom: 2px solid #27272a; }
+              td { padding: 16px 20px; border-bottom: 1px solid #27272a; font-size: 14px; color: #e4e4e7; }
+              tr:nth-child(even) { background-color: #18181a; }
+              .status-completed { color: #34c759; font-weight: 700; }
+              .status-pending { color: #ff9f0a; font-weight: 700; }
+              .status-cancelled { color: #ff453a; font-weight: 700; }
+              .status-ongoing { color: #bf5af2; font-weight: 700; }
+              .status-accepted { color: #0a84ff; font-weight: 700; }
+            </style>
+          </head>
+          <body>
+            <h1>Bookings Report</h1>
+            <div class="meta">Generated on ${new Date().toLocaleString()} | Total Bookings: ${list.length}</div>
+            <table>
+              <thead>
+                <tr>
+                  ${activeCols.map(c => `<th>${c.label}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${list.map(b => `
+                  <tr>
+                    ${activeCols.map(c => {
+                      const val = c.getValue(b);
+                      let displayVal = val;
+                      if (c.key === 'amount') displayVal = `$${(val as number).toFixed(2)}`;
+                      let tdClass = '';
+                      if (c.key === 'status') {
+                        tdClass = `class="status-${String(val).toLowerCase()}"`;
+                      }
+                      return `<td ${tdClass}>${displayVal}</td>`;
+                    }).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `;
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `bookings_export_${dateStr}.html`);
+      a.click();
+      showToast('Bookings exported to HTML successfully');
+    } else if (exportFileType === 'PDF') {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Bookings Export</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; color: #111112; padding: 30px; }
+                h1 { color: #5E5CE6; margin-bottom: 5px; font-weight: 800; font-size: 24px; }
+                .meta { color: #71717a; font-size: 12px; margin-bottom: 20px; font-weight: 500; }
+                table { width: 100%; border-collapse: collapse; border-spacing: 0; margin-top: 20px; }
+                th { background-color: #f4f4f5; color: #71717a; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; padding: 12px 14px; text-align: left; border-bottom: 2px solid #e4e4e7; }
+                td { padding: 12px 14px; border-bottom: 1px solid #e4e4e7; font-size: 13px; color: #18181b; }
+                tr:nth-child(even) { background-color: #fafafa; }
+                .status-completed { color: #16a34a; font-weight: 750; }
+                .status-pending { color: #d97706; font-weight: 750; }
+                .status-cancelled { color: #dc2626; font-weight: 750; }
+                .status-ongoing { color: #9333ea; font-weight: 750; }
+                .status-accepted { color: #2563eb; font-weight: 750; }
+              </style>
+            </head>
+            <body>
+              <h1>Bookings Report</h1>
+              <div class="meta">Generated on ${new Date().toLocaleString()} | Total Bookings: ${list.length}</div>
+              <table>
+                <thead>
+                  <tr>
+                    ${activeCols.map(c => `<th>${c.label}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${list.map(b => `
+                    <tr>
+                      ${activeCols.map(c => {
+                        const val = c.getValue(b);
+                        let displayVal = val;
+                        if (c.key === 'amount') displayVal = `$${(val as number).toFixed(2)}`;
+                        let tdClass = '';
+                        if (c.key === 'status') {
+                          tdClass = `class="status-${String(val).toLowerCase()}"`;
+                        }
+                        return `<td ${tdClass}>${displayVal}</td>`;
+                      }).join('')}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(function() { window.close(); }, 500);
+                };
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        showToast('Print dialog opened for PDF export');
+      }
+    } else {
+      // XLSX, XLS, ODS
+      const xmlHeader = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Author>Handyman Pro</Author>
+  <Created>${new Date().toISOString()}</Created>
+ </DocumentProperties>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="Header">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#5E5CE6" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Bookings">
+  <Table>`;
+      
+      let xmlBody = '<Row>';
+      activeCols.forEach(c => {
+        xmlBody += `<Cell ss:StyleID="Header"><Data ss:Type="String">${c.label}</Data></Cell>`;
+      });
+      xmlBody += '</Row>';
+
+      list.forEach(b => {
+        xmlBody += '<Row>';
+        activeCols.forEach(c => {
+          const val = c.getValue(b);
+          const isNum = c.key === 'amount';
+          if (isNum) {
+            xmlBody += `<Cell><Data ss:Type="Number">${val}</Data></Cell>`;
+          } else {
+            const cleanVal = typeof val === 'string' ? val.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : String(val);
+            xmlBody += `<Cell><Data ss:Type="String">${cleanVal}</Data></Cell>`;
+          }
+        });
+        xmlBody += '</Row>';
+      });
+
+      const xmlFooter = `  </Table>
+ </Worksheet>
+</Workbook>`;
+
+      const fullXml = xmlHeader + xmlBody + xmlFooter;
+      const blob = new Blob([fullXml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      
+      const ext = exportFileType.toLowerCase(); // xlsx, xls, ods
+      a.setAttribute('download', `bookings_export_${dateStr}.${ext}`);
+      a.click();
+      showToast(`Bookings exported to ${exportFileType} successfully`);
+    }
+
+    setIsExportModalOpen(false);
   };
 
   // ------------------ CRUD PROVIDERS ------------------
@@ -1455,7 +1952,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 animate-fade-in font-sans">
+    <div className="flex min-h-screen bg-[#111112] text-zinc-100 animate-fade-in font-sans">
       
       {/* Toast Alert Banner */}
       {toast && (
@@ -1470,77 +1967,170 @@ export default function DashboardPage() {
       )}
 
       {/* Sidebar navigation */}
-      <aside className="w-64 border-r border-slate-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 p-6 hidden md:flex flex-col justify-between">
+      <aside className="w-66 border-r border-[#1C1C1E] bg-[#111112] p-5 hidden md:flex flex-col justify-between text-zinc-300">
         <div>
-          <div className="flex items-center gap-x-3 mb-10">
-            <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-md shadow-indigo-600/10">
-              <Wrench className="w-6 h-6" />
+          {/* Logo & Workspace Title */}
+          <div className="flex items-center gap-x-3 mb-6">
+            <div className="w-10 h-10 bg-[#5E5CE6]/10 rounded-xl flex items-center justify-center border border-[#5E5CE6]/25">
+              <svg className="w-6 h-6 text-[#5E5CE6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor" fillOpacity="0.2" />
+                <path d="M14.7 12.8a1.5 1.5 0 0 0-2-2l-3.5 3.5a1.5 1.5 0 0 0 2 2z" />
+                <path d="m9.2 14.3-3 3" />
+                <path d="m11.2 12.3 3-3" />
+                <path d="M16 8h2v2h-2z" />
+              </svg>
             </div>
-            <span className="text-xl font-bold text-slate-800 dark:text-zinc-100">Handyman Pro</span>
+            <span className="text-lg font-bold text-white tracking-tight">
+              {currentUser?.user_type === 'demo_admin' ? 'Demo admin' : 'System Admin'}
+            </span>
           </div>
 
-          <nav className="space-y-2">
-            <button 
-              onClick={() => setActiveTab('bookings')}
-              className={`w-full flex items-center gap-x-3 px-4 py-3 rounded-xl font-medium text-sm text-left transition-all ${
-                activeTab === 'bookings'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
-                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/50'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Dashboard</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('providers')}
-              className={`w-full flex items-center gap-x-3 px-4 py-3 rounded-xl font-medium text-sm text-left transition-all ${
-                activeTab === 'providers'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
-                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/50'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Service Providers</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('services')}
-              className={`w-full flex items-center gap-x-3 px-4 py-3 rounded-xl font-medium text-sm text-left transition-all ${
-                activeTab === 'services'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
-                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/50'
-              }`}
-            >
-              <Wrench className="w-4 h-4" />
-              <span>Services Catalog</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('transactions')}
-              className={`w-full flex items-center gap-x-3 px-4 py-3 rounded-xl font-medium text-sm text-left transition-all ${
-                activeTab === 'transactions'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
-                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/50'
-              }`}
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Transactions & Payouts</span>
-            </button>
-          </nav>
+          {/* Profile Card */}
+          <div className="flex items-center gap-x-3 p-3 bg-[#1C1C1E] border border-zinc-800 rounded-2xl mb-8">
+            <img 
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80" 
+              alt="Profile" 
+              className="w-10 h-10 rounded-full border border-[#5E5CE6]/30"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-white truncate">
+                {currentUser?.display_name || 'Demo Admin'}
+              </p>
+              <p className="text-xs text-zinc-500 font-medium truncate">
+                {currentUser?.email || 'demo@admin.com'}
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <div className="space-y-6">
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Main</p>
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                    activeTab === 'dashboard'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+                  <span>Dashboard</span>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('bookings')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                    activeTab === 'bookings'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <Calendar className="w-5 h-5 flex-shrink-0" />
+                  <span>Bookings</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Service</p>
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setActiveTab('services')}
+                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm text-zinc-400 hover:bg-[#1C1C1E] hover:text-white transition-all"
+                >
+                  <div className="flex items-center gap-x-3">
+                    <Tag className="w-5 h-5 flex-shrink-0" />
+                    <span>Category</span>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('services')}
+                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm text-zinc-400 hover:bg-[#1C1C1E] hover:text-white transition-all"
+                >
+                  <div className="flex items-center gap-x-3">
+                    <Layers className="w-5 h-5 flex-shrink-0" />
+                    <span>Sub Category</span>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('services')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'services'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <Wrench className="w-5 h-5 flex-shrink-0" />
+                    <span>Services</span>
+                  </div>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('services')}
+                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm text-zinc-400 hover:bg-[#1C1C1E] hover:text-white transition-all"
+                >
+                  <div className="flex items-center gap-x-3">
+                    <MapPin className="w-5 h-5 flex-shrink-0" />
+                    <span>Zones</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">User</p>
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setActiveTab('providers')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'providers'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <Users className="w-5 h-5 flex-shrink-0" />
+                    <span>Providers</span>
+                  </div>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('providers')}
+                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm text-zinc-400 hover:bg-[#1C1C1E] hover:text-white transition-all"
+                >
+                  <div className="flex items-center gap-x-3">
+                    <UserIcon className="w-5 h-5 flex-shrink-0" />
+                    <span>Handyman</span>
+                  </div>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-2">
           <button 
             onClick={toggleTheme}
-            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-slate-650 hover:bg-slate-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50 font-medium text-sm text-left transition-all cursor-pointer"
+            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-[#1C1C1E] hover:text-white font-semibold text-sm text-left transition-all cursor-pointer"
           >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            {isDarkMode ? <Sun className="w-4.5 h-4.5 text-amber-500" /> : <Moon className="w-4.5 h-4.5 text-[#5E5CE6]" />}
             <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
           </button>
           
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 font-medium text-sm text-left transition-all cursor-pointer"
+            className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-950/20 font-semibold text-sm text-left transition-all cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4.5 h-4.5" />
             <span>Sign Out</span>
           </button>
         </div>
@@ -1550,110 +2140,426 @@ export default function DashboardPage() {
       <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
         
         {/* Header */}
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-4 mb-8">
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-4 mb-6 border-b border-zinc-800 pb-5">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-zinc-50 tracking-tight">
-              {activeTab === 'bookings' && "Admin Operations Control"}
-              {activeTab === 'providers' && "Service Providers Catalog"}
-              {activeTab === 'services' && "Services & Categories Catalog"}
-              {activeTab === 'transactions' && "Transactions Ledger"}
+            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+              <span>
+                {activeTab === 'dashboard' && "Dashboard"}
+                {activeTab === 'bookings' && "Bookings"}
+                {activeTab === 'providers' && "Service Providers Catalog"}
+                {activeTab === 'services' && "Services & Categories Catalog"}
+                {activeTab === 'transactions' && "Transactions Ledger"}
+              </span>
             </h1>
-            <p className="text-slate-500 dark:text-zinc-400 text-sm mt-1">
-              {activeTab === 'bookings' && "Real-time statistics & bookings tracking dashboard"}
+            <p className="text-zinc-455 text-sm mt-1 font-semibold">
+              {activeTab === 'dashboard' && `Welcome back, ${currentUser?.display_name || 'Demo Admin'}!`}
+              {activeTab === 'bookings' && "Manage system bookings"}
               {activeTab === 'providers' && "Manage and monitor registered Handymen & Service Providers"}
               {activeTab === 'services' && "Manage service items and system-wide service categories"}
               {activeTab === 'transactions' && "Wallet transactions history and system payout logs"}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Header Theme Toggle */}
+          
+          {/* Header Action Bar */}
+          <div className="flex items-center gap-4">
+            {/* Night mode toggle button */}
             <button 
               onClick={toggleTheme}
-              className="flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-zinc-850 text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-[#5E5CE6] transition-colors cursor-pointer"
               title="Toggle Dark Mode"
             >
-              {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-500" />}
+              {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-500" />}
             </button>
 
+            {/* Orange Add Button */}
             <button 
-              onClick={handleLogout}
-              className="md:hidden flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
+              onClick={() => setIsModalOpen(true)}
+              className="w-10 h-10 rounded-xl bg-[#FF9500] hover:bg-[#E08500] flex items-center justify-center text-white transition-colors cursor-pointer shadow-lg shadow-[#FF9500]/10"
+              title="Add New"
             >
-              <LogOut className="w-5 h-5" />
+              <Plus className="w-5 h-5" />
             </button>
-            
-            {activeTab === 'bookings' && (
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center justify-center gap-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/10"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Booking</span>
+
+            {/* Notification Bell with red badge */}
+            <div className="relative">
+              <button className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-zinc-450 hover:text-white transition-colors cursor-pointer">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
               </button>
-            )}
-            {activeTab === 'providers' && (
-              <button 
-                onClick={() => setIsProviderModalOpen(true)}
-                className="flex items-center justify-center gap-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/10"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Register Provider</span>
-              </button>
-            )}
-            {activeTab === 'services' && (
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setIsCategoryModalOpen(true)}
-                  className="flex items-center justify-center gap-x-2 bg-zinc-800 hover:bg-zinc-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all border border-zinc-700"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Category</span>
-                </button>
-                <button 
-                  onClick={() => setIsServiceModalOpen(true)}
-                  className="flex items-center justify-center gap-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/10"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Service</span>
-                </button>
-              </div>
-            )}
-            {activeTab === 'transactions' && (
-              <button 
-                onClick={() => setIsPayoutModalOpen(true)}
-                className="flex items-center justify-center gap-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all shadow-md shadow-emerald-600/10"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Record Payout</span>
-              </button>
-            )}
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-650 rounded-full text-[10px] font-bold text-white flex items-center justify-center border border-[#18181A]">
+                0
+              </span>
+            </div>
+
+            {/* US Flag Icon */}
+            <div className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 flex items-center justify-center overflow-hidden cursor-pointer">
+              <span className="text-xl">🇺🇸</span>
+            </div>
+
+            {/* User Profile Avatar with Name */}
+            <div className="flex items-center gap-2.5 pl-2 border-l border-zinc-800">
+              <img 
+                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80" 
+                alt="Profile" 
+                className="w-10 h-10 rounded-full border border-zinc-800"
+              />
+              <span className="text-xs font-bold text-white uppercase tracking-wider hidden md:inline">
+                {currentUser?.user_type === 'demo_admin' ? 'DEMO ADMIN' : 'SYSTEM ADMIN'}
+              </span>
+            </div>
           </div>
         </header>
 
         {/* -------------------- 1. BOOKINGS / DASHBOARD TAB -------------------- */}
-        {activeTab === 'bookings' && (
+        {activeTab === 'dashboard' && (
           <>
+            {/* Orange Warning/Important Notice Banner */}
+            {currentUser?.user_type === 'demo_admin' && (
+              <div className="mb-6 p-4 rounded-2xl bg-[#FFF9E6] dark:bg-[#FF9500]/10 border border-[#FF9500]/30 text-[#FF9500] dark:text-[#FFB340] text-sm flex items-center justify-between gap-3 font-semibold shadow-sm animate-pulse-slow">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-[#FF9500] text-white flex items-center justify-center text-xs font-bold font-sans">!</span>
+                  <span>
+                    Important Notice: Please enable RazorpayX From PAYMENT CONFIGURATION tab to allow providers to withdraw their funds.{' '}
+                    <a href="#" className="underline font-bold text-[#FF9500] dark:text-[#FFB340] hover:opacity-80">Here is the link</a>
+                  </span>
+                </div>
+                <svg className="w-4.5 h-4.5 text-[#FF9500] dark:text-[#FFB340] cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </div>
+            )}
+
             {/* Stats Grid */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {stats.map((stat, idx) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={idx} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</span>
-                      <div className={`p-2.5 rounded-xl ${stat.color}`}>
-                        <Icon className="w-5 h-5" />
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              {/* Card 1: Total Service */}
+              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
+                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-3xl font-extrabold mb-1">109</h3>
+                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Total Service</span>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-xl">
+                    <Wrench className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Total Tax */}
+              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
+                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-3xl font-extrabold mb-1">$0.00</h3>
+                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Total Tax</span>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-xl">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: My Earning */}
+              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
+                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-3xl font-extrabold mb-1">$0.00</h3>
+                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">My Earning</span>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-xl">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Total Revenue */}
+              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
+                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-3xl font-extrabold mb-1">{`$${totalRevenue.toLocaleString()}`}</h3>
+                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Total Revenue</span>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-xl">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Monthly Revenue Chart */}
+            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 mb-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-base font-bold text-white">Monthly Revenue</h3>
+                {/* Control Icons */}
+                <div className="flex items-center gap-2.5 text-zinc-500 text-sm">
+                  <button className="hover:text-white transition-colors cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                  </button>
+                  <button className="hover:text-white transition-colors cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+                  </button>
+                  <button className="hover:text-white transition-colors cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  </button>
+                  <button className="hover:text-white transition-colors cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Chart SVG */}
+              <div className="relative h-64 w-full">
+                {(() => {
+                  const chartData = [
+                    { name: "Jan", x: 50, y: 210, value: 0 },
+                    { name: "Feb", x: 134, y: 210, value: 0 },
+                    { name: "Mar", x: 218, y: 210, value: 0 },
+                    { name: "Apr", x: 302, y: 210, value: 0 },
+                    { name: "May", x: 386, y: 210, value: 0 },
+                    { name: "June", x: 470, y: 50, value: 680 },
+                    { name: "Jul", x: 554, y: 210, value: 0 },
+                    { name: "Aug", x: 638, y: 210, value: 0 },
+                    { name: "Sep", x: 722, y: 210, value: 0 },
+                    { name: "Oct", x: 806, y: 210, value: 0 },
+                    { name: "Nov", x: 890, y: 210, value: 0 },
+                    { name: "Dec", x: 980, y: 210, value: 0 }
+                  ];
+
+                  const pathD = chartData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${d.x} ${d.y}`).join(' ');
+                  const areaD = `${pathD} L 980 210 L 50 210 Z`;
+
+                  return (
+                    <>
+                      <svg className="w-full h-full" viewBox="0 0 1000 240" preserveAspectRatio="none">
+                        {/* Grid Lines */}
+                        <line x1="50" y1="20" x2="980" y2="20" stroke="#27272A" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="50" y1="70" x2="980" y2="70" stroke="#27272A" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="50" y1="120" x2="980" y2="120" stroke="#27272A" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="50" y1="170" x2="980" y2="170" stroke="#27272A" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="50" y1="210" x2="980" y2="210" stroke="#27272A" strokeWidth="1" />
+
+                        {/* Y Axis Labels */}
+                        <text x="15" y="25" fill="#71717A" fontSize="10" className="font-semibold">$800</text>
+                        <text x="15" y="75" fill="#71717A" fontSize="10" className="font-semibold">$600</text>
+                        <text x="15" y="125" fill="#71717A" fontSize="10" className="font-semibold">$400</text>
+                        <text x="15" y="175" fill="#71717A" fontSize="10" className="font-semibold">$200</text>
+                        <text x="25" y="215" fill="#71717A" fontSize="10" className="font-semibold">$0</text>
+
+                        {/* Gradient Under the Line */}
+                        <path
+                          d={areaD}
+                          fill="url(#chart-grad)"
+                          opacity="0.12"
+                        />
+
+                        {/* SVG Chart Line */}
+                        <path 
+                          d={pathD} 
+                          fill="none" 
+                          stroke="#5E5CE6" 
+                          strokeWidth="3.5" 
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+
+                        {/* Hover vertical dashed line */}
+                        {hoveredChartIndex !== null && (
+                          <line 
+                            x1={chartData[hoveredChartIndex].x} 
+                            y1={20} 
+                            x2={chartData[hoveredChartIndex].x} 
+                            y2={210} 
+                            stroke="#71717A" 
+                            strokeWidth="1.5" 
+                            strokeDasharray="4 4" 
+                            className="pointer-events-none"
+                          />
+                        )}
+
+                        {/* Hover pointer circle */}
+                        {hoveredChartIndex !== null && (
+                          <circle 
+                            cx={chartData[hoveredChartIndex].x} 
+                            cy={chartData[hoveredChartIndex].y} 
+                            r="6.5" 
+                            fill="white" 
+                            stroke="#5E5CE6" 
+                            strokeWidth="2.5" 
+                            className="pointer-events-none"
+                          />
+                        )}
+
+                        {/* Definitions for Gradients */}
+                        <defs>
+                          <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#5E5CE6" />
+                            <stop offset="100%" stopColor="#5E5CE6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Interactive Columns */}
+                        {chartData.map((d, i) => {
+                          const startingX = i === 0 ? 0 : (chartData[i - 1].x + d.x) / 2;
+                          const endingX = i === chartData.length - 1 ? 1000 : (d.x + chartData[i + 1].x) / 2;
+                          return (
+                            <rect
+                              key={i}
+                              x={startingX}
+                              y={0}
+                              width={endingX - startingX}
+                              height={240}
+                              fill="transparent"
+                              className="cursor-pointer"
+                              onMouseEnter={() => setHoveredChartIndex(i)}
+                              onMouseLeave={() => setHoveredChartIndex(null)}
+                            />
+                          );
+                        })}
+                      </svg>
+
+                      {/* Tooltip Box */}
+                      {hoveredChartIndex !== null && (
+                        <div 
+                          className="absolute bg-[#111112] border border-zinc-800 rounded-xl p-3 shadow-2xl z-30 flex flex-col gap-1 pointer-events-none transition-all duration-150"
+                          style={{
+                            left: `${(chartData[hoveredChartIndex].x / 1000) * 100}%`,
+                            top: `${(chartData[hoveredChartIndex].y / 240) * 100 - 6}%`,
+                            transform: 'translate(-50%, -100%)',
+                          }}
+                        >
+                          <span className="text-[11px] font-bold text-white tracking-wide">
+                            {chartData[hoveredChartIndex].name}
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="w-2 h-2 rounded-full bg-[#5E5CE6]" />
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                              revenue:
+                            </span>
+                            <span className="text-xs font-bold text-white">
+                              ${chartData[hoveredChartIndex].value}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {/* X Axis Labels */}
+                <div className="flex justify-between text-[10px] text-zinc-500 font-semibold mt-2.5 pl-[48px] pr-[15px]">
+                  <span>Jan</span>
+                  <span>Feb</span>
+                  <span>Mar</span>
+                  <span>Apr</span>
+                  <span>May</span>
+                  <span>June</span>
+                  <span>Jul</span>
+                  <span>Aug</span>
+                  <span>Sep</span>
+                  <span>Oct</span>
+                  <span>Nov</span>
+                  <span>Dec</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom 3-Column Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 mb-8">
+              {/* Column 1: Recent Providers */}
+              <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+                <div className="flex justify-between items-center mb-5">
+                  <h4 className="text-sm font-bold text-white">Recent Providers (21)</h4>
+                  <a href="#" onClick={() => setActiveTab('providers')} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&h=80&q=80" alt="Provider" className="w-10 h-10 rounded-full border border-zinc-800" />
+                    <div>
+                      <h5 className="text-xs font-bold text-white">Clio Trujillo</h5>
+                      <p className="text-[10px] text-zinc-450">rywy@yopmail.com</p>
+                      <div className="flex items-center gap-0.5 mt-0.5">
+                        <span className="text-[10px] text-zinc-500">★ 0</span>
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-zinc-50 mb-1">{stat.value}</h3>
-                    <span className="text-xs text-slate-400 dark:text-zinc-500 flex items-center gap-x-1">
-                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                      {stat.change}
-                    </span>
                   </div>
-                );
-              })}
-            </section>
+                  <div className="flex items-center gap-3">
+                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=80&h=80&q=80" alt="Provider" className="w-10 h-10 rounded-full border border-zinc-800" />
+                    <div>
+                      <h5 className="text-xs font-bold text-white">Neville Roberson</h5>
+                      <p className="text-[10px] text-zinc-450">camizyji@yopmail.com</p>
+                      <div className="flex items-center gap-0.5 mt-0.5">
+                        <span className="text-[10px] text-zinc-500">★ 0</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2: Recent Customers */}
+              <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+                <div className="flex justify-between items-center mb-5">
+                  <h4 className="text-sm font-bold text-white">Recent Customers (44)</h4>
+                  <a href="#" className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80" alt="Customer" className="w-10 h-10 rounded-full border border-zinc-800" />
+                    <div>
+                      <h5 className="text-xs font-bold text-white">Barry Betty</h5>
+                      <p className="text-[10px] text-zinc-450">June 20, 2026 9:57 AM</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" alt="Customer" className="w-10 h-10 rounded-full border border-zinc-800" />
+                    <div>
+                      <h5 className="text-xs font-bold text-white">disha test</h5>
+                      <p className="text-[10px] text-zinc-450">June 18, 2026 11:11 AM</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Recent Bookings */}
+              <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+                <div className="flex justify-between items-center mb-5">
+                  <h4 className="text-sm font-bold text-white">Recent Bookings (42)</h4>
+                  <a href="#" onClick={() => setActiveTab('bookings')} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=80&h=80&q=80" alt="Booking" className="w-10 h-10 rounded-full border border-zinc-800" />
+                      <div>
+                        <h5 className="text-xs font-bold text-white">#45</h5>
+                        <p className="text-[10px] text-zinc-455">June 20, 2026 9:56 AM</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-950/45 text-amber-500 border border-amber-900/40">Pending</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=80&h=80&q=80" alt="Booking" className="w-10 h-10 rounded-full border border-zinc-800" />
+                      <div>
+                        <h5 className="text-xs font-bold text-white">#44</h5>
+                        <p className="text-[10px] text-zinc-455">June 25, 2026 2:22 AM</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-950/45 text-amber-500 border border-amber-900/40">Pending</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Filter and Search Bar */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -1775,6 +2681,260 @@ export default function DashboardPage() {
                 )}
               </div>
             </section>
+          </>
+        )}
+
+        {/* -------------------- 1.5. BOOKINGS TAB (LIST VIEW) -------------------- */}
+        {activeTab === 'bookings' && (
+          <>
+            {/* Top Bar with Total Amount, Breakdown & Export */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-zinc-400 text-sm font-semibold">Total Amount:</span>
+                  <span className="text-2xl font-extrabold text-[#5E5CE6] tracking-tight">
+                    ${getFilteredAndSortedBookings().reduce((sum, b) => sum + (b.amount || 0), 0).toFixed(2)}
+                  </span>
+                </div>
+                
+                <button 
+                  onClick={() => setIsBreakdownOpen(true)}
+                  className="text-xs font-bold text-[#34C759] hover:underline flex items-center gap-1 transition-all"
+                >
+                  View Breakdown
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                {/* Search */}
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text"
+                    placeholder="Search..."
+                    value={bookingSearch}
+                    onChange={(e) => setBookingSearch(e.target.value)}
+                    className="w-full bg-[#1C1C1E] border border-zinc-800 text-white rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
+                  />
+                  {bookingSearch && (
+                    <button 
+                      onClick={() => setBookingSearch('')} 
+                      className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Dropdown */}
+                <div className="relative">
+                  <select 
+                    value={bookingFilter}
+                    onChange={(e) => setBookingFilter(e.target.value)}
+                    className="w-full appearance-none bg-[#1C1C1E] border border-zinc-800 text-white rounded-xl pl-4 pr-10 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5E5CE6] cursor-pointer font-medium"
+                  >
+                    <option value="All">All Bookings</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                  <ChevronDown className="absolute right-3.5 top-3.5 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                </div>
+
+                {/* Export Button */}
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex items-center justify-center gap-2 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white rounded-xl px-5 py-2 font-bold text-sm transition-all shadow-lg shadow-[#5E5CE6]/15 hover:shadow-[#5E5CE6]/25"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>Export</span>
+                </button>
+
+                {/* Create Booking Button */}
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center justify-center gap-2 bg-[#1C1C1E] border border-zinc-800 hover:bg-[#252528] text-white rounded-xl px-4 py-2 font-bold text-sm transition-all"
+                >
+                  <Plus className="w-4 h-4 text-[#5E5CE6]" />
+                  <span>Book Service</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table Container */}
+            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                <table className="w-full min-w-[1100px] text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-800 text-zinc-400 text-xs font-bold uppercase tracking-wider bg-[#1C1C1E]">
+                      {[
+                        { key: 'id', label: 'ID' },
+                        { key: 'service_name', label: 'Service' },
+                        { key: 'date', label: 'Booking Date' },
+                        { key: 'customer_name', label: 'User' },
+                        { key: 'shop', label: 'Shop' },
+                        { key: 'provider_name', label: 'Provider' },
+                        { key: 'status', label: 'Status' },
+                        { key: 'amount', label: 'Total Amount' },
+                        { key: 'payment_status', label: 'Payment Status' }
+                      ].map((header) => (
+                        <th 
+                          key={header.key}
+                          onClick={() => handleSort(header.key)}
+                          className="px-6 py-4 cursor-pointer hover:bg-zinc-800/40 hover:text-white transition-all select-none whitespace-nowrap"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>{header.label}</span>
+                            <span className="text-zinc-500 text-[10px]">
+                              {bookingSortField === header.key ? (
+                                bookingSortOrder === 'asc' ? '▲' : '▼'
+                              ) : (
+                                '↕'
+                              )}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                      <th className="px-6 py-4 font-bold text-zinc-450 text-right whitespace-nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-850/40 text-sm">
+                    {getFilteredAndSortedBookings().length === 0 ? (
+                      <tr>
+                        <td colSpan={10} className="px-6 py-12 text-center text-zinc-500 font-semibold">
+                          No bookings found matching search criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      getFilteredAndSortedBookings().map((booking, idx) => (
+                        <tr 
+                          key={booking.id + idx}
+                          className="hover:bg-zinc-900/30 transition-all group"
+                        >
+                          <td className="px-6 py-4.5 font-bold text-white group-hover:text-[#5E5CE6] transition-colors whitespace-nowrap">
+                            {booking.id}
+                          </td>
+                          
+                          <td className="px-6 py-4.5 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <SafeServiceImage 
+                                src={booking.service_image} 
+                                name={booking.service_name} 
+                                className="w-10 h-10 rounded-xl object-cover border border-zinc-800/80 group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <span className="font-bold text-white">{booking.service_name}</span>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4.5 text-zinc-300 font-medium whitespace-nowrap">
+                            {booking.date}
+                          </td>
+
+                          <td className="px-6 py-4.5 whitespace-nowrap">
+                            <div className="flex items-center gap-2.5">
+                              <SafeAvatar 
+                                src={booking.customer_avatar} 
+                                name={booking.customer_name} 
+                                className="w-8 h-8 rounded-full border border-zinc-800"
+                              />
+                              <div>
+                                <p className="font-semibold text-white leading-tight">{booking.customer_name}</p>
+                                <p className="text-[10px] text-zinc-500 font-medium">{booking.customer_email}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4.5 text-zinc-400 font-semibold whitespace-nowrap">
+                            {booking.shop}
+                          </td>
+
+                          <td className="px-6 py-4.5 whitespace-nowrap">
+                            {booking.provider_name === 'Unassigned' ? (
+                              <select
+                                onChange={(e) => handleUpdateBookingHandymanWrapper(booking, e.target.value)}
+                                className="bg-[#1C1C1E] border border-zinc-800 rounded-lg px-2 py-1 text-xs text-amber-500 font-bold focus:outline-none focus:ring-1 focus:ring-[#5E5CE6] cursor-pointer"
+                              >
+                                <option value="Unassigned">Assign Provider...</option>
+                                {providers.map((p, pIdx) => {
+                                  const name = p.display_name || `${p.first_name} ${p.last_name}`;
+                                  return <option key={pIdx} value={name}>{name}</option>;
+                                })}
+                              </select>
+                            ) : (
+                              <div className="flex items-center gap-2.5">
+                                <SafeAvatar 
+                                  src={booking.provider_avatar} 
+                                  name={booking.provider_name} 
+                                  className="w-8 h-8 rounded-full border border-zinc-850"
+                                />
+                                <div>
+                                  <p className="font-semibold text-white leading-tight">{booking.provider_name}</p>
+                                  <p className="text-[10px] text-zinc-500 font-medium">{booking.provider_email}</p>
+                                </div>
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4.5 whitespace-nowrap">
+                            <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold border transition-colors ${
+                              booking.status === 'Pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                              booking.status === 'Accepted' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                              booking.status === 'Ongoing' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                              booking.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              booking.status === 'Cancelled' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                              'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                            }`}>
+                              <select 
+                                value={booking.status}
+                                onChange={(e) => handleUpdateBookingStatusWrapper(booking, e.target.value)}
+                                className="bg-transparent border-0 text-inherit font-bold text-xs focus:ring-0 focus:outline-none cursor-pointer pr-1"
+                              >
+                                <option value="Pending" className="bg-[#18181A] text-amber-500">Pending</option>
+                                <option value="Accepted" className="bg-[#18181A] text-blue-500">Accepted</option>
+                                <option value="Ongoing" className="bg-[#18181A] text-purple-500">Ongoing</option>
+                                <option value="Completed" className="bg-[#18181A] text-emerald-500">Completed</option>
+                                <option value="Cancelled" className="bg-[#18181A] text-rose-500">Cancelled</option>
+                              </select>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4.5 font-extrabold text-white text-base whitespace-nowrap">
+                            ${(booking.amount || 0).toFixed(2)}
+                          </td>
+
+                          <td className="px-6 py-4.5 whitespace-nowrap">
+                            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold border ${
+                              booking.payment_status === 'Paid' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              booking.payment_status === 'Pending By Provider' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                              'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                            }`}>
+                              {booking.payment_status}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => handleDeleteBookingWrapper(booking)}
+                                className="p-2 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors opacity-0 group-hover:opacity-100 duration-200"
+                                title="Delete Booking"
+                              >
+                                <Trash2 className="w-4.5 h-4.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </>
         )}
 
@@ -2134,6 +3294,111 @@ export default function DashboardPage() {
 
       </main>
 
+      {/* -------------------- EXPORT DATA MODAL -------------------- */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#1C1C1E] border border-zinc-800 rounded-2xl p-6 w-full max-w-[420px] shadow-2xl relative">
+            {/* Close Button */}
+            <button 
+              onClick={() => setIsExportModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            {/* Title */}
+            <h3 className="text-base font-bold text-white mb-6">Export Data</h3>
+            
+            {/* Select File Type */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-zinc-400 mb-2.5">Select File Type</p>
+              <div className="flex border border-zinc-800 rounded-lg overflow-hidden bg-[#121214]">
+                {(['XLSX', 'XLS', 'ODS', 'CSV', 'PDF', 'HTML'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setExportFileType(type)}
+                    className={`flex-1 text-center py-2 text-xs font-bold transition-all cursor-pointer border-r border-zinc-800 last:border-r-0 ${
+                      exportFileType === type 
+                        ? 'bg-[#5E5CE6] text-white' 
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Select Columns */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-zinc-400 mb-2.5">Select Columns</p>
+              <div className="space-y-2">
+                {[
+                  { key: 'id', label: 'ID' },
+                  { key: 'service_name', label: 'Service' },
+                  { key: 'date', label: 'Booking Date' },
+                  { key: 'customer_name', label: 'User' },
+                  { key: 'provider_name', label: 'Provider' },
+                  { key: 'status', label: 'Status' },
+                  { key: 'amount', label: 'Total Amount' },
+                  { key: 'payment_status', label: 'Payment Status' }
+                ].map((col) => (
+                  <label 
+                    key={col.key}
+                    className="flex items-center gap-3 cursor-pointer select-none group py-1"
+                  >
+                    <div className="relative">
+                      <input 
+                        type="checkbox"
+                        checked={(exportColumns as any)[col.key]}
+                        onChange={() => setExportColumns(prev => ({
+                          ...prev,
+                          [col.key]: !(prev as any)[col.key]
+                        }))}
+                        className="sr-only"
+                      />
+                      <div className={`w-4.5 h-4.5 border rounded flex items-center justify-center transition-all ${
+                        (exportColumns as any)[col.key]
+                          ? 'bg-[#5E5CE6] border-[#5E5CE6]' 
+                          : 'border-zinc-700 bg-[#121214] group-hover:border-zinc-500'
+                      }`}>
+                        {(exportColumns as any)[col.key] && (
+                          <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors">
+                      {col.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(false)}
+                className="bg-[#2C2C2E] hover:bg-[#3A3A3C] text-zinc-300 hover:text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExportData}
+                className="bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-[#5E5CE6]/15 hover:shadow-[#5E5CE6]/25"
+              >
+                Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* -------------------- CREATE BOOKING MODAL -------------------- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -2236,6 +3501,76 @@ export default function DashboardPage() {
                 Save Booking
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- VIEW BREAKDOWN MODAL -------------------- */}
+      {isBreakdownOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative">
+            <button 
+              onClick={() => setIsBreakdownOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-black text-white mb-6 tracking-tight flex items-center gap-2">
+              <span className="p-2 bg-[#5E5CE6]/10 text-[#5E5CE6] rounded-xl">
+                <DollarSign className="w-5 h-5" />
+              </span>
+              <span>Revenue Breakdown</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-[#1C1C1E] border border-zinc-850 p-4 rounded-2xl">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Total Revenue</p>
+                <p className="text-2xl font-black text-[#5E5CE6]">
+                  ${getFilteredAndSortedBookings().reduce((sum, b) => sum + (b.amount || 0), 0).toFixed(2)}
+                </p>
+              </div>
+              <div className="bg-[#1C1C1E] border border-zinc-850 p-4 rounded-2xl">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Total Bookings</p>
+                <p className="text-2xl font-black text-white">
+                  {getFilteredAndSortedBookings().length}
+                </p>
+              </div>
+            </div>
+
+            {/* Service breakdown list */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Revenue by Service</h4>
+              <div className="max-h-48 overflow-y-auto space-y-2.5 pr-2">
+                {Object.entries(
+                  getFilteredAndSortedBookings().reduce((acc, b) => {
+                    acc[b.service_name] = (acc[b.service_name] || 0) + (b.amount || 0);
+                    return acc;
+                  }, {} as Record<string, number>)
+                ).map(([name, val], idx) => {
+                  const total = getFilteredAndSortedBookings().reduce((sum, b) => sum + (b.amount || 0), 0) || 1;
+                  const pct = Math.round((val / total) * 100);
+                  return (
+                    <div key={idx} className="bg-[#1C1C1E]/50 border border-zinc-900 rounded-xl p-3.5 flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-xs font-semibold">
+                        <span className="text-white">{name}</span>
+                        <span className="text-zinc-300">${val.toFixed(2)} ({pct}%)</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-[#5E5CE6] h-1.5 rounded-full" style={{ width: `${pct}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setIsBreakdownOpen(false)}
+              className="w-full mt-6 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all"
+            >
+              Close Breakdown
+            </button>
           </div>
         </div>
       )}
