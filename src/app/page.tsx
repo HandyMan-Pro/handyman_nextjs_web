@@ -219,6 +219,7 @@ export default function DashboardPage() {
   // Tab switching state
   const [activeTab, setActiveTab] = useState('dashboard');
   const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Dynamic datasets from MongoDB
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -1831,6 +1832,24 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* Trust Metrics Counter Bar */}
+        <section className="py-10 px-4 md:px-12 bg-white dark:bg-zinc-900 border-y border-slate-200/50 dark:border-zinc-800 transition-colors duration-300">
+          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: "500+", label: "Expert Handymen", icon: "👷" },
+              { value: "15K+", label: "Happy Customers", icon: "😊" },
+              { value: "50+", label: "Service Categories", icon: "⚡" },
+              { value: "98%", label: "Satisfaction Rate", icon: "⭐" },
+            ].map((stat, idx) => (
+              <div key={idx} className="text-center group">
+                <span className="text-3xl mb-2 block group-hover:scale-110 transition-transform duration-300">{stat.icon}</span>
+                <h3 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight">{stat.value}</h3>
+                <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Categories Section */}
         <section id="categories" className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
@@ -2001,6 +2020,56 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-20 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300 relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="text-center mb-14">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-4 py-1.5 rounded-full inline-block mb-4">Simple Process</span>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">How It Works</h2>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-3 max-w-lg mx-auto font-medium">Book a handyman in three simple steps. Fast, reliable, and hassle-free.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+              {/* Connecting line (desktop only) */}
+              <div className="hidden md:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-indigo-600/20 via-indigo-600/40 to-indigo-600/20" />
+
+              {[
+                {
+                  step: "01",
+                  title: "Choose Your Service",
+                  description: "Browse through our extensive list of home services. Pick the one that fits your needs.",
+                  icon: "🔍",
+                  color: "from-indigo-500 to-indigo-700"
+                },
+                {
+                  step: "02",
+                  title: "Book An Appointment",
+                  description: "Select your preferred date, time, and location. Confirm your booking instantly.",
+                  icon: "📅",
+                  color: "from-purple-500 to-purple-700"
+                },
+                {
+                  step: "03",
+                  title: "Get It Done!",
+                  description: "Our verified professional arrives on time. Pay securely through the app when done.",
+                  icon: "✅",
+                  color: "from-emerald-500 to-emerald-700"
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="text-center relative group">
+                  <div className={`w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                    <span className="text-2xl">{item.icon}</span>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Step {item.step}</span>
+                  <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mt-2 mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-500 dark:text-zinc-400 font-medium max-w-xs mx-auto leading-relaxed">{item.description}</p>
                 </div>
               ))}
             </div>
@@ -2541,6 +2610,125 @@ export default function DashboardPage() {
   return (
     <div className="admin-theme flex min-h-screen bg-[#111112] text-zinc-100 animate-fade-in font-sans">
 
+      {/* Mobile Sidebar Drawer Overlay */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-40 md:hidden drawer-overlay">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)} />
+          <aside className="admin-sidebar absolute left-0 top-0 bottom-0 w-72 bg-[#111112] border-r border-[#1C1C1E] p-5 flex flex-col justify-between text-zinc-300 animate-slide-drawer overflow-y-auto z-50">
+            <div>
+              {/* Close button */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-x-3">
+                  <div className="w-10 h-10 bg-[#5E5CE6]/10 rounded-xl flex items-center justify-center border border-[#5E5CE6]/25">
+                    <svg className="w-6 h-6 text-[#5E5CE6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor" fillOpacity="0.2" />
+                      <path d="M14.7 12.8a1.5 1.5 0 0 0-2-2l-3.5 3.5a1.5 1.5 0 0 0 2 2z" />
+                      <path d="m9.2 14.3-3 3" />
+                      <path d="m11.2 12.3 3-3" />
+                      <path d="M16 8h2v2h-2z" />
+                    </svg>
+                  </div>
+                  <span className="text-lg font-bold text-white tracking-tight">
+                    {currentUser?.user_type === 'demo_admin' ? 'Demo Admin' : 'System Admin'}
+                  </span>
+                </div>
+                <button onClick={() => setIsMobileSidebarOpen(false)} className="p-2 rounded-xl hover:bg-[#1C1C1E] text-zinc-400 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Profile Card */}
+              <div className="panel-dark-2 flex items-center gap-x-3 p-3 bg-[#1C1C1E] border border-zinc-800 rounded-2xl mb-8">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80" alt="Profile" className="w-10 h-10 rounded-full border border-[#5E5CE6]/30" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-white truncate">{currentUser?.display_name || 'Demo Admin'}</p>
+                  <p className="text-xs text-zinc-500 font-medium truncate">{currentUser?.email || 'demo@admin.com'}</p>
+                </div>
+              </div>
+
+              {/* Navigation Menu (same as desktop) */}
+              <div className="space-y-6">
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Main</p>
+                  <div className="space-y-1">
+                    {[{tab: 'dashboard', icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />, label: 'Dashboard'},
+                      {tab: 'bookings', icon: <Calendar className="w-5 h-5 flex-shrink-0" />, label: 'Bookings'}].map(item => (
+                      <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsMobileSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                          activeTab === item.tab ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                        }`}>
+                        {item.icon}<span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Service</p>
+                  <div className="space-y-1">
+                    <button onClick={() => { setActiveTab('services'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                        activeTab === 'services' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                      }`}>
+                      <Wrench className="w-5 h-5 flex-shrink-0" /><span>Services & Categories</span>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">User</p>
+                  <div className="space-y-1">
+                    {[{tab: 'providers', icon: <Users className="w-5 h-5 flex-shrink-0" />, label: 'Providers'},
+                      {tab: 'customers', icon: <UserCheck className="w-5 h-5 flex-shrink-0" />, label: 'Customers'}].map(item => (
+                      <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsMobileSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                          activeTab === item.tab ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                        }`}>
+                        {item.icon}<span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Content</p>
+                  <div className="space-y-1">
+                    <button onClick={() => { setActiveTab('sliders'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                        activeTab === 'sliders' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                      }`}>
+                      <ImageIcon className="w-5 h-5 flex-shrink-0" /><span>Banners / Sliders</span>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">System</p>
+                  <div className="space-y-1">
+                    {[{tab: 'transactions', icon: <ArrowUpRight className="w-5 h-5 flex-shrink-0" />, label: 'Transactions'},
+                      {tab: 'settings', icon: <Settings className="w-5 h-5 flex-shrink-0" />, label: 'System Settings'}].map(item => (
+                      <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsMobileSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                          activeTab === item.tab ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                        }`}>
+                        {item.icon}<span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2 pt-4">
+              <button onClick={() => { toggleTheme(); setIsMobileSidebarOpen(false); }}
+                className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-[#1C1C1E] hover:text-white font-semibold text-sm text-left transition-all">
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-[#5E5CE6]" />}
+                <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+              </button>
+              <button onClick={() => { handleLogout(); setIsMobileSidebarOpen(false); }}
+                className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-950/20 font-semibold text-sm text-left transition-all">
+                <LogOut className="w-4 h-4" /><span>Sign Out</span>
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* Toast Alert Banner */}
       {toast && (
         <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border shadow-2xl animate-toast-slide ${
@@ -2776,6 +2964,14 @@ export default function DashboardPage() {
         
         {/* Header */}
         <header className="admin-main-header flex flex-col sm:flex-row sm:items-center justify-between gap-y-4 mb-6 border-b border-zinc-800 pb-5">
+          <div className="flex items-center gap-3">
+            {/* Mobile hamburger button */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
           <div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2 animate-fade-in-down">
               <span>
@@ -2800,13 +2996,14 @@ export default function DashboardPage() {
               {activeTab === 'settings' && "Configure system-wide app settings and commission rates"}
             </p>
           </div>
+          </div>
           
           {/* Header Action Bar */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-shrink-0">
             {/* Night mode toggle button */}
             <button
               onClick={toggleTheme}
-              className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-[#5E5CE6] transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-[#5E5CE6] transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
               title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-400" />}
@@ -2815,7 +3012,7 @@ export default function DashboardPage() {
             {/* Orange Add Button */}
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="w-10 h-10 rounded-xl bg-[#FF9500] hover:bg-[#E08500] flex items-center justify-center text-white transition-colors cursor-pointer shadow-lg shadow-[#FF9500]/10"
+              className="w-10 h-10 rounded-xl bg-[#FF9500] hover:bg-[#E08500] flex items-center justify-center text-white transition-all duration-200 cursor-pointer shadow-lg shadow-[#FF9500]/15 hover:scale-105 active:scale-95"
               title="Add New"
             >
               <Plus className="w-5 h-5" />
@@ -2823,31 +3020,36 @@ export default function DashboardPage() {
 
             {/* Notification Bell with red badge */}
             <div className="relative">
-              <button className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-zinc-450 hover:text-white transition-colors cursor-pointer">
+              <button className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 shadow-sm">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </button>
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-650 rounded-full text-[10px] font-bold text-white flex items-center justify-center border border-[#18181A]">
+              <span className="absolute -top-1.5 -right-1.5 w-5.5 h-5.5 bg-red-500 rounded-full text-[10px] font-black text-white flex items-center justify-center border-2 border-[#18181A]">
                 0
               </span>
             </div>
 
             {/* US Flag Icon */}
-            <div className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 flex items-center justify-center overflow-hidden cursor-pointer">
-              <span className="text-xl">🇺🇸</span>
+            <div className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm">
+              <span className="text-xl leading-none">🇺🇸</span>
             </div>
 
             {/* User Profile Avatar with Name */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-zinc-800">
+            <div className="flex items-center gap-3 pl-3 border-l border-zinc-800 h-9">
               <img 
                 src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80" 
                 alt="Profile" 
-                className="w-10 h-10 rounded-full border border-zinc-800"
+                className="w-9 h-9 rounded-full border-2 border-[#5E5CE6]/45 hover:border-[#5E5CE6] transition-colors duration-200 cursor-pointer shadow-md"
               />
-              <span className="text-xs font-bold text-white uppercase tracking-wider hidden md:inline">
-                {currentUser?.user_type === 'demo_admin' ? 'DEMO ADMIN' : 'SYSTEM ADMIN'}
-              </span>
+              <div className="hidden md:flex flex-col text-left">
+                <span className="text-[11px] font-black text-white leading-tight">
+                  {currentUser?.display_name || 'SYSTEM ADMIN'}
+                </span>
+                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider leading-tight mt-0.5">
+                  {currentUser?.user_type === 'demo_admin' ? 'Demo Mode' : 'Admin'}
+                </span>
+              </div>
             </div>
           </div>
         </header>
@@ -2885,7 +3087,10 @@ export default function DashboardPage() {
                   delay: '0ms',
                   trend: adminStats?.status_distribution
                     ? `${(adminStats.status_distribution['Completed'] || 0)} completed`
-                    : 'Live from DB'
+                    : 'Live from DB',
+                  gradient: 'from-[#5E5CE6] to-[#4338ca]',
+                  borderColor: 'border-[#5E5CE6]/35',
+                  glowColor: 'shadow-[#5E5CE6]/15',
                 },
                 {
                   label: 'Total Revenue',
@@ -2894,7 +3099,10 @@ export default function DashboardPage() {
                   prefix: '$',
                   suffix: '',
                   delay: '75ms',
-                  trend: 'Completed orders'
+                  trend: 'Completed orders',
+                  gradient: 'from-emerald-500 to-emerald-700',
+                  borderColor: 'border-emerald-500/35',
+                  glowColor: 'shadow-emerald-500/15',
                 },
                 {
                   label: 'Active Handymen',
@@ -2902,7 +3110,10 @@ export default function DashboardPage() {
                   icon: <Wrench className="w-5 h-5 text-white" />,
                   suffix: '',
                   delay: '150ms',
-                  trend: `${totalPartnersCount} total partners`
+                  trend: `${totalPartnersCount} total partners`,
+                  gradient: 'from-amber-500 to-orange-600',
+                  borderColor: 'border-amber-500/35',
+                  glowColor: 'shadow-amber-500/15',
                 },
                 {
                   label: 'Total Customers',
@@ -2910,12 +3121,15 @@ export default function DashboardPage() {
                   icon: <Users className="w-5 h-5 text-white" />,
                   suffix: '',
                   delay: '225ms',
-                  trend: `${totalServicesCount} services active`
+                  trend: `${totalServicesCount} services active`,
+                  gradient: 'from-rose-500 to-pink-600',
+                  borderColor: 'border-rose-500/35',
+                  glowColor: 'shadow-rose-500/15',
                 },
               ].map((card, i) => (
                 <div
                   key={i}
-                  className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all duration-200 card-hover animate-fade-in-up"
+                  className={`bg-gradient-to-br ${card.gradient} ${card.borderColor} border p-6 rounded-2xl shadow-xl ${card.glowColor} relative overflow-hidden text-white group hover:scale-[1.02] transition-all duration-200 card-hover animate-fade-in-up`}
                   style={{ animationDelay: card.delay }}
                 >
                   <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all duration-500" />
@@ -2939,47 +3153,74 @@ export default function DashboardPage() {
               ))}
             </section>
 
-            {/* Monthly Revenue Chart */}
-            <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-base font-bold text-white">Monthly Revenue</h3>
-                {/* Control Icons */}
-                <div className="flex items-center gap-2.5 text-zinc-500 text-sm">
-                  <button className="hover:text-white transition-colors cursor-pointer">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-                  </button>
-                  <button className="hover:text-white transition-colors cursor-pointer">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
-                  </button>
-                  <button className="hover:text-white transition-colors cursor-pointer">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                  </button>
-                  <button className="hover:text-white transition-colors cursor-pointer">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-                  </button>
+            {/* Chart & Status Distribution Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+              {/* Monthly Revenue Column (2/3 width) */}
+              <div className="lg:col-span-2 panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700/80 transition-all duration-300 shadow-xl shadow-black/15 noise-texture flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-base font-bold text-white">Monthly Revenue</h3>
+                    {/* Control Icons */}
+                    <div className="flex items-center gap-2.5 text-zinc-500 text-sm">
+                      <button className="hover:text-white transition-colors cursor-pointer" title="Zoom In">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                      </button>
+                      <button className="hover:text-white transition-colors cursor-pointer" title="Zoom Out">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+                      </button>
+                      <button className="hover:text-white transition-colors cursor-pointer" title="Search">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                      </button>
+                      <button className="hover:text-white transition-colors cursor-pointer" title="More Options">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Chart SVG */}
+                {/* Chart SVG */}
               <div className="relative h-64 w-full">
                 {(() => {
-                  const chartData = [
-                    { name: "Jan", x: 50, y: 210, value: 0 },
-                    { name: "Feb", x: 134, y: 210, value: 0 },
-                    { name: "Mar", x: 218, y: 210, value: 0 },
-                    { name: "Apr", x: 302, y: 210, value: 0 },
-                    { name: "May", x: 386, y: 210, value: 0 },
-                    { name: "June", x: 470, y: 50, value: 680 },
-                    { name: "Jul", x: 554, y: 210, value: 0 },
-                    { name: "Aug", x: 638, y: 210, value: 0 },
-                    { name: "Sep", x: 722, y: 210, value: 0 },
-                    { name: "Oct", x: 806, y: 210, value: 0 },
-                    { name: "Nov", x: 890, y: 210, value: 0 },
-                    { name: "Dec", x: 980, y: 210, value: 0 }
-                  ];
+                  const getMonthIndex = (dateStr: string): number => {
+                    if (!dateStr) return 5;
+                    const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+                    const lower = dateStr.toLowerCase();
+                    for (let i = 0; i < 12; i++) {
+                      if (lower.includes(months[i])) return i;
+                    }
+                    const parts = dateStr.split('-');
+                    if (parts.length >= 2) {
+                      const m = parseInt(parts[1], 10);
+                      if (m >= 1 && m <= 12) return m - 1;
+                    }
+                    const parsed = new Date(dateStr);
+                    if (!isNaN(parsed.getTime())) {
+                      return parsed.getMonth();
+                    }
+                    return 5;
+                  };
+
+                  const monthlyRevenue = Array(12).fill(0);
+                  bookings.forEach(b => {
+                    if (b.status === 'Completed' || b.status === 'Ongoing' || b.status === 'Accepted' || b.status === 'In Progress') {
+                      const month = getMonthIndex(b.date);
+                      monthlyRevenue[month] += b.amount || 0;
+                    }
+                  });
+
+                  const maxVal = Math.max(...monthlyRevenue, 100);
+                  const yMax = Math.ceil(maxVal / 100) * 100;
+
+                  const chartMonths = ["Jan", "Feb", "Mar", "Apr", "May", "June", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  const chartData = chartMonths.map((name, i) => {
+                    const x = 50 + i * (930 / 11);
+                    const val = monthlyRevenue[i];
+                    const y = 210 - (val / yMax) * 190;
+                    return { name, x, y, value: val };
+                  });
 
                   const pathD = chartData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${d.x} ${d.y}`).join(' ');
-                  const areaD = `${pathD} L 980 210 L 50 210 Z`;
+                  const areaD = `${pathD} L ${chartData[11].x} 210 L ${chartData[0].x} 210 Z`;
 
                   return (
                     <>
@@ -2992,10 +3233,10 @@ export default function DashboardPage() {
                         <line x1="50" y1="210" x2="980" y2="210" stroke="#27272A" strokeWidth="1" />
 
                         {/* Y Axis Labels */}
-                        <text x="15" y="25" fill="#71717A" fontSize="10" className="font-semibold">$800</text>
-                        <text x="15" y="75" fill="#71717A" fontSize="10" className="font-semibold">$600</text>
-                        <text x="15" y="125" fill="#71717A" fontSize="10" className="font-semibold">$400</text>
-                        <text x="15" y="175" fill="#71717A" fontSize="10" className="font-semibold">$200</text>
+                        <text x="15" y="25" fill="#71717A" fontSize="10" className="font-semibold">${Math.round(yMax)}</text>
+                        <text x="15" y="75" fill="#71717A" fontSize="10" className="font-semibold">${Math.round(yMax * 0.75)}</text>
+                        <text x="15" y="125" fill="#71717A" fontSize="10" className="font-semibold">${Math.round(yMax * 0.5)}</text>
+                        <text x="15" y="175" fill="#71717A" fontSize="10" className="font-semibold">${Math.round(yMax * 0.25)}</text>
                         <text x="25" y="215" fill="#71717A" fontSize="10" className="font-semibold">$0</text>
 
                         {/* Gradient Under the Line */}
@@ -3116,40 +3357,88 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Booking Status Distribution Column (1/3 width) */}
+            {adminStats?.status_distribution && (
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700/80 transition-all duration-300 shadow-xl shadow-black/15 noise-texture flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-base font-bold text-white">Booking Status Distribution</h3>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{totalBookingsCount} Total</span>
+                  </div>
+                  <div className="space-y-4">
+                    {[
+                      { label: 'Pending', color: 'bg-amber-500', glow: 'rgba(245, 158, 11, 0.35)', count: adminStats.status_distribution['Pending'] || 0 },
+                      { label: 'Accepted', color: 'bg-blue-500', glow: 'rgba(59, 130, 246, 0.35)', count: adminStats.status_distribution['Accepted'] || 0 },
+                      { label: 'In Progress', color: 'bg-indigo-500', glow: 'rgba(99, 102, 241, 0.35)', count: adminStats.status_distribution['In Progress'] || 0 },
+                      { label: 'Completed', color: 'bg-emerald-500', glow: 'rgba(16, 185, 129, 0.35)', count: adminStats.status_distribution['Completed'] || 0 },
+                      { label: 'Cancelled', color: 'bg-red-500', glow: 'rgba(239, 68, 68, 0.35)', count: adminStats.status_distribution['Cancelled'] || 0 },
+                    ].filter(s => s.count > 0).map((status, idx) => (
+                      <div key={idx} className="group">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${status.color}`} style={{ boxShadow: `0 0 8px ${status.glow}` }} />
+                            {status.label}
+                          </span>
+                          <span className="text-xs font-bold text-white">{status.count} <span className="text-zinc-500 font-normal">({totalBookingsCount > 0 ? Math.round((status.count / totalBookingsCount) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${status.color} animate-progress transition-all duration-500 group-hover:brightness-110`}
+                            style={{ 
+                              width: `${totalBookingsCount > 0 ? (status.count / totalBookingsCount) * 100 : 0}%`,
+                              boxShadow: `0 0 10px ${status.glow}`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Bottom status tracker */}
+                <div className="mt-6 pt-4 border-t border-zinc-800/60 text-[10px] text-zinc-500 flex items-center justify-between font-semibold">
+                  <span>System Health</span>
+                  <span className="text-emerald-400">Excellent</span>
+                </div>
+              </div>
+            )}
+          </div>
+
             {/* Bottom 3-Column Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 mb-8">
               {/* Column 1: Recent Providers */}
-              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700/80 hover:scale-[1.01] transition-all duration-300 shadow-xl shadow-black/10 noise-texture">
                 <div className="flex justify-between items-center mb-5">
                   <h4 className="text-sm font-bold text-white">Recent Providers</h4>
                   <a href="#" onClick={() => setActiveTab('providers')} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&h=80&q=80" alt="Provider" className="w-10 h-10 rounded-full border border-zinc-800" />
-                    <div>
-                      <h5 className="text-xs font-bold text-white">Clio Trujillo</h5>
-                      <p className="text-[10px] text-zinc-450">rywy@yopmail.com</p>
-                      <div className="flex items-center gap-0.5 mt-0.5">
-                        <span className="text-[10px] text-zinc-500">★ 0</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=80&h=80&q=80" alt="Provider" className="w-10 h-10 rounded-full border border-zinc-800" />
-                    <div>
-                      <h5 className="text-xs font-bold text-white">Neville Roberson</h5>
-                      <p className="text-[10px] text-zinc-450">camizyji@yopmail.com</p>
-                      <div className="flex items-center gap-0.5 mt-0.5">
-                        <span className="text-[10px] text-zinc-500">★ 0</span>
-                      </div>
-                    </div>
-                  </div>
+                  {providers.length === 0 ? (
+                    <p className="text-xs text-zinc-500 text-center py-2">No providers yet</p>
+                  ) : (
+                    providers.slice(0, 3).map((prov: any, i: number) => {
+                      const name = prov.display_name || `${prov.first_name || ''} ${prov.last_name || ''}`.trim() || prov.username || 'Provider';
+                      return (
+                        <div key={i} className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: `${i * 80}ms` }}>
+                          <SafeAvatar src={prov.profile_image} name={name} className="w-10 h-10 rounded-full border border-zinc-800" />
+                          <div className="min-w-0 flex-1">
+                            <h5 className="text-xs font-bold text-white truncate">{name}</h5>
+                            <p className="text-[10px] text-zinc-450 truncate">{prov.email || prov.username}</p>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <span className="text-[10px] text-zinc-500">★ {prov.rating || 0}</span>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prov.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-500'}`}>
+                            {prov.status === 1 ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
               {/* Column 2: Recent Customers */}
-              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700/80 hover:scale-[1.01] transition-all duration-300 shadow-xl shadow-black/10 noise-texture">
                 <div className="flex justify-between items-center mb-5">
                   <h4 className="text-sm font-bold text-white">Recent Customers</h4>
                   <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('customers'); }} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
@@ -3158,16 +3447,16 @@ export default function DashboardPage() {
                   {customers.length === 0 ? (
                     <p className="text-xs text-zinc-500 text-center py-2">No customers yet</p>
                   ) : (
-                    customers.slice(0, 3).map((c, i) => {
+                    customers.slice(0, 3).map((c: any, i: number) => {
                       const name = c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.username || 'Customer';
                       return (
-                        <div key={i} className="flex items-center gap-3">
-                          <SafeAvatar src={c.profile_image} name={name} className="w-10 h-10 rounded-full border border-zinc-800" />
-                          <div>
-                            <h5 className="text-xs font-bold text-white">{name}</h5>
-                            <p className="text-[10px] text-zinc-500">{c.email || c.username}</p>
+                        <div key={i} className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: `${i * 80}ms` }}>
+                          <SafeAvatar src={c.profile_image} name={name} className="w-10 h-10 rounded-full border border-zinc-800 flex-shrink-0" />
+                          <div className="min-w-0 flex-1 text-left">
+                            <h5 className="text-xs font-bold text-white truncate">{name}</h5>
+                            <p className="text-[10px] text-zinc-450 truncate">{c.email || c.username}</p>
                           </div>
-                          <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${c.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-500'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${c.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-500'}`}>
                             {c.status === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </div>
@@ -3178,32 +3467,44 @@ export default function DashboardPage() {
               </div>
 
               {/* Column 3: Recent Bookings */}
-              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700/80 hover:scale-[1.01] transition-all duration-300 shadow-xl shadow-black/10 noise-texture">
                 <div className="flex justify-between items-center mb-5">
                   <h4 className="text-sm font-bold text-white">Recent Bookings</h4>
                   <a href="#" onClick={() => setActiveTab('bookings')} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=80&h=80&q=80" alt="Booking" className="w-10 h-10 rounded-full border border-zinc-800" />
-                      <div>
-                        <h5 className="text-xs font-bold text-white">#45</h5>
-                        <p className="text-[10px] text-zinc-455">June 20, 2026 9:56 AM</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-950/45 text-amber-500 border border-amber-900/40">Pending</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=80&h=80&q=80" alt="Booking" className="w-10 h-10 rounded-full border border-zinc-800" />
-                      <div>
-                        <h5 className="text-xs font-bold text-white">#44</h5>
-                        <p className="text-[10px] text-zinc-455">June 25, 2026 2:22 AM</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-950/45 text-amber-500 border border-amber-900/40">Pending</span>
-                  </div>
+                  {bookings.length === 0 ? (
+                    <p className="text-xs text-zinc-500 text-center py-2">No bookings yet</p>
+                  ) : (
+                    bookings.slice(0, 3).map((bk: any, i: number) => {
+                      const statusColors: Record<string, string> = {
+                        'Pending': 'bg-amber-950/45 text-amber-500 border-amber-900/40',
+                        'Accepted': 'bg-blue-950/45 text-blue-400 border-blue-900/40',
+                        'On The Way': 'bg-cyan-950/45 text-cyan-400 border-cyan-900/40',
+                        'In Progress': 'bg-indigo-950/45 text-indigo-400 border-indigo-900/40',
+                        'Completed': 'bg-emerald-950/45 text-emerald-400 border-emerald-900/40',
+                        'Cancelled': 'bg-red-950/45 text-red-400 border-red-900/40',
+                      };
+                      const statusClass = statusColors[bk.status] || statusColors['Pending'];
+                      const shortId = (bk.id || bk._id || '').slice(-6).toUpperCase();
+                      return (
+                        <div key={i} className="flex items-center justify-between gap-3 animate-fade-in-up" style={{ animationDelay: `${i * 80}ms` }}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-10 h-10 rounded-full bg-[#5E5CE6]/10 border border-[#5E5CE6]/20 flex items-center justify-center flex-shrink-0 shadow-sm shadow-[#5E5CE6]/5">
+                              <Calendar className="w-4 h-4 text-[#5E5CE6]" />
+                            </div>
+                            <div className="min-w-0 flex-1 text-left">
+                              <h5 className="text-xs font-bold text-white truncate">Booking #{shortId}</h5>
+                              <p className="text-[10px] text-zinc-450 truncate">
+                                {bk.date || 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0 ${statusClass}`}>{bk.status}</span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>

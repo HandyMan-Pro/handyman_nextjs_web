@@ -6,6 +6,9 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  --primary: #5E5CE6;
+  --primary-hover: #4E4CD6;
+  --primary-light: rgba(94, 92, 230, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,6 +21,9 @@
 
 body {
   color: rgb(var(--foreground-rgb));
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ─── KEYFRAME ANIMATIONS ────────────────────────────────────────────────────── */
@@ -120,6 +126,35 @@ body {
   to   { width: 100%; }
 }
 
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes morphBg {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+}
+
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(120px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(94, 92, 230, 0.15), 0 0 60px rgba(94, 92, 230, 0.05); 
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(94, 92, 230, 0.25), 0 0 80px rgba(94, 92, 230, 0.1); 
+  }
+}
+
+@keyframes slideDrawer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
 /* ─── ANIMATION UTILITY CLASSES ─────────────────────────────────────────────── */
 
 .animate-fade-in         { animation: fadeIn         0.3s ease both; }
@@ -138,6 +173,11 @@ body {
 .animate-bounce-in       { animation: bounceIn       0.5s cubic-bezier(0.36,0.07,0.19,0.97) both; }
 .animate-toast-slide     { animation: toastSlide     0.35s ease both; }
 .animate-tab-content     { animation: slideTabContent 0.3s ease both; }
+.animate-slide-up        { animation: slideUp        0.5s ease both; }
+.animate-morph           { animation: morphBg        8s ease-in-out infinite; }
+.animate-orbit           { animation: orbit          20s linear infinite; }
+.animate-pulse-glow      { animation: pulseGlow      3s ease-in-out infinite; }
+.animate-slide-drawer    { animation: slideDrawer    0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
 /* Stagger helpers */
 .delay-75  { animation-delay: 75ms; }
@@ -147,6 +187,8 @@ body {
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
 
 /* ─── SKELETON LOADING ───────────────────────────────────────────────────────── */
 
@@ -189,10 +231,27 @@ html { scroll-behavior: smooth; }
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
 /* ─── GRADIENT TEXT ──────────────────────────────────────────────────────────── */
 
 .gradient-text {
   background: linear-gradient(135deg, #5E5CE6, #bf5af2, #5E5CE6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -233,6 +292,15 @@ html { scroll-behavior: smooth; }
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 }
 
+.card-hover-subtle {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.card-hover-subtle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
 /* ─── TABLE ROWS ─────────────────────────────────────────────────────────────── */
 
 .table-row-animate {
@@ -261,6 +329,22 @@ html { scroll-behavior: smooth; }
 
 .stat-value {
   animation: countUp 0.6s ease both;
+}
+
+/* ─── PREMIUM NOISE TEXTURE ─────────────────────────────────────────────────── */
+
+.noise-texture {
+  position: relative;
+}
+
+.noise-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
 }
 
 /* ─── ADMIN PANEL LIGHT / DARK MODE THEMING ─────────────────────────────────── */
@@ -414,4 +498,56 @@ html:not(.dark) .admin-theme .skeleton {
 
 .tab-loading {
   animation: fadeIn 0.2s ease both;
+}
+
+/* ─── MOBILE DRAWER OVERLAY ─────────────────────────────────────────────────── */
+
+.drawer-overlay {
+  animation: fadeIn 0.2s ease both;
+}
+
+/* ─── PREMIUM BADGE ─────────────────────────────────────────────────────────── */
+
+.badge-glow {
+  position: relative;
+}
+
+.badge-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(94, 92, 230, 0.3), rgba(191, 90, 242, 0.3));
+  z-index: -1;
+  filter: blur(6px);
+}
+
+/* ─── GRADIENT BORDER ───────────────────────────────────────────────────────── */
+
+.gradient-border {
+  position: relative;
+  background: transparent;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #5E5CE6, #bf5af2, #5E5CE6);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── CUSTOM CONFIRM DIALOG ─────────────────────────────────────────────────── */
+
+.confirm-dialog-overlay {
+  animation: fadeIn 0.15s ease both;
+}
+
+.confirm-dialog {
+  animation: scaleInModal 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
 }
