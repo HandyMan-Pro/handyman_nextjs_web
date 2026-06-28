@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Wrench, 
-  Users, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Wrench,
+  Users,
+  Calendar,
+  DollarSign,
+  TrendingUp,
   Plus,
   Loader2,
   X,
@@ -49,7 +49,20 @@ import {
   Menu,
   Layers,
   Zap,
-  Wind
+  Wind,
+  Image as ImageIcon,
+  Settings,
+  UserCheck,
+  BarChart3,
+  Activity,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Save,
+  ToggleLeft,
+  ToggleRight,
+  Percent,
+  Mail
 } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 
@@ -292,6 +305,37 @@ export default function DashboardPage() {
   const [payoutMethod, setPayoutMethod] = useState('Bank Transfer');
   const [payoutError, setPayoutError] = useState('');
 
+  // Admin stats from /api/admin/stats
+  const [adminStats, setAdminStats] = useState<any>(null);
+
+  // Customers tab state
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customerSearch, setCustomerSearch] = useState('');
+
+  // Sliders tab state
+  const [sliders, setSliders] = useState<any[]>([]);
+  const [isSliderModalOpen, setIsSliderModalOpen] = useState(false);
+  const [isEditSliderModalOpen, setIsEditSliderModalOpen] = useState(false);
+  const [newSliderTitle, setNewSliderTitle] = useState('');
+  const [newSliderDesc, setNewSliderDesc] = useState('');
+  const [newSliderImage, setNewSliderImage] = useState('');
+  const [editSliderId, setEditSliderId] = useState('');
+  const [editSliderTitle, setEditSliderTitle] = useState('');
+  const [editSliderDesc, setEditSliderDesc] = useState('');
+  const [editSliderImage, setEditSliderImage] = useState('');
+
+  // Settings tab state
+  const [systemSettings, setSystemSettings] = useState<any>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    app_name: '',
+    commission_rate: '',
+    currency_symbol: '',
+    support_email: '',
+    support_phone: '',
+    min_payout_amount: ''
+  });
+
   // Auto hide toast
   useEffect(() => {
     if (toast) {
@@ -315,6 +359,7 @@ export default function DashboardPage() {
           setCurrentUser(JSON.parse(userStr));
         } catch (e) {}
       }
+      fetchAdminStats();
     }
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -345,7 +390,12 @@ export default function DashboardPage() {
   // Sync data whenever activeTab changes or login status changes
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'dashboard' || activeTab === 'bookings') {
+      if (activeTab === 'dashboard') {
+        fetchAdminStats();
+        fetchBookings();
+        fetchProviders();
+        fetchServicesAndCategories();
+      } else if (activeTab === 'bookings') {
         fetchBookings();
         fetchProviders();
         fetchServicesAndCategories();
@@ -356,6 +406,12 @@ export default function DashboardPage() {
       } else if (activeTab === 'transactions') {
         fetchTransactions();
         fetchProviders();
+      } else if (activeTab === 'customers') {
+        fetchCustomers();
+      } else if (activeTab === 'sliders') {
+        fetchSliders();
+      } else if (activeTab === 'settings') {
+        fetchSettings();
       }
     }
   }, [activeTab, isAuthenticated]);
@@ -419,6 +475,62 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchAdminStats = async () => {
+    try {
+      const response = await apiClient.get('/admin/stats');
+      setAdminStats(response.data);
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/customers');
+      setCustomers(response.data);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      showToast('Failed to load customers', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchSliders = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/sliders');
+      setSliders(response.data);
+    } catch (error) {
+      console.error('Error fetching sliders:', error);
+      showToast('Failed to load sliders', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/settings');
+      setSystemSettings(response.data);
+      setSettingsForm({
+        app_name: response.data.app_name || '',
+        commission_rate: String(response.data.commission_rate || ''),
+        currency_symbol: response.data.currency_symbol || '',
+        support_email: response.data.support_email || '',
+        support_phone: response.data.support_phone || '',
+        min_payout_amount: String(response.data.min_payout_amount || '')
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      showToast('Failed to load settings', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -470,6 +582,7 @@ export default function DashboardPage() {
       setIsAuthenticated(true);
       setActiveTab('dashboard');
       showToast('Sign in successful!');
+      fetchAdminStats();
     } catch (error: any) {
       const msg = error.message || 'Login failed. Please check credentials.';
       setLoginError(msg);
@@ -1108,6 +1221,123 @@ export default function DashboardPage() {
     }
   };
 
+  // ------------------ CRUD CUSTOMERS ------------------
+  const handleDeleteCustomer = async (customerId: string) => {
+    if (!window.confirm("Are you sure you want to delete this customer?")) return;
+    try {
+      await apiClient.delete(`/admin/customers/${customerId}`);
+      fetchCustomers();
+      showToast('Customer deleted successfully');
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      showToast('Failed to delete customer', 'error');
+    }
+  };
+
+  const handleToggleCustomerStatus = async (customerId: string, currentStatus: number) => {
+    try {
+      await apiClient.put(`/admin/customers/${customerId}`, { status: currentStatus === 1 ? 0 : 1 });
+      fetchCustomers();
+      showToast('Customer status updated');
+    } catch (error) {
+      console.error('Error updating customer status:', error);
+      showToast('Failed to update status', 'error');
+    }
+  };
+
+  // ------------------ CRUD SLIDERS ------------------
+  const handleCreateSlider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/sliders', {
+        title: newSliderTitle,
+        description: newSliderDesc,
+        slider_image: newSliderImage,
+        status: 1
+      });
+      setIsSliderModalOpen(false);
+      setNewSliderTitle('');
+      setNewSliderDesc('');
+      setNewSliderImage('');
+      fetchSliders();
+      showToast('Slider created successfully');
+    } catch (error) {
+      console.error('Error creating slider:', error);
+      showToast('Failed to create slider', 'error');
+    }
+  };
+
+  const handleEditSliderClick = (slider: any) => {
+    setEditSliderId(slider.id);
+    setEditSliderTitle(slider.title);
+    setEditSliderDesc(slider.description || '');
+    setEditSliderImage(slider.slider_image || '');
+    setIsEditSliderModalOpen(true);
+  };
+
+  const handleUpdateSlider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.put(`/admin/sliders/${editSliderId}`, {
+        title: editSliderTitle,
+        description: editSliderDesc,
+        slider_image: editSliderImage
+      });
+      setIsEditSliderModalOpen(false);
+      fetchSliders();
+      showToast('Slider updated successfully');
+    } catch (error) {
+      console.error('Error updating slider:', error);
+      showToast('Failed to update slider', 'error');
+    }
+  };
+
+  const handleToggleSliderStatus = async (sliderId: string, currentStatus: number) => {
+    try {
+      await apiClient.put(`/admin/sliders/${sliderId}`, { status: currentStatus === 1 ? 0 : 1 });
+      fetchSliders();
+      showToast('Slider status updated');
+    } catch (error) {
+      console.error('Error updating slider:', error);
+      showToast('Failed to update slider status', 'error');
+    }
+  };
+
+  const handleDeleteSlider = async (sliderId: string) => {
+    if (!window.confirm("Are you sure you want to delete this slider?")) return;
+    try {
+      await apiClient.delete(`/admin/sliders/${sliderId}`);
+      fetchSliders();
+      showToast('Slider deleted successfully');
+    } catch (error) {
+      console.error('Error deleting slider:', error);
+      showToast('Failed to delete slider', 'error');
+    }
+  };
+
+  // ------------------ SETTINGS ------------------
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsLoading(true);
+    try {
+      await apiClient.put('/admin/settings', {
+        app_name: settingsForm.app_name || undefined,
+        commission_rate: settingsForm.commission_rate ? parseFloat(settingsForm.commission_rate) : undefined,
+        currency_symbol: settingsForm.currency_symbol || undefined,
+        support_email: settingsForm.support_email || undefined,
+        support_phone: settingsForm.support_phone || undefined,
+        min_payout_amount: settingsForm.min_payout_amount ? parseFloat(settingsForm.min_payout_amount) : undefined
+      });
+      fetchSettings();
+      showToast('Settings saved successfully');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      showToast('Failed to save settings', 'error');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
   // Auto price detection when selecting a service in "New Booking"
   const handleServiceSelect = (selectedSvcName: string) => {
     setServiceName(selectedSvcName);
@@ -1143,15 +1373,26 @@ export default function DashboardPage() {
     return matchesSearch && matchesFilter;
   });
 
-  // Calculate statistics
-  const totalRevenue = bookings.filter(b => b.status === 'Completed').reduce((sum, b) => sum + b.amount, 0);
-  const activeHandymen = providers.filter(p => p.user_type === 'handyman' && p.status === 1).length;
-  
+  const filteredCustomers = customers.filter(c => {
+    const fullName = c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim();
+    return fullName.toLowerCase().includes(customerSearch.toLowerCase()) ||
+           (c.username || '').toLowerCase().includes(customerSearch.toLowerCase()) ||
+           (c.email || '').toLowerCase().includes(customerSearch.toLowerCase());
+  });
+
+  // Calculate statistics - prefer adminStats from API, fallback to local calculations
+  const totalRevenue = adminStats?.summary?.total_revenue ?? bookings.filter(b => b.status === 'Completed').reduce((sum, b) => sum + b.amount, 0);
+  const activeHandymen = adminStats?.summary?.active_handymen ?? providers.filter(p => p.user_type === 'handyman' && p.status === 1).length;
+  const totalBookingsCount = adminStats?.summary?.total_bookings ?? bookings.length;
+  const totalPartnersCount = adminStats?.summary?.total_partners ?? providers.length;
+  const totalCustomersCount = adminStats?.summary?.total_customers ?? 0;
+  const totalServicesCount = adminStats?.summary?.total_services ?? services.length;
+
   const stats = [
-    { label: "Total Bookings", value: bookings.length.toString(), icon: Calendar, change: "Live from MongoDB", color: "bg-indigo-50 dark:bg-indigo-950/35 text-indigo-600 dark:text-indigo-400" },
-    { label: "Accrued Revenue", value: `$${totalRevenue.toLocaleString()}`, icon: DollarSign, change: "Completed orders only", color: "bg-emerald-50 dark:bg-emerald-950/35 text-emerald-600 dark:text-emerald-400" },
+    { label: "Total Bookings", value: totalBookingsCount.toString(), icon: Calendar, change: "Live from MongoDB", color: "bg-indigo-50 dark:bg-indigo-950/35 text-indigo-600 dark:text-indigo-400" },
+    { label: "Accrued Revenue", value: `$${Number(totalRevenue).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`, icon: DollarSign, change: "Completed orders only", color: "bg-emerald-50 dark:bg-emerald-950/35 text-emerald-600 dark:text-emerald-400" },
     { label: "Active Handymen", value: activeHandymen.toString(), icon: Wrench, change: "Status active in system", color: "bg-amber-50 dark:bg-amber-950/35 text-amber-600 dark:text-amber-400" },
-    { label: "Total Partners", value: providers.length.toString(), icon: Users, change: "Atlas database connection", color: "bg-sky-50 dark:bg-sky-950/35 text-sky-600 dark:text-sky-400" },
+    { label: "Total Partners", value: totalPartnersCount.toString(), icon: Users, change: "Atlas database connection", color: "bg-sky-50 dark:bg-sky-950/35 text-sky-600 dark:text-sky-400" },
   ];
 
   const getStatusStyle = (statusVal: string) => {
@@ -1289,13 +1530,13 @@ export default function DashboardPage() {
         
         {/* Toast Alert Banner */}
         {toast && (
-          <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl border shadow-xl transition-all duration-300 animate-bounce ${
-            toast.type === 'success' 
-              ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300' 
-              : 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300'
+          <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border shadow-2xl animate-toast-slide ${
+            toast.type === 'success'
+              ? 'bg-emerald-950/95 border-emerald-800 text-emerald-300'
+              : 'bg-rose-950/95 border-rose-800 text-rose-300'
           }`}>
-            {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            <span className="text-sm font-medium">{toast.message}</span>
+            {toast.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+            <span className="text-sm font-semibold">{toast.message}</span>
           </div>
         )}
 
@@ -1956,13 +2197,13 @@ export default function DashboardPage() {
       
       {/* Toast Alert Banner */}
       {toast && (
-        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl border shadow-xl transition-all duration-300 animate-bounce ${
-          toast.type === 'success' 
-            ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300' 
-            : 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300'
+        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border shadow-2xl animate-toast-slide ${
+          toast.type === 'success'
+            ? 'bg-emerald-950/95 border-emerald-800 text-emerald-300'
+            : 'bg-rose-950/95 border-rose-800 text-rose-300'
         }`}>
-          {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          <span className="text-sm font-medium">{toast.message}</span>
+          {toast.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+          <span className="text-sm font-semibold">{toast.message}</span>
         </div>
       )}
 
@@ -2084,7 +2325,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">User</p>
               <div className="space-y-1">
-                <button 
+                <button
                   onClick={() => setActiveTab('providers')}
                   className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
                     activeTab === 'providers'
@@ -2096,21 +2337,69 @@ export default function DashboardPage() {
                     <Users className="w-5 h-5 flex-shrink-0" />
                     <span>Providers</span>
                   </div>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
-                <button 
-                  onClick={() => setActiveTab('providers')}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm text-zinc-400 hover:bg-[#1C1C1E] hover:text-white transition-all"
+                <button
+                  onClick={() => setActiveTab('customers')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'customers'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
                 >
                   <div className="flex items-center gap-x-3">
-                    <UserIcon className="w-5 h-5 flex-shrink-0" />
-                    <span>Handyman</span>
+                    <UserCheck className="w-5 h-5 flex-shrink-0" />
+                    <span>Customers</span>
                   </div>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Content</p>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('sliders')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'sliders'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <ImageIcon className="w-5 h-5 flex-shrink-0" />
+                    <span>Banners / Sliders</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">System</p>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('transactions')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'transactions'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <ArrowUpRight className="w-5 h-5 flex-shrink-0" />
+                  <span>Transactions</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'settings'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <Settings className="w-5 h-5 flex-shrink-0" />
+                  <span>System Settings</span>
                 </button>
               </div>
             </div>
@@ -2142,21 +2431,27 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-4 mb-6 border-b border-zinc-800 pb-5">
           <div>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2 animate-fade-in-down">
               <span>
                 {activeTab === 'dashboard' && "Dashboard"}
                 {activeTab === 'bookings' && "Bookings"}
                 {activeTab === 'providers' && "Service Providers Catalog"}
                 {activeTab === 'services' && "Services & Categories Catalog"}
                 {activeTab === 'transactions' && "Transactions Ledger"}
+                {activeTab === 'customers' && "Customer Management"}
+                {activeTab === 'sliders' && "Banners & Sliders"}
+                {activeTab === 'settings' && "System Settings"}
               </span>
             </h1>
-            <p className="text-zinc-455 text-sm mt-1 font-semibold">
+            <p className="text-zinc-500 text-sm mt-1 font-semibold animate-fade-in">
               {activeTab === 'dashboard' && `Welcome back, ${currentUser?.display_name || 'Demo Admin'}!`}
               {activeTab === 'bookings' && "Manage system bookings"}
               {activeTab === 'providers' && "Manage and monitor registered Handymen & Service Providers"}
               {activeTab === 'services' && "Manage service items and system-wide service categories"}
               {activeTab === 'transactions' && "Wallet transactions history and system payout logs"}
+              {activeTab === 'customers' && "View and manage registered app customers"}
+              {activeTab === 'sliders' && "Manage homepage banners and promotional sliders"}
+              {activeTab === 'settings' && "Configure system-wide app settings and commission rates"}
             </p>
           </div>
           
@@ -2234,67 +2529,67 @@ export default function DashboardPage() {
 
             {/* Stats Grid */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-              {/* Card 1: Total Service */}
-              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
-                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-3xl font-extrabold mb-1">109</h3>
-                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Total Service</span>
+              {[
+                {
+                  label: 'Total Bookings',
+                  value: totalBookingsCount,
+                  icon: <Calendar className="w-5 h-5 text-white" />,
+                  suffix: '',
+                  delay: '0ms',
+                  trend: adminStats?.status_distribution
+                    ? `${(adminStats.status_distribution['Completed'] || 0)} completed`
+                    : 'Live from DB'
+                },
+                {
+                  label: 'Total Revenue',
+                  value: Number(totalRevenue).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+                  icon: <DollarSign className="w-5 h-5 text-white" />,
+                  prefix: '$',
+                  suffix: '',
+                  delay: '75ms',
+                  trend: 'Completed orders'
+                },
+                {
+                  label: 'Active Handymen',
+                  value: activeHandymen,
+                  icon: <Wrench className="w-5 h-5 text-white" />,
+                  suffix: '',
+                  delay: '150ms',
+                  trend: `${totalPartnersCount} total partners`
+                },
+                {
+                  label: 'Total Customers',
+                  value: totalCustomersCount,
+                  icon: <Users className="w-5 h-5 text-white" />,
+                  suffix: '',
+                  delay: '225ms',
+                  trend: `${totalServicesCount} services active`
+                },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all duration-200 card-hover animate-fade-in-up"
+                  style={{ animationDelay: card.delay }}
+                >
+                  <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all duration-500" />
+                  <div className="absolute -left-6 -top-6 w-20 h-20 bg-white/5 rounded-full" />
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <div>
+                      <h3 className="text-3xl font-black mb-1 stat-value">
+                        {card.prefix || ''}{card.value}{card.suffix || ''}
+                      </h3>
+                      <span className="text-xs font-bold text-white/80 uppercase tracking-wider">{card.label}</span>
+                    </div>
+                    <div className="p-3 bg-white/15 rounded-xl backdrop-blur-sm">
+                      {card.icon}
+                    </div>
                   </div>
-                  <div className="p-3 bg-white/10 rounded-xl">
-                    <Wrench className="w-5 h-5 text-white" />
-                  </div>
+                  <p className="text-xs text-white/60 font-semibold relative z-10 flex items-center gap-1">
+                    <Activity className="w-3 h-3" />
+                    {card.trend}
+                  </p>
                 </div>
-              </div>
-
-              {/* Card 2: Total Tax */}
-              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
-                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-3xl font-extrabold mb-1">$0.00</h3>
-                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Total Tax</span>
-                  </div>
-                  <div className="p-3 bg-white/10 rounded-xl">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 3: My Earning */}
-              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
-                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-3xl font-extrabold mb-1">$0.00</h3>
-                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">My Earning</span>
-                  </div>
-                  <div className="p-3 bg-white/10 rounded-xl">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 4: Total Revenue */}
-              <div className="bg-gradient-to-br from-[#5E5CE6]/90 to-[#4E4CD6] border border-[#5E5CE6]/35 p-6 rounded-2xl shadow-xl relative overflow-hidden text-white group hover:scale-[1.02] transition-all">
-                <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-all"></div>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-3xl font-extrabold mb-1">{`$${totalRevenue.toLocaleString()}`}</h3>
-                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Total Revenue</span>
-                  </div>
-                  <div className="p-3 bg-white/10 rounded-xl">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+              ))}
             </section>
 
             {/* Monthly Revenue Chart */}
@@ -3292,6 +3587,363 @@ export default function DashboardPage() {
           </>
         )}
 
+        {/* ────────────────── CUSTOMERS TAB ────────────────── */}
+        {activeTab === 'customers' && (
+          <div className="animate-tab-content">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Search customers..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#1C1C1E] border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] transition-colors"
+                />
+              </div>
+              <button
+                onClick={fetchCustomers}
+                className="flex items-center gap-2 bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </button>
+            </div>
+
+            {/* Stats bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              {[
+                { label: 'Total Customers', value: customers.length, color: 'text-[#5E5CE6]' },
+                { label: 'Active', value: customers.filter(c => c.status === 1 || c.status === undefined).length, color: 'text-emerald-400' },
+                { label: 'Inactive', value: customers.filter(c => c.status === 0).length, color: 'text-zinc-500' },
+                { label: 'Showing', value: filteredCustomers.length, color: 'text-amber-400' },
+              ].map((s, i) => (
+                <div key={i} className="bg-[#1C1C1E] border border-zinc-800 rounded-2xl p-4 animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
+                  <p className="text-xs text-zinc-500 font-semibold mb-1">{s.label}</p>
+                  <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <section className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-base font-bold text-white">Registered Customers</h3>
+                <span className="text-xs bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20 px-2.5 py-1 rounded-full font-bold">
+                  {filteredCustomers.length} records
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                {tabLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" />
+                  </div>
+                ) : filteredCustomers.length === 0 ? (
+                  <div className="text-center py-20 text-zinc-500">
+                    <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold">No customers found</p>
+                    <p className="text-xs mt-1 opacity-60">Customers register through the mobile app</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-800 text-xs font-bold text-zinc-500 uppercase tracking-wider bg-zinc-900/50">
+                        <th className="px-6 py-3.5">Customer</th>
+                        <th className="px-6 py-3.5">Username</th>
+                        <th className="px-6 py-3.5">Contact</th>
+                        <th className="px-6 py-3.5">Wallet</th>
+                        <th className="px-6 py-3.5">Status</th>
+                        <th className="px-6 py-3.5">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/60 text-sm">
+                      {filteredCustomers.map((c, idx) => {
+                        const name = c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.username || 'Unknown';
+                        const isActive = c.status === 1 || c.status === undefined;
+                        return (
+                          <tr key={c.id || idx} className="hover:bg-zinc-900/40 transition-colors animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <SafeAvatar src={c.avatar} name={name} className="w-9 h-9 rounded-full" />
+                                <div>
+                                  <p className="font-bold text-white text-sm">{name}</p>
+                                  <p className="text-xs text-zinc-500">{c.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-zinc-400 font-mono text-xs">@{c.username}</td>
+                            <td className="px-6 py-4 text-zinc-400">{c.contact_number || '—'}</td>
+                            <td className="px-6 py-4 font-bold text-emerald-400">${(c.wallet_balance || 0).toFixed(2)}</td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                isActive
+                                  ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900'
+                                  : 'bg-zinc-800 text-zinc-500 border-zinc-700'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                                {isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleToggleCustomerStatus(c.id, c.status === 1 ? 1 : 0)}
+                                  className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all"
+                                  title={isActive ? 'Deactivate' : 'Activate'}
+                                >
+                                  {isActive ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCustomer(c.id)}
+                                  className="p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/40 text-red-400 transition-all"
+                                  title="Delete customer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ────────────────── SLIDERS TAB ────────────────── */}
+        {activeTab === 'sliders' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-zinc-400 text-sm">Manage homepage banners shown in the mobile app</p>
+              <button
+                onClick={() => setIsSliderModalOpen(true)}
+                className="flex items-center gap-2 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20 btn-ripple"
+              >
+                <Plus className="w-4 h-4" />
+                Add Slider
+              </button>
+            </div>
+
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" />
+              </div>
+            ) : sliders.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-800 rounded-2xl">
+                <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-semibold">No sliders created yet</p>
+                <p className="text-xs mt-1 opacity-60">Add your first banner or promotional slider</p>
+                <button
+                  onClick={() => setIsSliderModalOpen(true)}
+                  className="mt-4 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all"
+                >
+                  Create First Slider
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {sliders.map((s, idx) => (
+                  <div key={s.id || idx} className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden card-hover animate-fade-in-up" style={{ animationDelay: `${idx * 80}ms` }}>
+                    <div className="relative aspect-[16/7] bg-zinc-900 overflow-hidden">
+                      {s.slider_image ? (
+                        <img src={s.slider_image} alt={s.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="w-10 h-10 text-zinc-700" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                      <span className={`absolute top-3 right-3 text-xs font-bold px-2 py-1 rounded-full ${s.status === 1 ? 'bg-emerald-500 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
+                        {s.status === 1 ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-white text-sm mb-1 truncate">{s.title}</h3>
+                      <p className="text-xs text-zinc-500 mb-4 line-clamp-2">{s.description}</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditSliderClick(s)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold py-2 rounded-xl transition-all"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleToggleSliderStatus(s.id, s.status)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold py-2 rounded-xl transition-all text-zinc-400"
+                        >
+                          {s.status === 1 ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          {s.status === 1 ? 'Hide' : 'Show'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSlider(s.id)}
+                          className="p-2 rounded-xl bg-red-950/30 hover:bg-red-900/40 text-red-400 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────────── SETTINGS TAB ────────────────── */}
+        {activeTab === 'settings' && (
+          <div className="animate-tab-content max-w-2xl">
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" />
+              </div>
+            ) : (
+              <form onSubmit={handleSaveSettings} className="space-y-6">
+                {/* General Settings */}
+                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl bg-[#5E5CE6]/10 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-[#5E5CE6]" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">General Settings</h3>
+                      <p className="text-xs text-zinc-500">App name and currency configuration</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">App Name</label>
+                      <input
+                        type="text"
+                        value={settingsForm.app_name}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, app_name: e.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                        placeholder="Handyman Pro"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Currency Symbol</label>
+                      <input
+                        type="text"
+                        value={settingsForm.currency_symbol}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, currency_symbol: e.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                        placeholder="$"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Settings */}
+                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-100">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                      <Percent className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Financial Settings</h3>
+                      <p className="text-xs text-zinc-500">Commission rates and payout minimums</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Commission Rate (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={settingsForm.commission_rate}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, commission_rate: e.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                        placeholder="15.0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Min Payout Amount ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={settingsForm.min_payout_amount}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, min_payout_amount: e.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                        placeholder="50.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Support Settings */}
+                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-200">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-sky-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Support Contact</h3>
+                      <p className="text-xs text-zinc-500">Customer support email and phone</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Support Email</label>
+                      <input
+                        type="email"
+                        value={settingsForm.support_email}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, support_email: e.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                        placeholder="support@handymanpro.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Support Phone</label>
+                      <input
+                        type="text"
+                        value={settingsForm.support_phone}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, support_phone: e.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                        placeholder="+15550199"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current values display */}
+                {systemSettings && (
+                  <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 animate-fade-in">
+                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Current Saved Values</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: 'App Name', value: systemSettings.app_name },
+                        { label: 'Commission', value: `${systemSettings.commission_rate}%` },
+                        { label: 'Currency', value: systemSettings.currency_symbol },
+                        { label: 'Min Payout', value: `$${systemSettings.min_payout_amount}` },
+                        { label: 'Support Email', value: systemSettings.support_email },
+                        { label: 'Support Phone', value: systemSettings.support_phone },
+                      ].map((item, i) => (
+                        <div key={i} className="bg-zinc-800/50 rounded-xl p-3">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase mb-0.5">{item.label}</p>
+                          <p className="text-xs text-zinc-200 font-semibold truncate">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={settingsLoading}
+                  className="flex items-center gap-2 bg-[#5E5CE6] hover:bg-[#4E4CD6] disabled:opacity-60 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20 btn-ripple"
+                >
+                  {settingsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {settingsLoading ? 'Saving...' : 'Save Settings'}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
       </main>
 
       {/* -------------------- EXPORT DATA MODAL -------------------- */}
@@ -4050,6 +4702,121 @@ export default function DashboardPage() {
                 className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg"
               >
                 Disburse Payout
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- CREATE SLIDER MODAL -------------------- */}
+      {isSliderModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button
+              onClick={() => setIsSliderModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-6">Add New Slider</h3>
+            <form onSubmit={handleCreateSlider} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Title</label>
+                <input
+                  type="text"
+                  value={newSliderTitle}
+                  onChange={(e) => setNewSliderTitle(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                  placeholder="e.g. Summer AC Service Deal"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Description</label>
+                <textarea
+                  value={newSliderDesc}
+                  onChange={(e) => setNewSliderDesc(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors h-20 resize-none"
+                  placeholder="Short promotional text..."
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Image URL</label>
+                <input
+                  type="url"
+                  value={newSliderImage}
+                  onChange={(e) => setNewSliderImage(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors"
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+              {newSliderImage && (
+                <div className="rounded-xl overflow-hidden aspect-[16/7] bg-zinc-900">
+                  <img src={newSliderImage} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                </div>
+              )}
+              <button
+                type="submit"
+                className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20"
+              >
+                Create Slider
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- EDIT SLIDER MODAL -------------------- */}
+      {isEditSliderModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button
+              onClick={() => setIsEditSliderModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-6">Edit Slider</h3>
+            <form onSubmit={handleUpdateSlider} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Title</label>
+                <input
+                  type="text"
+                  value={editSliderTitle}
+                  onChange={(e) => setEditSliderTitle(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Description</label>
+                <textarea
+                  value={editSliderDesc}
+                  onChange={(e) => setEditSliderDesc(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors h-20 resize-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Image URL</label>
+                <input
+                  type="url"
+                  value={editSliderImage}
+                  onChange={(e) => setEditSliderImage(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors"
+                />
+              </div>
+              {editSliderImage && (
+                <div className="rounded-xl overflow-hidden aspect-[16/7] bg-zinc-900">
+                  <img src={editSliderImage} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                </div>
+              )}
+              <button
+                type="submit"
+                className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20"
+              >
+                Save Changes
               </button>
             </form>
           </div>
