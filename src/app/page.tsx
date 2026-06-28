@@ -178,19 +178,33 @@ export default function DashboardPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  const prefillRole = (role: 'admin' | 'demo_admin' | 'provider' | 'handyman') => {
+  // Sign Up modal states
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [signupFirstName, setSignupFirstName] = useState('');
+  const [signupLastName, setSignupLastName] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [signupError, setSignupError] = useState('');
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+
+  // Forgot Password modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
+  const prefillRole = (role: 'admin' | 'demo_admin') => {
     if (role === 'admin') {
       setUsername('admin');
       setPassword('admin123');
     } else if (role === 'demo_admin') {
       setUsername('demo@admin.com');
       setPassword('admin123');
-    } else if (role === 'provider') {
-      setUsername('sarah@provider.com');
-      setPassword('password123');
-    } else if (role === 'handyman') {
-      setUsername('david@handyman.com');
-      setPassword('password123');
     }
   };
 
@@ -360,6 +374,9 @@ export default function DashboardPage() {
         } catch (e) {}
       }
       fetchAdminStats();
+      fetchBookings();
+      fetchCustomers();
+      fetchSettings();
     }
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -395,6 +412,7 @@ export default function DashboardPage() {
         fetchBookings();
         fetchProviders();
         fetchServicesAndCategories();
+        fetchCustomers();
       } else if (activeTab === 'bookings') {
         fetchBookings();
         fetchProviders();
@@ -420,10 +438,13 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const response = await apiClient.get('/bookings');
-      setBookings(response.data);
-    } catch (error) {
+      setBookings(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
       console.error('Error fetching bookings:', error);
-      showToast('Failed to load bookings', 'error');
+      const msg = error?.message?.includes('waking up')
+        ? 'Backend is waking up — please click Refresh in a moment.'
+        : 'Failed to load bookings';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -433,10 +454,10 @@ export default function DashboardPage() {
     try {
       setTabLoading(true);
       const response = await apiClient.get('/providers');
-      setProviders(response.data);
-    } catch (error) {
+      setProviders(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
       console.error('Error fetching providers:', error);
-      showToast('Failed to load providers', 'error');
+      showToast(error?.message?.includes('waking up') ? 'Backend waking up — please retry.' : 'Failed to load providers', 'error');
     } finally {
       setTabLoading(false);
     }
@@ -449,14 +470,16 @@ export default function DashboardPage() {
         apiClient.get('/services'),
         apiClient.get('/categories')
       ]);
-      setServices(srvResponse.data);
-      setCategories(catResponse.data);
-      if (catResponse.data.length > 0 && !newServiceCategory) {
-        setNewServiceCategory(catResponse.data[0].name);
+      const srvData = Array.isArray(srvResponse.data) ? srvResponse.data : [];
+      const catData = Array.isArray(catResponse.data) ? catResponse.data : [];
+      setServices(srvData);
+      setCategories(catData);
+      if (catData.length > 0 && !newServiceCategory) {
+        setNewServiceCategory(catData[0].name);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching services/categories:', error);
-      showToast('Failed to load catalog data', 'error');
+      showToast(error?.message?.includes('waking up') ? 'Backend waking up — please retry.' : 'Failed to load catalog data', 'error');
     } finally {
       setTabLoading(false);
     }
@@ -466,10 +489,10 @@ export default function DashboardPage() {
     try {
       setTabLoading(true);
       const response = await apiClient.get('/transactions');
-      setTransactions(response.data);
-    } catch (error) {
+      setTransactions(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
       console.error('Error fetching transactions:', error);
-      showToast('Failed to load transactions', 'error');
+      showToast(error?.message?.includes('waking up') ? 'Backend waking up — please retry.' : 'Failed to load transactions', 'error');
     } finally {
       setTabLoading(false);
     }
@@ -488,10 +511,10 @@ export default function DashboardPage() {
     try {
       setTabLoading(true);
       const response = await apiClient.get('/admin/customers');
-      setCustomers(response.data);
-    } catch (error) {
+      setCustomers(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
       console.error('Error fetching customers:', error);
-      showToast('Failed to load customers', 'error');
+      showToast(error?.message?.includes('waking up') ? 'Backend waking up — please retry.' : 'Failed to load customers', 'error');
     } finally {
       setTabLoading(false);
     }
@@ -501,10 +524,10 @@ export default function DashboardPage() {
     try {
       setTabLoading(true);
       const response = await apiClient.get('/admin/sliders');
-      setSliders(response.data);
-    } catch (error) {
+      setSliders(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
       console.error('Error fetching sliders:', error);
-      showToast('Failed to load sliders', 'error');
+      showToast(error?.message?.includes('waking up') ? 'Backend waking up — please retry.' : 'Failed to load sliders', 'error');
     } finally {
       setTabLoading(false);
     }
@@ -583,11 +606,88 @@ export default function DashboardPage() {
       setActiveTab('dashboard');
       showToast('Sign in successful!');
       fetchAdminStats();
+      fetchBookings();
+      fetchProviders();
+      fetchServicesAndCategories();
     } catch (error: any) {
       const msg = error.message || 'Login failed. Please check credentials.';
       setLoginError(msg);
     } finally {
       setLoginLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignupError('');
+    if (signupPassword !== signupConfirmPassword) {
+      setSignupError('Passwords do not match.');
+      return;
+    }
+    if (signupPassword.length < 6) {
+      setSignupError('Password must be at least 6 characters.');
+      return;
+    }
+    setSignupLoading(true);
+    try {
+      await apiClient.post('/register', {
+        username: signupUsername,
+        email: signupEmail,
+        first_name: signupFirstName,
+        last_name: signupLastName,
+        password: signupPassword,
+        contact_number: signupPhone || undefined,
+        user_type: 'user',
+      });
+      setSignupSuccess(true);
+      showToast('Account created! You can now sign in.');
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || error.message || 'Registration failed. Please try again.';
+      setSignupError(msg);
+    } finally {
+      setSignupLoading(false);
+    }
+  };
+
+  const openSignUp = () => {
+    setShowLoginModal(false);
+    setSignupFirstName('');
+    setSignupLastName('');
+    setSignupUsername('');
+    setSignupEmail('');
+    setSignupPhone('');
+    setSignupPassword('');
+    setSignupConfirmPassword('');
+    setSignupError('');
+    setSignupSuccess(false);
+    setShowSignUpModal(true);
+  };
+
+  const openSignIn = () => {
+    setShowSignUpModal(false);
+    setLoginError('');
+    setShowLoginModal(true);
+  };
+
+  const openForgotPassword = () => {
+    setShowLoginModal(false);
+    setForgotEmail('');
+    setForgotError('');
+    setForgotSuccess(false);
+    setShowForgotModal(true);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotLoading(true);
+    try {
+      await apiClient.post('/forgot-password', { email: forgotEmail });
+      setForgotSuccess(true);
+    } catch (error: any) {
+      setForgotError(error.response?.data?.detail || error.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -1349,10 +1449,10 @@ export default function DashboardPage() {
 
   // ------------------ DYNAMIC FILTERS ------------------
   const filteredBookings = bookings.filter(b => {
-    const matchesSearch = b.customer_name.toLowerCase().includes(bookingSearch.toLowerCase()) ||
-                          b.service_name.toLowerCase().includes(bookingSearch.toLowerCase()) ||
-                          b.handyman_name.toLowerCase().includes(bookingSearch.toLowerCase());
-    const matchesFilter = bookingFilter === 'All' || b.status.toLowerCase() === bookingFilter.toLowerCase();
+    const matchesSearch = (b.customer_name || '').toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                          (b.service_name || '').toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                          (b.handyman_name || '').toLowerCase().includes(bookingSearch.toLowerCase());
+    const matchesFilter = bookingFilter === 'All' || (b.status || '').toLowerCase() === bookingFilter.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
@@ -1367,9 +1467,9 @@ export default function DashboardPage() {
   });
 
   const filteredTransactions = transactions.filter(t => {
-    const matchesSearch = t.customer_name.toLowerCase().includes(txSearch.toLowerCase()) ||
-                          t.payment_method.toLowerCase().includes(txSearch.toLowerCase());
-    const matchesFilter = txFilter === 'All' || t.type.toLowerCase() === txFilter.toLowerCase();
+    const matchesSearch = (t.customer_name || '').toLowerCase().includes(txSearch.toLowerCase()) ||
+                          (t.payment_method || '').toLowerCase().includes(txSearch.toLowerCase());
+    const matchesFilter = txFilter === 'All' || (t.type || '').toLowerCase() === txFilter.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
@@ -2132,34 +2232,27 @@ export default function DashboardPage() {
                       placeholder="Enter Password"
                     />
                     <div className="flex justify-end mt-2">
-                      <a href="#" className="text-xs font-semibold text-[#5E5CE6] hover:underline">
+                      <button type="button" onClick={openForgotPassword} className="text-xs font-semibold text-[#5E5CE6] hover:underline cursor-pointer bg-transparent border-0 p-0">
                         Forgot Password?
-                      </a>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Prefill Credentials Role Selection */}
+                  {/* Quick Login Presets (admin-only panel) */}
                   <div className="flex items-center justify-between gap-2.5 pt-1">
                     <button
                       type="button"
                       onClick={() => prefillRole('admin')}
                       className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
                     >
+                      Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => prefillRole('demo_admin')}
+                      className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
+                    >
                       Demo Admin
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => prefillRole('provider')}
-                      className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
-                    >
-                      Provider
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => prefillRole('handyman')}
-                      className="flex-1 py-2 px-1 text-xs font-semibold text-zinc-400 bg-[#121214] border border-zinc-850 hover:border-zinc-700 hover:text-white rounded-lg transition-all cursor-pointer text-center"
-                    >
-                      Handyman
                     </button>
                   </div>
 
@@ -2180,11 +2273,264 @@ export default function DashboardPage() {
 
                 <div className="mt-6 text-center text-xs text-zinc-400 font-medium">
                   Don't Have An Account?{' '}
-                  <a href="#" className="text-[#5E5CE6] hover:underline font-bold ml-1">
+                  <button type="button" onClick={openSignUp} className="text-[#5E5CE6] hover:underline font-bold ml-1 cursor-pointer">
                     Sign Up
-                  </a>
+                  </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Sign Up Modal ─────────────────────────────────────────────── */}
+        {showSignUpModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111112]/95 backdrop-blur-sm animate-fade-in overflow-y-auto">
+            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-2xl relative my-8">
+
+              {/* Close */}
+              <button
+                onClick={() => setShowSignUpModal(false)}
+                className="absolute top-5 right-5 p-2 rounded-xl bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-[#5E5CE6]/10 rounded-2xl flex items-center justify-center border border-[#5E5CE6]/25">
+                    <svg className="w-10 h-10 text-[#5E5CE6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor" fillOpacity="0.2" />
+                      <path d="M14.7 12.8a1.5 1.5 0 0 0-2-2l-3.5 3.5a1.5 1.5 0 0 0 2 2z" />
+                      <path d="m9.2 14.3-3 3" />
+                      <path d="m11.2 12.3 3-3" />
+                      <path d="M16 8h2v2h-2z" />
+                    </svg>
+                  </div>
+                </div>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">Create Account</h2>
+                <p className="mt-1.5 text-sm text-zinc-400 font-medium">Join Handyman Pro today</p>
+              </div>
+
+              {signupSuccess ? (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-800/50">
+                    <CheckCircle className="w-8 h-8 text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">Account Created!</h3>
+                  <p className="text-sm text-zinc-400 mb-6">Your account has been created successfully. You can now sign in.</p>
+                  <button
+                    onClick={openSignIn}
+                    className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all cursor-pointer"
+                  >
+                    Sign In Now
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {signupError && (
+                    <div className="mb-5 p-4 rounded-2xl bg-red-950/40 border border-red-900/50 text-red-400 text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span><span className="font-bold">Error:</span> {signupError}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                          First Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={signupFirstName}
+                          onChange={(e) => setSignupFirstName(e.target.value)}
+                          required
+                          placeholder="John"
+                          className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                          Last Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={signupLastName}
+                          onChange={(e) => setSignupLastName(e.target.value)}
+                          required
+                          placeholder="Doe"
+                          className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        Username <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={signupUsername}
+                        onChange={(e) => setSignupUsername(e.target.value)}
+                        required
+                        placeholder="johndoe"
+                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        required
+                        placeholder="john@example.com"
+                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        Phone <span className="text-zinc-500 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={signupPhone}
+                        onChange={(e) => setSignupPhone(e.target.value)}
+                        placeholder="+880 1700 000000"
+                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        Password <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        required
+                        placeholder="Min. 6 characters"
+                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        Confirm Password <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={signupConfirmPassword}
+                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                        required
+                        placeholder="Re-enter password"
+                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                      />
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        type="submit"
+                        disabled={signupLoading}
+                        className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all disabled:opacity-55 cursor-pointer shadow-lg shadow-[#5E5CE6]/20"
+                      >
+                        {signupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="mt-6 text-center text-xs text-zinc-400 font-medium">
+                    Already have an account?{' '}
+                    <button type="button" onClick={openSignIn} className="text-[#5E5CE6] hover:underline font-bold ml-1 cursor-pointer">
+                      Sign In
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Forgot Password Modal ───────────────────────────────────────── */}
+        {showForgotModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111112]/95 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-2xl relative">
+              <button
+                onClick={() => setShowForgotModal(false)}
+                className="absolute top-5 right-5 p-2 rounded-xl bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-[#5E5CE6]/10 rounded-2xl flex items-center justify-center border border-[#5E5CE6]/25">
+                    <Lock className="w-8 h-8 text-[#5E5CE6]" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">Forgot Password</h2>
+                <p className="mt-1.5 text-sm text-zinc-400 font-medium">Enter your email to receive a reset link</p>
+              </div>
+
+              {forgotSuccess ? (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-800/50">
+                    <CheckCircle className="w-8 h-8 text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">Email Sent!</h3>
+                  <p className="text-sm text-zinc-400 mb-6">If an account exists for that email, you will receive a password reset link shortly.</p>
+                  <button
+                    onClick={() => { setShowForgotModal(false); setShowLoginModal(true); }}
+                    className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all cursor-pointer"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {forgotError && (
+                    <div className="mb-5 p-4 rounded-2xl bg-red-950/40 border border-red-900/50 text-red-400 text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span><span className="font-bold">Error:</span> {forgotError}</span>
+                    </div>
+                  )}
+                  <form onSubmit={handleForgotPassword} className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-zinc-300 mb-2">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        placeholder="your@email.com"
+                        className="block w-full px-4 py-3 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm font-medium"
+                      />
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all disabled:opacity-55 cursor-pointer shadow-lg shadow-[#5E5CE6]/20"
+                      >
+                        {forgotLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Reset Link'}
+                      </button>
+                    </div>
+                  </form>
+                  <div className="mt-6 text-center text-xs text-zinc-400 font-medium">
+                    Remember your password?{' '}
+                    <button type="button" onClick={() => { setShowForgotModal(false); setShowLoginModal(true); }} className="text-[#5E5CE6] hover:underline font-bold ml-1 cursor-pointer">
+                      Sign In
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -2193,8 +2539,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#111112] text-zinc-100 animate-fade-in font-sans">
-      
+    <div className="admin-theme flex min-h-screen bg-[#111112] text-zinc-100 animate-fade-in font-sans">
+
       {/* Toast Alert Banner */}
       {toast && (
         <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border shadow-2xl animate-toast-slide ${
@@ -2208,7 +2554,7 @@ export default function DashboardPage() {
       )}
 
       {/* Sidebar navigation */}
-      <aside className="w-66 border-r border-[#1C1C1E] bg-[#111112] p-5 hidden md:flex flex-col justify-between text-zinc-300">
+      <aside className="admin-sidebar w-66 border-r border-[#1C1C1E] bg-[#111112] p-5 hidden md:flex flex-col justify-between text-zinc-300">
         <div>
           {/* Logo & Workspace Title */}
           <div className="flex items-center gap-x-3 mb-6">
@@ -2227,7 +2573,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Profile Card */}
-          <div className="flex items-center gap-x-3 p-3 bg-[#1C1C1E] border border-zinc-800 rounded-2xl mb-8">
+          <div className="panel-dark-2 flex items-center gap-x-3 p-3 bg-[#1C1C1E] border border-zinc-800 rounded-2xl mb-8">
             <img 
               src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80" 
               alt="Profile" 
@@ -2429,7 +2775,7 @@ export default function DashboardPage() {
       <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
         
         {/* Header */}
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-4 mb-6 border-b border-zinc-800 pb-5">
+        <header className="admin-main-header flex flex-col sm:flex-row sm:items-center justify-between gap-y-4 mb-6 border-b border-zinc-800 pb-5">
           <div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2 animate-fade-in-down">
               <span>
@@ -2458,12 +2804,12 @@ export default function DashboardPage() {
           {/* Header Action Bar */}
           <div className="flex items-center gap-4">
             {/* Night mode toggle button */}
-            <button 
+            <button
               onClick={toggleTheme}
               className="w-10 h-10 rounded-xl bg-[#1C1C1E] border border-zinc-800 hover:border-zinc-700 flex items-center justify-center text-[#5E5CE6] transition-colors cursor-pointer"
-              title="Toggle Dark Mode"
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
-              {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-500" />}
+              {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-400" />}
             </button>
 
             {/* Orange Add Button */}
@@ -2515,8 +2861,9 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-[#FF9500] text-white flex items-center justify-center text-xs font-bold font-sans">!</span>
                   <span>
-                    Important Notice: Please enable RazorpayX From PAYMENT CONFIGURATION tab to allow providers to withdraw their funds.{' '}
-                    <a href="#" className="underline font-bold text-[#FF9500] dark:text-[#FFB340] hover:opacity-80">Here is the link</a>
+                    Important Notice: Please configure payment settings from the{' '}
+                    <button type="button" onClick={() => setActiveTab('settings')} className="underline font-bold text-[#FF9500] dark:text-[#FFB340] hover:opacity-80 cursor-pointer bg-transparent border-0 p-0">Settings tab</button>{' '}
+                    to allow providers to withdraw their funds.
                   </span>
                 </div>
                 <svg className="w-4.5 h-4.5 text-[#FF9500] dark:text-[#FFB340] cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -2593,7 +2940,7 @@ export default function DashboardPage() {
             </section>
 
             {/* Monthly Revenue Chart */}
-            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 mb-8">
+            <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 mb-8">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-base font-bold text-white">Monthly Revenue</h3>
                 {/* Control Icons */}
@@ -2772,9 +3119,9 @@ export default function DashboardPage() {
             {/* Bottom 3-Column Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 mb-8">
               {/* Column 1: Recent Providers */}
-              <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
                 <div className="flex justify-between items-center mb-5">
-                  <h4 className="text-sm font-bold text-white">Recent Providers (21)</h4>
+                  <h4 className="text-sm font-bold text-white">Recent Providers</h4>
                   <a href="#" onClick={() => setActiveTab('providers')} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
                 </div>
                 <div className="space-y-4">
@@ -2802,33 +3149,38 @@ export default function DashboardPage() {
               </div>
 
               {/* Column 2: Recent Customers */}
-              <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
                 <div className="flex justify-between items-center mb-5">
-                  <h4 className="text-sm font-bold text-white">Recent Customers (44)</h4>
-                  <a href="#" className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
+                  <h4 className="text-sm font-bold text-white">Recent Customers</h4>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('customers'); }} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80" alt="Customer" className="w-10 h-10 rounded-full border border-zinc-800" />
-                    <div>
-                      <h5 className="text-xs font-bold text-white">Barry Betty</h5>
-                      <p className="text-[10px] text-zinc-450">June 20, 2026 9:57 AM</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" alt="Customer" className="w-10 h-10 rounded-full border border-zinc-800" />
-                    <div>
-                      <h5 className="text-xs font-bold text-white">disha test</h5>
-                      <p className="text-[10px] text-zinc-450">June 18, 2026 11:11 AM</p>
-                    </div>
-                  </div>
+                  {customers.length === 0 ? (
+                    <p className="text-xs text-zinc-500 text-center py-2">No customers yet</p>
+                  ) : (
+                    customers.slice(0, 3).map((c, i) => {
+                      const name = c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.username || 'Customer';
+                      return (
+                        <div key={i} className="flex items-center gap-3">
+                          <SafeAvatar src={c.profile_image} name={name} className="w-10 h-10 rounded-full border border-zinc-800" />
+                          <div>
+                            <h5 className="text-xs font-bold text-white">{name}</h5>
+                            <p className="text-[10px] text-zinc-500">{c.email || c.username}</p>
+                          </div>
+                          <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${c.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-500'}`}>
+                            {c.status === 1 ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
               {/* Column 3: Recent Bookings */}
-              <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+              <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
                 <div className="flex justify-between items-center mb-5">
-                  <h4 className="text-sm font-bold text-white">Recent Bookings (42)</h4>
+                  <h4 className="text-sm font-bold text-white">Recent Bookings</h4>
                   <a href="#" onClick={() => setActiveTab('bookings')} className="text-xs font-semibold text-[#5E5CE6] hover:underline">View All</a>
                 </div>
                 <div className="space-y-4">
@@ -2929,14 +3281,14 @@ export default function DashboardPage() {
                       {filteredBookings.map((booking, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                           <td className="px-6 py-4 font-mono font-medium text-slate-900 dark:text-zinc-50">
-                            {booking.id.slice(-6).toUpperCase()}
+                            #{(booking.id || '').slice(-6).toUpperCase()}
                           </td>
                           <td className="px-6 py-4 font-medium text-slate-800 dark:text-zinc-200">{booking.customer_name}</td>
                           <td className="px-6 py-4 text-slate-500 dark:text-zinc-400">{booking.service_name}</td>
                           <td className="px-6 py-4 text-slate-500 dark:text-zinc-400">
-                            <select 
+                            <select
                               value={booking.handyman_name || 'Unassigned'}
-                              onChange={(e) => handleUpdateBookingHandyman(booking.id, e.target.value)}
+                              onChange={(e) => booking.id && handleUpdateBookingHandyman(booking.id, e.target.value)}
                               className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-500 text-slate-700 dark:text-zinc-300 font-medium"
                             >
                               <option value="Unassigned">Unassigned</option>
@@ -2947,11 +3299,18 @@ export default function DashboardPage() {
                             </select>
                           </td>
                           <td className="px-6 py-4 text-slate-400 dark:text-zinc-500">{booking.date}</td>
-                          <td className="px-6 py-4 font-bold text-slate-800 dark:text-zinc-200">${booking.amount.toFixed(2)}</td>
                           <td className="px-6 py-4">
-                            <select 
+                            <span className="font-bold text-slate-800 dark:text-zinc-200">${(booking.amount || 0).toFixed(2)}</span>
+                            {systemSettings?.commission_rate > 0 && (
+                              <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                Client: ${((booking.amount || 0) * (1 + systemSettings.commission_rate / 100)).toFixed(2)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <select
                               value={booking.status}
-                              onChange={(e) => handleUpdateBookingStatus(booking.id, e.target.value)}
+                              onChange={(e) => booking.id && handleUpdateBookingStatus(booking.id, e.target.value)}
                               className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusStyle(booking.status)} outline-none`}
                             >
                               <option value="Pending">Pending</option>
@@ -2962,8 +3321,8 @@ export default function DashboardPage() {
                             </select>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button 
-                              onClick={() => handleDeleteBooking(booking.id)}
+                            <button
+                              onClick={() => booking.id && handleDeleteBooking(booking.id)}
                               className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all inline-block"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -2983,7 +3342,7 @@ export default function DashboardPage() {
         {activeTab === 'bookings' && (
           <>
             {/* Top Bar with Total Amount, Breakdown & Export */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
+            <div className="panel-dark flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-[#18181A] border border-zinc-800 rounded-3xl p-6">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-zinc-400 text-sm font-semibold">Total Amount:</span>
@@ -3062,7 +3421,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Table Container */}
-            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
               <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                 <table className="w-full min-w-[1100px] text-left border-collapse">
                   <thead>
@@ -3198,8 +3557,13 @@ export default function DashboardPage() {
                             </div>
                           </td>
 
-                          <td className="px-6 py-4.5 font-extrabold text-white text-base whitespace-nowrap">
-                            ${(booking.amount || 0).toFixed(2)}
+                          <td className="px-6 py-4.5 whitespace-nowrap">
+                            <span className="font-extrabold text-white text-base">${(booking.amount || 0).toFixed(2)}</span>
+                            {systemSettings?.commission_rate > 0 && (
+                              <span className="block text-[10px] text-emerald-400 font-semibold mt-0.5">
+                                Client: ${((booking.amount || 0) * (1 + systemSettings.commission_rate / 100)).toFixed(2)}
+                              </span>
+                            )}
                           </td>
 
                           <td className="px-6 py-4.5 whitespace-nowrap">
@@ -3619,14 +3983,14 @@ export default function DashboardPage() {
                 { label: 'Inactive', value: customers.filter(c => c.status === 0).length, color: 'text-zinc-500' },
                 { label: 'Showing', value: filteredCustomers.length, color: 'text-amber-400' },
               ].map((s, i) => (
-                <div key={i} className="bg-[#1C1C1E] border border-zinc-800 rounded-2xl p-4 animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
+                <div key={i} className="panel-dark-2 bg-[#1C1C1E] border border-zinc-800 rounded-2xl p-4 animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
                   <p className="text-xs text-zinc-500 font-semibold mb-1">{s.label}</p>
                   <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
                 </div>
               ))}
             </div>
 
-            <section className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+            <section className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
               <div className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
                 <h3 className="text-base font-bold text-white">Registered Customers</h3>
                 <span className="text-xs bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20 px-2.5 py-1 rounded-full font-bold">
@@ -3687,7 +4051,7 @@ export default function DashboardPage() {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => handleToggleCustomerStatus(c.id, c.status === 1 ? 1 : 0)}
+                                  onClick={() => handleToggleCustomerStatus(c.id, c.status ?? 1)}
                                   className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all"
                                   title={isActive ? 'Deactivate' : 'Activate'}
                                 >
@@ -3746,7 +4110,7 @@ export default function DashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {sliders.map((s, idx) => (
-                  <div key={s.id || idx} className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden card-hover animate-fade-in-up" style={{ animationDelay: `${idx * 80}ms` }}>
+                  <div key={s.id || idx} className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden card-hover animate-fade-in-up" style={{ animationDelay: `${idx * 80}ms` }}>
                     <div className="relative aspect-[16/7] bg-zinc-900 overflow-hidden">
                       {s.slider_image ? (
                         <img src={s.slider_image} alt={s.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
@@ -3803,7 +4167,7 @@ export default function DashboardPage() {
             ) : (
               <form onSubmit={handleSaveSettings} className="space-y-6">
                 {/* General Settings */}
-                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up">
+                <div className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up">
                   <div className="flex items-center gap-3 mb-5">
                     <div className="w-9 h-9 rounded-xl bg-[#5E5CE6]/10 flex items-center justify-center">
                       <Settings className="w-5 h-5 text-[#5E5CE6]" />
@@ -3838,7 +4202,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Financial Settings */}
-                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-100">
+                <div className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-100">
                   <div className="flex items-center gap-3 mb-5">
                     <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                       <Percent className="w-5 h-5 text-emerald-400" />
@@ -3875,7 +4239,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Support Settings */}
-                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-200">
+                <div className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-200">
                   <div className="flex items-center gap-3 mb-5">
                     <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
                       <Mail className="w-5 h-5 text-sky-400" />
@@ -4094,9 +4458,9 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Amount ($)</label>
-                  <input 
-                    type="number" 
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Service Amount ($)</label>
+                  <input
+                    type="number"
                     step="0.01"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -4104,6 +4468,22 @@ export default function DashboardPage() {
                     placeholder="99.99"
                     required
                   />
+                  {amount && parseFloat(amount) > 0 && systemSettings?.commission_rate > 0 && (
+                    <div className="mt-1.5 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-[10px] space-y-0.5">
+                      <div className="flex justify-between text-slate-500 dark:text-zinc-400">
+                        <span>Provider gets:</span>
+                        <span className="font-bold">${parseFloat(amount).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 dark:text-zinc-400">
+                        <span>Platform fee ({systemSettings.commission_rate}%):</span>
+                        <span className="font-bold">+${(parseFloat(amount) * systemSettings.commission_rate / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-bold border-t border-emerald-200 dark:border-emerald-900/40 pt-0.5 mt-0.5">
+                        <span>Client pays:</span>
+                        <span>${(parseFloat(amount) * (1 + systemSettings.commission_rate / 100)).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Status</label>
@@ -4160,7 +4540,7 @@ export default function DashboardPage() {
       {/* -------------------- VIEW BREAKDOWN MODAL -------------------- */}
       {isBreakdownOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative">
+          <div className="panel-dark bg-[#18181A] border border-zinc-800 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative animate-scale-in-modal">
             <button 
               onClick={() => setIsBreakdownOpen(false)}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"

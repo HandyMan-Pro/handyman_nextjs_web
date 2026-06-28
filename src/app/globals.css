@@ -262,3 +262,156 @@ html { scroll-behavior: smooth; }
 .stat-value {
   animation: countUp 0.6s ease both;
 }
+
+/* ─── ADMIN PANEL LIGHT / DARK MODE THEMING ─────────────────────────────────── */
+
+/*
+ * The admin dashboard uses hardcoded dark hex colors.
+ * These CSS rules activate a light theme when html does NOT have .dark class.
+ * Semantic helper classes (admin-sidebar, panel-dark, panel-dark-2) are applied
+ * to key structural elements via JSX.
+ */
+
+.admin-theme {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ---- Page background ---- */
+html:not(.dark) .admin-theme {
+  background-color: #f1f5f9 !important;
+}
+
+/* ---- Sidebar ---- */
+html:not(.dark) .admin-theme .admin-sidebar {
+  background-color: #ffffff !important;
+  border-right-color: #e2e8f0 !important;
+  color: #374151 !important;
+}
+
+html:not(.dark) .admin-theme .admin-sidebar .text-white {
+  color: #1e293b !important;
+}
+
+html:not(.dark) .admin-theme .admin-sidebar .text-zinc-300,
+html:not(.dark) .admin-theme .admin-sidebar .text-zinc-400 {
+  color: #6b7280 !important;
+}
+
+html:not(.dark) .admin-theme .admin-sidebar .text-zinc-500 {
+  color: #9ca3af !important;
+}
+
+html:not(.dark) .admin-theme .admin-sidebar button:not([style]):not([class*="bg-[#5E5CE6]"]):hover {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* ---- Primary dark cards (bg-[#18181A] / bg-[#111112]) ---- */
+html:not(.dark) .admin-theme .panel-dark {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark .text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark .text-zinc-100,
+html:not(.dark) .admin-theme .panel-dark .text-zinc-300 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark .text-zinc-400,
+html:not(.dark) .admin-theme .panel-dark .text-zinc-500 {
+  color: #64748b !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark .border-zinc-800 {
+  border-color: #e2e8f0 !important;
+}
+
+/* ---- Secondary cards (bg-[#1C1C1E]) ---- */
+html:not(.dark) .admin-theme .panel-dark-2 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark-2 .text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark-2 .text-zinc-400,
+html:not(.dark) .admin-theme .panel-dark-2 .text-zinc-500 {
+  color: #64748b !important;
+}
+
+/* ---- Main header ---- */
+html:not(.dark) .admin-theme .admin-main-header {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .admin-theme .admin-main-header .text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .admin-theme .admin-main-header .text-zinc-500 {
+  color: #64748b !important;
+}
+
+html:not(.dark) .admin-theme .admin-main-header .bg-\[\#1C1C1E\] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .admin-theme .admin-main-header .border-zinc-800 {
+  border-color: #e2e8f0 !important;
+}
+
+/* ---- Tables inside panel-dark ---- */
+html:not(.dark) .admin-theme .panel-dark table thead tr {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark table th {
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark table td {
+  color: #334155 !important;
+  border-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .admin-theme .panel-dark table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* ---- Inputs / Selects inside panel-dark ---- */
+html:not(.dark) .admin-theme .panel-dark input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) .admin-theme .panel-dark select,
+html:not(.dark) .admin-theme .panel-dark textarea {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* ---- Ensure purple/colored gradient stat cards keep their style ---- */
+html:not(.dark) .admin-theme [class*="from-\\[\\#5E5CE6\\]"] {
+  color: inherit;
+}
+
+/* ---- Skeleton: use light variant in light mode ---- */
+html:not(.dark) .admin-theme .skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 400px 100%;
+}
+
+/* ─── ANIMATIONS: ensure smooth tab transitions ─────────────────────────────── */
+
+.tab-enter {
+  animation: slideTabContent 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.tab-loading {
+  animation: fadeIn 0.2s ease both;
+}
