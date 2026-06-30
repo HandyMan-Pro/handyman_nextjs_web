@@ -348,8 +348,107 @@ export default function DashboardPage() {
     currency_symbol: '',
     support_email: '',
     support_phone: '',
-    min_payout_amount: ''
+    min_payout_amount: '',
+    tax_percentage: '',
+    advance_payment_enabled: false,
+    advance_payment_percentage: '',
+    cancellation_charge_enabled: false,
+    cancellation_charge_percentage: '',
+    cancellation_hours: ''
   });
+
+  // Coupons tab state
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscountType, setCouponDiscountType] = useState('flat');
+  const [couponDiscountValue, setCouponDiscountValue] = useState('');
+  const [couponMinOrder, setCouponMinOrder] = useState('');
+  const [couponExpiry, setCouponExpiry] = useState('');
+  const [couponUsageLimit, setCouponUsageLimit] = useState('');
+
+  // Help Desk tab state
+  const [helpTickets, setHelpTickets] = useState<any[]>([]);
+  const [helpFilter, setHelpFilter] = useState('All');
+  const [replyTicketId, setReplyTicketId] = useState('');
+  const [replyText, setReplyText] = useState('');
+  const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
+
+  // Commissions tab state
+  const [commissions, setCommissions] = useState<any[]>([]);
+  const [isCommissionModalOpen, setIsCommissionModalOpen] = useState(false);
+  const [commissionName, setCommissionName] = useState('');
+  const [commissionType, setCommissionType] = useState('percent');
+  const [commissionValue, setCommissionValue] = useState('');
+  const [commissionHandymanId, setCommissionHandymanId] = useState('');
+
+  // Blogs tab state
+  const [blogs, setBlogs] = useState<any[]>([]);
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [isEditBlogModalOpen, setIsEditBlogModalOpen] = useState(false);
+  const [blogTitle, setBlogTitle] = useState('');
+  const [blogDesc, setBlogDesc] = useState('');
+  const [blogContent, setBlogContent] = useState('');
+  const [blogImage, setBlogImage] = useState('');
+  const [blogCategory, setBlogCategory] = useState('General');
+  const [blogReadTime, setBlogReadTime] = useState('5 min read');
+  const [editBlogId, setEditBlogId] = useState('');
+  const [editBlogTitle, setEditBlogTitle] = useState('');
+  const [editBlogDesc, setEditBlogDesc] = useState('');
+  const [editBlogContent, setEditBlogContent] = useState('');
+  const [editBlogImage, setEditBlogImage] = useState('');
+  const [editBlogCategory, setEditBlogCategory] = useState('');
+  const [editBlogReadTime, setEditBlogReadTime] = useState('');
+
+  // Withdrawals tab state
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [withdrawalFilter, setWithdrawalFilter] = useState('All');
+
+  // Analytics tab state
+  const [analytics, setAnalytics] = useState<any>(null);
+
+  // Zones tab state
+  const [zones, setZones] = useState<any[]>([]);
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
+  const [zoneName, setZoneName] = useState('');
+  const [zoneDesc, setZoneDesc] = useState('');
+
+  // Taxes tab state
+  const [taxes, setTaxes] = useState<any[]>([]);
+  const [isTaxModalOpen, setIsTaxModalOpen] = useState(false);
+  const [taxName, setTaxName] = useState('');
+  const [taxPercentage, setTaxPercentage] = useState('');
+
+  // Service Addons tab state
+  const [addons, setAddons] = useState<any[]>([]);
+  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
+  const [addonName, setAddonName] = useState('');
+  const [addonPrice, setAddonPrice] = useState('');
+  const [addonDesc, setAddonDesc] = useState('');
+
+  // Plans tab state
+  const [plans, setPlans] = useState<any[]>([]);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [planName, setPlanName] = useState('');
+  const [planPrice, setPlanPrice] = useState('');
+  const [planDuration, setPlanDuration] = useState('30');
+  const [planMaxBookings, setPlanMaxBookings] = useState('-1');
+  const [planFeatures, setPlanFeatures] = useState('');
+
+  // Post Jobs tab state
+  const [postJobs, setPostJobs] = useState<any[]>([]);
+  const [postJobFilter, setPostJobFilter] = useState('All');
+
+  // Push Notification tab state
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [notifUserType, setNotifUserType] = useState('all');
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifLogs, setNotifLogs] = useState<any[]>([]);
+
+  // Payment Gateways tab state
+  const [paymentGateways, setPaymentGateways] = useState<any>(null);
+  const [gwSaving, setGwSaving] = useState(false);
 
   // Auto hide toast
   useEffect(() => {
@@ -431,6 +530,33 @@ export default function DashboardPage() {
         fetchSliders();
       } else if (activeTab === 'settings') {
         fetchSettings();
+      } else if (activeTab === 'coupons') {
+        fetchCoupons();
+      } else if (activeTab === 'helpdesk') {
+        fetchHelpDesk();
+      } else if (activeTab === 'commissions') {
+        fetchCommissions();
+        fetchProviders();
+      } else if (activeTab === 'blogs') {
+        fetchBlogs();
+      } else if (activeTab === 'withdrawals') {
+        fetchWithdrawals();
+      } else if (activeTab === 'analytics') {
+        fetchAnalytics();
+      } else if (activeTab === 'zones') {
+        fetchZones();
+      } else if (activeTab === 'taxes') {
+        fetchTaxes();
+      } else if (activeTab === 'addons') {
+        fetchAddons();
+      } else if (activeTab === 'plans') {
+        fetchPlans();
+      } else if (activeTab === 'postjobs') {
+        fetchPostJobs();
+      } else if (activeTab === 'notifications') {
+        fetchNotifLogs();
+      } else if (activeTab === 'payment-gateways') {
+        fetchPaymentGateways();
       }
     }
   }, [activeTab, isAuthenticated]);
@@ -545,13 +671,424 @@ export default function DashboardPage() {
         currency_symbol: response.data.currency_symbol || '',
         support_email: response.data.support_email || '',
         support_phone: response.data.support_phone || '',
-        min_payout_amount: String(response.data.min_payout_amount || '')
+        min_payout_amount: String(response.data.min_payout_amount || ''),
+        tax_percentage: String(response.data.tax_percentage || ''),
+        advance_payment_enabled: !!response.data.advance_payment_enabled,
+        advance_payment_percentage: String(response.data.advance_payment_percentage || ''),
+        cancellation_charge_enabled: !!response.data.cancellation_charge_enabled,
+        cancellation_charge_percentage: String(response.data.cancellation_charge_percentage || ''),
+        cancellation_hours: String(response.data.cancellation_hours || '')
       });
     } catch (error) {
       console.error('Error fetching settings:', error);
       showToast('Failed to load settings', 'error');
     } finally {
       setTabLoading(false);
+    }
+  };
+
+  const fetchCoupons = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/coupons');
+      setCoupons(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
+      showToast('Failed to load coupons', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchHelpDesk = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/helpdesk');
+      setHelpTickets(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
+      showToast('Failed to load help desk tickets', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchCommissions = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/commissions');
+      setCommissions(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
+      showToast('Failed to load commissions', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchBlogs = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/blogs');
+      setBlogs(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
+      showToast('Failed to load blogs', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchWithdrawals = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/withdrawals');
+      setWithdrawals(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
+      showToast('Failed to load withdrawals', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      setTabLoading(true);
+      const response = await apiClient.get('/admin/analytics');
+      setAnalytics(response.data);
+    } catch (error: any) {
+      showToast('Failed to load analytics', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  // ── New fetch functions ────────────────────────────────────────────────────
+
+  const fetchZones = async () => {
+    try { setTabLoading(true); const r = await apiClient.get('/admin/zones'); setZones(Array.isArray(r.data) ? r.data : []); }
+    catch { showToast('Failed to load zones', 'error'); } finally { setTabLoading(false); }
+  };
+
+  const fetchTaxes = async () => {
+    try { setTabLoading(true); const r = await apiClient.get('/admin/taxes'); setTaxes(Array.isArray(r.data) ? r.data : []); }
+    catch { showToast('Failed to load taxes', 'error'); } finally { setTabLoading(false); }
+  };
+
+  const fetchAddons = async () => {
+    try { setTabLoading(true); const r = await apiClient.get('/admin/addons'); setAddons(Array.isArray(r.data) ? r.data : []); }
+    catch { showToast('Failed to load addons', 'error'); } finally { setTabLoading(false); }
+  };
+
+  const fetchPlans = async () => {
+    try { setTabLoading(true); const r = await apiClient.get('/admin/plans'); setPlans(Array.isArray(r.data) ? r.data : []); }
+    catch { showToast('Failed to load plans', 'error'); } finally { setTabLoading(false); }
+  };
+
+  const fetchPostJobs = async () => {
+    try {
+      setTabLoading(true);
+      const params = postJobFilter !== 'All' ? { status: postJobFilter } : {};
+      const r = await apiClient.get('/admin/post-jobs', { params });
+      setPostJobs(Array.isArray(r.data) ? r.data : []);
+    } catch { showToast('Failed to load post jobs', 'error'); } finally { setTabLoading(false); }
+  };
+
+  const fetchNotifLogs = async () => {
+    try { const r = await apiClient.get('/admin/notification-logs'); setNotifLogs(Array.isArray(r.data) ? r.data : []); }
+    catch { /* silent */ }
+  };
+
+  const fetchPaymentGateways = async () => {
+    try { setTabLoading(true); const r = await apiClient.get('/admin/payment-gateways'); setPaymentGateways(r.data); }
+    catch { showToast('Failed to load payment gateways', 'error'); } finally { setTabLoading(false); }
+  };
+
+  // ── Zone handlers ──────────────────────────────────────────────────────────
+
+  const handleCreateZone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/zones', { name: zoneName, description: zoneDesc, status: 1 });
+      setIsZoneModalOpen(false); setZoneName(''); setZoneDesc('');
+      showToast('Zone created!'); fetchZones();
+    } catch (err: any) { showToast(err.response?.data?.detail || 'Failed', 'error'); }
+  };
+
+  const handleDeleteZone = async (id: string) => {
+    if (!confirm('Delete this zone?')) return;
+    try { await apiClient.delete(`/admin/zones/${id}`); showToast('Zone deleted'); fetchZones(); }
+    catch { showToast('Failed to delete zone', 'error'); }
+  };
+
+  // ── Tax handlers ───────────────────────────────────────────────────────────
+
+  const handleCreateTax = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/taxes', { name: taxName, percentage: parseFloat(taxPercentage), status: 1 });
+      setIsTaxModalOpen(false); setTaxName(''); setTaxPercentage('');
+      showToast('Tax created!'); fetchTaxes();
+    } catch (err: any) { showToast(err.response?.data?.detail || 'Failed', 'error'); }
+  };
+
+  const handleToggleTax = async (tax: any) => {
+    try {
+      await apiClient.put(`/admin/taxes/${tax.id}`, { status: tax.status === 1 ? 0 : 1 });
+      showToast('Tax updated'); fetchTaxes();
+    } catch { showToast('Failed', 'error'); }
+  };
+
+  const handleDeleteTax = async (id: string) => {
+    if (!confirm('Delete this tax?')) return;
+    try { await apiClient.delete(`/admin/taxes/${id}`); showToast('Tax deleted'); fetchTaxes(); }
+    catch { showToast('Failed to delete tax', 'error'); }
+  };
+
+  // ── Addon handlers ─────────────────────────────────────────────────────────
+
+  const handleCreateAddon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/addons', { name: addonName, price: parseFloat(addonPrice), description: addonDesc, status: 1 });
+      setIsAddonModalOpen(false); setAddonName(''); setAddonPrice(''); setAddonDesc('');
+      showToast('Add-on created!'); fetchAddons();
+    } catch (err: any) { showToast(err.response?.data?.detail || 'Failed', 'error'); }
+  };
+
+  const handleDeleteAddon = async (id: string) => {
+    if (!confirm('Delete this add-on?')) return;
+    try { await apiClient.delete(`/admin/addons/${id}`); showToast('Add-on deleted'); fetchAddons(); }
+    catch { showToast('Failed', 'error'); }
+  };
+
+  // ── Plan handlers ──────────────────────────────────────────────────────────
+
+  const handleCreatePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/plans', {
+        name: planName, price: parseFloat(planPrice),
+        duration_days: parseInt(planDuration),
+        max_bookings: parseInt(planMaxBookings),
+        features: planFeatures.split('\n').map(f => f.trim()).filter(Boolean),
+        status: 1
+      });
+      setIsPlanModalOpen(false); setPlanName(''); setPlanPrice(''); setPlanDuration('30'); setPlanMaxBookings('-1'); setPlanFeatures('');
+      showToast('Plan created!'); fetchPlans();
+    } catch (err: any) { showToast(err.response?.data?.detail || 'Failed', 'error'); }
+  };
+
+  const handleDeletePlan = async (id: string) => {
+    if (!confirm('Delete this plan?')) return;
+    try { await apiClient.delete(`/admin/plans/${id}`); showToast('Plan deleted'); fetchPlans(); }
+    catch { showToast('Failed', 'error'); }
+  };
+
+  // ── Post Job handlers ──────────────────────────────────────────────────────
+
+  const handleDeletePostJob = async (id: string) => {
+    if (!confirm('Delete this post job?')) return;
+    try { await apiClient.delete(`/admin/post-jobs/${id}`); showToast('Job deleted'); fetchPostJobs(); }
+    catch { showToast('Failed', 'error'); }
+  };
+
+  // ── Notification handlers ──────────────────────────────────────────────────
+
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNotifSending(true);
+    try {
+      const r = await apiClient.post('/admin/send-notification', { title: notifTitle, message: notifMessage, user_type: notifUserType });
+      showToast(`Notification sent to ${r.data.recipients} users!`);
+      setNotifTitle(''); setNotifMessage(''); setNotifUserType('all');
+      fetchNotifLogs();
+    } catch (err: any) { showToast(err.response?.data?.detail || 'Failed', 'error'); }
+    finally { setNotifSending(false); }
+  };
+
+  // ── Payment gateway handlers ───────────────────────────────────────────────
+
+  const handleSaveGateways = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGwSaving(true);
+    try {
+      await apiClient.put('/admin/payment-gateways', paymentGateways);
+      showToast('Payment gateways saved!');
+    } catch { showToast('Failed to save', 'error'); }
+    finally { setGwSaving(false); }
+  };
+
+  const handleCreateCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/coupons', {
+        code: couponCode,
+        discount_type: couponDiscountType,
+        discount_value: parseFloat(couponDiscountValue),
+        min_order_amount: parseFloat(couponMinOrder) || 0,
+        expiry_date: couponExpiry || null,
+        usage_limit: couponUsageLimit ? parseInt(couponUsageLimit) : null,
+        status: 1
+      });
+      setIsCouponModalOpen(false);
+      setCouponCode(''); setCouponDiscountType('flat'); setCouponDiscountValue('');
+      setCouponMinOrder(''); setCouponExpiry(''); setCouponUsageLimit('');
+      showToast('Coupon created successfully!');
+      fetchCoupons();
+    } catch (error: any) {
+      showToast(error.response?.data?.detail || 'Failed to create coupon', 'error');
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (!confirm('Delete this coupon?')) return;
+    try {
+      await apiClient.delete(`/admin/coupons/${id}`);
+      showToast('Coupon deleted');
+      fetchCoupons();
+    } catch {
+      showToast('Failed to delete coupon', 'error');
+    }
+  };
+
+  const handleToggleCouponStatus = async (coupon: any) => {
+    try {
+      await apiClient.put(`/admin/coupons/${coupon.id}`, { status: coupon.status === 1 ? 0 : 1 });
+      showToast('Coupon status updated');
+      fetchCoupons();
+    } catch {
+      showToast('Failed to update coupon', 'error');
+    }
+  };
+
+  const handleOpenReply = (ticket: any) => {
+    setReplyTicketId(ticket.id);
+    setReplyText(ticket.admin_reply || '');
+    setIsReplyModalOpen(true);
+  };
+
+  const handleReplyTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.put(`/admin/helpdesk/${replyTicketId}`, { admin_reply: replyText, status: 'Closed' });
+      setIsReplyModalOpen(false);
+      setReplyText(''); setReplyTicketId('');
+      showToast('Reply sent and ticket closed');
+      fetchHelpDesk();
+    } catch {
+      showToast('Failed to send reply', 'error');
+    }
+  };
+
+  const handleReopenTicket = async (id: string) => {
+    try {
+      await apiClient.put(`/admin/helpdesk/${id}`, { status: 'Open' });
+      showToast('Ticket reopened');
+      fetchHelpDesk();
+    } catch {
+      showToast('Failed to reopen ticket', 'error');
+    }
+  };
+
+  const handleDeleteTicket = async (id: string) => {
+    if (!confirm('Delete this ticket?')) return;
+    try {
+      await apiClient.delete(`/admin/helpdesk/${id}`);
+      showToast('Ticket deleted');
+      fetchHelpDesk();
+    } catch {
+      showToast('Failed to delete ticket', 'error');
+    }
+  };
+
+  const handleCreateCommission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/commissions', {
+        name: commissionName,
+        commission_type: commissionType,
+        commission_value: parseFloat(commissionValue),
+        handyman_id: commissionHandymanId || null,
+        status: 1
+      });
+      setIsCommissionModalOpen(false);
+      setCommissionName(''); setCommissionType('percent'); setCommissionValue(''); setCommissionHandymanId('');
+      showToast('Commission created successfully!');
+      fetchCommissions();
+    } catch (error: any) {
+      showToast(error.response?.data?.detail || 'Failed to create commission', 'error');
+    }
+  };
+
+  const handleDeleteCommission = async (id: string) => {
+    if (!confirm('Delete this commission rule?')) return;
+    try {
+      await apiClient.delete(`/admin/commissions/${id}`);
+      showToast('Commission deleted');
+      fetchCommissions();
+    } catch {
+      showToast('Failed to delete commission', 'error');
+    }
+  };
+
+  const handleCreateBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/admin/blogs', {
+        title: blogTitle, description: blogDesc, content: blogContent,
+        image: blogImage || null, category: blogCategory, read_time: blogReadTime, status: 1
+      });
+      setIsBlogModalOpen(false);
+      setBlogTitle(''); setBlogDesc(''); setBlogContent(''); setBlogImage(''); setBlogCategory('General'); setBlogReadTime('5 min read');
+      showToast('Blog post created!');
+      fetchBlogs();
+    } catch (error: any) {
+      showToast(error.response?.data?.detail || 'Failed to create blog', 'error');
+    }
+  };
+
+  const handleOpenEditBlog = (blog: any) => {
+    setEditBlogId(blog.id);
+    setEditBlogTitle(blog.title);
+    setEditBlogDesc(blog.description);
+    setEditBlogContent(blog.content);
+    setEditBlogImage(blog.image || '');
+    setEditBlogCategory(blog.category || 'General');
+    setEditBlogReadTime(blog.read_time || '5 min read');
+    setIsEditBlogModalOpen(true);
+  };
+
+  const handleUpdateBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiClient.put(`/admin/blogs/${editBlogId}`, {
+        title: editBlogTitle, description: editBlogDesc, content: editBlogContent,
+        image: editBlogImage || null, category: editBlogCategory, read_time: editBlogReadTime
+      });
+      setIsEditBlogModalOpen(false);
+      showToast('Blog post updated!');
+      fetchBlogs();
+    } catch {
+      showToast('Failed to update blog', 'error');
+    }
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm('Delete this blog post?')) return;
+    try {
+      await apiClient.delete(`/admin/blogs/${id}`);
+      showToast('Blog deleted');
+      fetchBlogs();
+    } catch {
+      showToast('Failed to delete blog', 'error');
+    }
+  };
+
+  const handleWithdrawalAction = async (id: string, newStatus: 'Approved' | 'Rejected') => {
+    if (!confirm(`${newStatus === 'Approved' ? 'Approve' : 'Reject'} this withdrawal request?`)) return;
+    try {
+      await apiClient.put(`/admin/withdrawals/${id}`, { status: newStatus });
+      showToast(`Withdrawal ${newStatus.toLowerCase()}`);
+      fetchWithdrawals();
+    } catch (error: any) {
+      showToast(error.response?.data?.detail || `Failed to ${newStatus.toLowerCase()} withdrawal`, 'error');
     }
   };
 
@@ -1427,7 +1964,13 @@ export default function DashboardPage() {
         currency_symbol: settingsForm.currency_symbol || undefined,
         support_email: settingsForm.support_email || undefined,
         support_phone: settingsForm.support_phone || undefined,
-        min_payout_amount: settingsForm.min_payout_amount ? parseFloat(settingsForm.min_payout_amount) : undefined
+        min_payout_amount: settingsForm.min_payout_amount ? parseFloat(settingsForm.min_payout_amount) : undefined,
+        tax_percentage: settingsForm.tax_percentage ? parseFloat(settingsForm.tax_percentage) : undefined,
+        advance_payment_enabled: settingsForm.advance_payment_enabled,
+        advance_payment_percentage: settingsForm.advance_payment_percentage ? parseFloat(settingsForm.advance_payment_percentage) : undefined,
+        cancellation_charge_enabled: settingsForm.cancellation_charge_enabled,
+        cancellation_charge_percentage: settingsForm.cancellation_charge_percentage ? parseFloat(settingsForm.cancellation_charge_percentage) : undefined,
+        cancellation_hours: settingsForm.cancellation_hours ? parseInt(settingsForm.cancellation_hours) : undefined
       });
       fetchSettings();
       showToast('Settings saved successfully');
@@ -2690,18 +3233,48 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Content</p>
                   <div className="space-y-1">
-                    <button onClick={() => { setActiveTab('sliders'); setIsMobileSidebarOpen(false); }}
+                    {[{tab: 'sliders', icon: <ImageIcon className="w-5 h-5 flex-shrink-0" />, label: 'Banners / Sliders'},
+                      {tab: 'blogs', icon: <Briefcase className="w-5 h-5 flex-shrink-0" />, label: 'Blog Posts'}].map(item => (
+                      <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsMobileSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                          activeTab === item.tab ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                        }`}>
+                        {item.icon}<span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Marketing</p>
+                  <div className="space-y-1">
+                    <button onClick={() => { setActiveTab('coupons'); setIsMobileSidebarOpen(false); }}
                       className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
-                        activeTab === 'sliders' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                        activeTab === 'coupons' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
                       }`}>
-                      <ImageIcon className="w-5 h-5 flex-shrink-0" /><span>Banners / Sliders</span>
+                      <Tag className="w-5 h-5 flex-shrink-0" /><span>Coupons</span>
                     </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Financial</p>
+                  <div className="space-y-1">
+                    {[{tab: 'commissions', icon: <Percent className="w-5 h-5 flex-shrink-0" />, label: 'Commissions'},
+                      {tab: 'withdrawals', icon: <Download className="w-5 h-5 flex-shrink-0" />, label: 'Withdrawals'}].map(item => (
+                      <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsMobileSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
+                          activeTab === item.tab ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                        }`}>
+                        {item.icon}<span>{item.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">System</p>
                   <div className="space-y-1">
-                    {[{tab: 'transactions', icon: <ArrowUpRight className="w-5 h-5 flex-shrink-0" />, label: 'Transactions'},
+                    {[{tab: 'analytics', icon: <BarChart3 className="w-5 h-5 flex-shrink-0" />, label: 'Analytics'},
+                      {tab: 'helpdesk', icon: <AlertCircle className="w-5 h-5 flex-shrink-0" />, label: 'Help Desk'},
+                      {tab: 'transactions', icon: <ArrowUpRight className="w-5 h-5 flex-shrink-0" />, label: 'Transactions'},
                       {tab: 'settings', icon: <Settings className="w-5 h-5 flex-shrink-0" />, label: 'System Settings'}].map(item => (
                       <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsMobileSidebarOpen(false); }}
                         className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-left transition-all ${
@@ -2844,14 +3417,25 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <button 
-                  onClick={() => setActiveTab('services')}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm text-zinc-400 hover:bg-[#1C1C1E] hover:text-white transition-all"
+                <button
+                  onClick={() => setActiveTab('zones')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'zones' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'}`}
                 >
                   <div className="flex items-center gap-x-3">
                     <MapPin className="w-5 h-5 flex-shrink-0" />
-                    <span>Zones</span>
+                    <span>Service Zones</span>
                   </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('addons')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'addons' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'}`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <PlusCircle className="w-5 h-5 flex-shrink-0" />
+                    <span>Service Add-ons</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -2907,12 +3491,109 @@ export default function DashboardPage() {
                   </div>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
+                <button
+                  onClick={() => setActiveTab('blogs')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'blogs'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <Briefcase className="w-5 h-5 flex-shrink-0" />
+                    <span>Blog Posts</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Marketing</p>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('coupons')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'coupons'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <Tag className="w-5 h-5 flex-shrink-0" />
+                    <span>Coupons</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Financial</p>
+              <div className="space-y-1">
+                {[
+                  { tab: 'commissions', icon: <Percent className="w-5 h-5 flex-shrink-0" />, label: 'Commissions' },
+                  { tab: 'taxes', icon: <DollarSign className="w-5 h-5 flex-shrink-0" />, label: 'Taxes' },
+                  { tab: 'plans', icon: <Award className="w-5 h-5 flex-shrink-0" />, label: 'Subscription Plans' },
+                  { tab: 'withdrawals', icon: <Download className="w-5 h-5 flex-shrink-0" />, label: 'Withdrawals' },
+                  { tab: 'payment-gateways', icon: <ShoppingBag className="w-5 h-5 flex-shrink-0" />, label: 'Payment Gateways' },
+                ].map(item => (
+                  <button key={item.tab} onClick={() => setActiveTab(item.tab)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === item.tab ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'}`}
+                  >
+                    <div className="flex items-center gap-x-3">{item.icon}<span>{item.label}</span></div>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Operations</p>
+              <div className="space-y-1">
+                <button onClick={() => setActiveTab('postjobs')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'postjobs' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'}`}
+                >
+                  <div className="flex items-center gap-x-3"><Briefcase className="w-5 h-5 flex-shrink-0" /><span>Post Jobs</span></div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">Support</p>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('helpdesk')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'helpdesk'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-x-3">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span>Help Desk</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
             <div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 pl-4">System</p>
               <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    activeTab === 'analytics'
+                      ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20'
+                      : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'
+                  }`}
+                >
+                  <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                  <span>Analytics</span>
+                </button>
                 <button
                   onClick={() => setActiveTab('transactions')}
                   className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
@@ -2923,6 +3604,13 @@ export default function DashboardPage() {
                 >
                   <ArrowUpRight className="w-5 h-5 flex-shrink-0" />
                   <span>Transactions</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('notifications')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'notifications' ? 'bg-[#5E5CE6]/10 text-[#5E5CE6] border border-[#5E5CE6]/20' : 'text-zinc-400 hover:bg-[#1C1C1E] hover:text-white'}`}
+                >
+                  <Zap className="w-5 h-5 flex-shrink-0" />
+                  <span>Push Notifications</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('settings')}
@@ -2941,7 +3629,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-2">
-          <button 
+          <button
             onClick={toggleTheme}
             className="w-full flex items-center gap-x-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-[#1C1C1E] hover:text-white font-semibold text-sm text-left transition-all cursor-pointer"
           >
@@ -2983,6 +3671,19 @@ export default function DashboardPage() {
                 {activeTab === 'customers' && "Customer Management"}
                 {activeTab === 'sliders' && "Banners & Sliders"}
                 {activeTab === 'settings' && "System Settings"}
+                {activeTab === 'coupons' && "Coupon Management"}
+                {activeTab === 'helpdesk' && "Help Desk Tickets"}
+                {activeTab === 'commissions' && "Commission Rules"}
+                {activeTab === 'blogs' && "Blog Management"}
+                {activeTab === 'withdrawals' && "Withdrawal Requests"}
+                {activeTab === 'analytics' && "Analytics & Reports"}
+                {activeTab === 'zones' && "Service Zones"}
+                {activeTab === 'taxes' && "Tax Management"}
+                {activeTab === 'addons' && "Service Add-ons"}
+                {activeTab === 'plans' && "Subscription Plans"}
+                {activeTab === 'postjobs' && "Post Job Requests"}
+                {activeTab === 'notifications' && "Push Notifications"}
+                {activeTab === 'payment-gateways' && "Payment Gateways"}
               </span>
             </h1>
             <p className="text-zinc-500 text-sm mt-1 font-semibold animate-fade-in">
@@ -2990,10 +3691,23 @@ export default function DashboardPage() {
               {activeTab === 'bookings' && "Manage system bookings"}
               {activeTab === 'providers' && "Manage and monitor registered Handymen & Service Providers"}
               {activeTab === 'services' && "Manage service items and system-wide service categories"}
+              {activeTab === 'zones' && "Define geographic service zones for providers"}
+              {activeTab === 'taxes' && "Configure tax rates applied to bookings"}
+              {activeTab === 'addons' && "Manage optional add-on services for bookings"}
+              {activeTab === 'plans' && "Create and manage provider subscription plans"}
+              {activeTab === 'postjobs' && "Review customer-posted job requests and bids"}
+              {activeTab === 'notifications' && "Send push notifications to app users"}
+              {activeTab === 'payment-gateways' && "Configure which payment methods are enabled"}
               {activeTab === 'transactions' && "Wallet transactions history and system payout logs"}
               {activeTab === 'customers' && "View and manage registered app customers"}
               {activeTab === 'sliders' && "Manage homepage banners and promotional sliders"}
               {activeTab === 'settings' && "Configure system-wide app settings and commission rates"}
+              {activeTab === 'coupons' && "Create and manage discount coupons for customers"}
+              {activeTab === 'helpdesk' && "View and respond to support tickets from users"}
+              {activeTab === 'commissions' && "Configure custom commission rates per handyman"}
+              {activeTab === 'blogs' && "Create and manage blog content for the app"}
+              {activeTab === 'withdrawals' && "Review and approve provider withdrawal requests"}
+              {activeTab === 'analytics' && "Real-time revenue and booking analytics"}
             </p>
           </div>
           </div>
@@ -4539,8 +5253,62 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Support Settings */}
+                {/* Tax & Advance Payment Settings */}
+                <div className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-150">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                      <Percent className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Tax & Advance Payment</h3>
+                      <p className="text-xs text-zinc-500">Tax rate and advance booking deposit settings</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Tax Percentage (%)</label>
+                      <input type="number" step="0.1" value={settingsForm.tax_percentage} onChange={(e) => setSettingsForm(p => ({ ...p, tax_percentage: e.target.value }))} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="5.0" />
+                    </div>
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Advance Payment %</label>
+                        <input type="number" step="0.1" value={settingsForm.advance_payment_percentage} onChange={(e) => setSettingsForm(p => ({ ...p, advance_payment_percentage: e.target.value }))} disabled={!settingsForm.advance_payment_enabled} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors disabled:opacity-40" placeholder="10" />
+                      </div>
+                      <button type="button" onClick={() => setSettingsForm(p => ({ ...p, advance_payment_enabled: !p.advance_payment_enabled }))} className={`mb-0.5 px-3 py-2.5 rounded-xl font-bold text-xs transition-all flex-shrink-0 ${settingsForm.advance_payment_enabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800 text-zinc-500'}`}>
+                        {settingsForm.advance_payment_enabled ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cancellation Policy */}
                 <div className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-200">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
+                      <X className="w-5 h-5 text-red-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Cancellation Charge Policy</h3>
+                      <p className="text-xs text-zinc-500">Fee charged if cancelled within specified hours</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Charge (%)</label>
+                      <input type="number" step="0.1" value={settingsForm.cancellation_charge_percentage} onChange={(e) => setSettingsForm(p => ({ ...p, cancellation_charge_percentage: e.target.value }))} disabled={!settingsForm.cancellation_charge_enabled} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors disabled:opacity-40" placeholder="5" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Within Hours</label>
+                      <input type="number" value={settingsForm.cancellation_hours} onChange={(e) => setSettingsForm(p => ({ ...p, cancellation_hours: e.target.value }))} disabled={!settingsForm.cancellation_charge_enabled} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors disabled:opacity-40" placeholder="2" />
+                    </div>
+                    <button type="button" onClick={() => setSettingsForm(p => ({ ...p, cancellation_charge_enabled: !p.cancellation_charge_enabled }))} className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${settingsForm.cancellation_charge_enabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800 text-zinc-500'}`}>
+                      {settingsForm.cancellation_charge_enabled ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Support Settings */}
+                <div className="panel-dark bg-[#111112] border border-zinc-800 rounded-2xl p-6 animate-fade-in-up delay-300">
                   <div className="flex items-center gap-3 mb-5">
                     <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
                       <Mail className="w-5 h-5 text-sky-400" />
@@ -4609,7 +5377,711 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* ────────────────── COUPONS TAB ────────────────── */}
+        {activeTab === 'coupons' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center justify-between mb-6">
+              <div />
+              <button onClick={() => setIsCouponModalOpen(true)} className="flex items-center gap-2 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" /> New Coupon
+              </button>
+            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" /></div>
+            ) : coupons.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No coupons yet. Create your first coupon!</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {coupons.map((coupon: any) => (
+                  <div key={coupon.id} className="bg-[#111112] border border-zinc-800 rounded-2xl p-5 animate-fade-in-up card-hover">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="bg-[#5E5CE6]/10 border border-[#5E5CE6]/20 rounded-xl px-3 py-1.5">
+                        <span className="text-[#5E5CE6] font-bold text-sm tracking-widest">{coupon.code}</span>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${coupon.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                        {coupon.status === 1 ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 mb-4">
+                      <p className="text-white font-bold text-lg">
+                        {coupon.discount_type === 'percent' ? `${coupon.discount_value}% OFF` : `$${coupon.discount_value} OFF`}
+                      </p>
+                      {coupon.min_order_amount > 0 && (
+                        <p className="text-xs text-zinc-500">Min order: ${coupon.min_order_amount}</p>
+                      )}
+                      {coupon.expiry_date && (
+                        <p className="text-xs text-zinc-500">Expires: {new Date(coupon.expiry_date).toLocaleDateString()}</p>
+                      )}
+                      {coupon.usage_limit && (
+                        <p className="text-xs text-zinc-500">Used: {coupon.used_count || 0} / {coupon.usage_limit}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleToggleCouponStatus(coupon)} className={`flex-1 text-xs font-bold py-2 rounded-xl transition-all ${coupon.status === 1 ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'}`}>
+                        {coupon.status === 1 ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button onClick={() => handleDeleteCoupon(coupon.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────────── HELP DESK TAB ────────────────── */}
+        {activeTab === 'helpdesk' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
+              {['All', 'Open', 'Closed'].map(f => (
+                <button key={f} onClick={() => setHelpFilter(f)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${helpFilter === f ? 'bg-[#5E5CE6] text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>{f}</button>
+              ))}
+              <button onClick={fetchHelpDesk} className="ml-auto p-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-all"><RefreshCw className="w-4 h-4" /></button>
+            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" /></div>
+            ) : (
+              <div className="space-y-4">
+                {helpTickets.filter((t: any) => helpFilter === 'All' || t.status === helpFilter).length === 0 ? (
+                  <div className="text-center py-20 text-zinc-500">No tickets found.</div>
+                ) : helpTickets.filter((t: any) => helpFilter === 'All' || t.status === helpFilter).map((ticket: any) => (
+                  <div key={ticket.id} className="bg-[#111112] border border-zinc-800 rounded-2xl p-5 animate-fade-in-up card-hover">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${ticket.status === 'Open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'}`}>{ticket.status}</span>
+                          <span className="text-xs text-zinc-500">{ticket.category}</span>
+                        </div>
+                        <p className="font-bold text-white text-sm mb-1 truncate">{ticket.title}</p>
+                        <p className="text-sm text-zinc-400 line-clamp-2">{ticket.message}</p>
+                        <p className="text-xs text-zinc-600 mt-2">By {ticket.user_name} ({ticket.user_type}) · {ticket.created_at?.slice(0, 10)}</p>
+                        {ticket.admin_reply && (
+                          <div className="mt-3 bg-[#5E5CE6]/10 border border-[#5E5CE6]/20 rounded-xl p-3">
+                            <p className="text-xs font-bold text-[#5E5CE6] mb-1">Admin Reply:</p>
+                            <p className="text-xs text-zinc-300">{ticket.admin_reply}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        {ticket.status === 'Open' ? (
+                          <button onClick={() => handleOpenReply(ticket)} className="px-3 py-1.5 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold text-xs rounded-xl transition-all">Reply</button>
+                        ) : (
+                          <button onClick={() => handleReopenTicket(ticket.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs rounded-xl transition-all">Reopen</button>
+                        )}
+                        <button onClick={() => handleDeleteTicket(ticket.id)} className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all self-end"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────────── COMMISSIONS TAB ────────────────── */}
+        {activeTab === 'commissions' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center justify-between mb-6">
+              <div />
+              <button onClick={() => setIsCommissionModalOpen(true)} className="flex items-center gap-2 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" /> New Commission
+              </button>
+            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" /></div>
+            ) : commissions.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No commission rules. Create your first one!</div>
+            ) : (
+              <div className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-800">
+                      <th className="text-left px-5 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">Name</th>
+                      <th className="text-left px-5 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">Handyman</th>
+                      <th className="text-left px-5 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">Type</th>
+                      <th className="text-left px-5 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">Value</th>
+                      <th className="text-right px-5 py-3 text-xs font-bold text-zinc-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {commissions.map((c: any, i: number) => (
+                      <tr key={c.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors ${i % 2 === 0 ? '' : 'bg-zinc-900/20'}`}>
+                        <td className="px-5 py-3.5 font-semibold text-white">{c.name}</td>
+                        <td className="px-5 py-3.5 text-zinc-400">{c.handyman_name || 'All'}</td>
+                        <td className="px-5 py-3.5">
+                          <span className={`text-xs font-bold px-2 py-1 rounded-lg ${c.commission_type === 'percent' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                            {c.commission_type === 'percent' ? 'Percent' : 'Flat'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-white">{c.commission_type === 'percent' ? `${c.commission_value}%` : `$${c.commission_value}`}</td>
+                        <td className="px-5 py-3.5 text-right">
+                          <button onClick={() => handleDeleteCommission(c.id)} className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────────── BLOGS TAB ────────────────── */}
+        {activeTab === 'blogs' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center justify-between mb-6">
+              <div />
+              <button onClick={() => setIsBlogModalOpen(true)} className="flex items-center gap-2 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" /> New Blog Post
+              </button>
+            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" /></div>
+            ) : blogs.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No blog posts yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {blogs.map((blog: any) => (
+                  <div key={blog.id} className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden animate-fade-in-up card-hover">
+                    {blog.image && <img src={blog.image} alt={blog.title} className="w-full h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />}
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold bg-[#5E5CE6]/10 text-[#5E5CE6] px-2 py-0.5 rounded-lg">{blog.category}</span>
+                        <span className="text-xs text-zinc-500">{blog.read_time}</span>
+                        <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-lg ${blog.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>{blog.status === 1 ? 'Published' : 'Draft'}</span>
+                      </div>
+                      <h3 className="font-bold text-white mb-1 line-clamp-1">{blog.title}</h3>
+                      <p className="text-xs text-zinc-400 line-clamp-2">{blog.description}</p>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={() => handleOpenEditBlog(blog)} className="flex-1 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs py-2 rounded-xl transition-all">
+                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button onClick={() => handleDeleteBlog(blog.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────────── WITHDRAWALS TAB ────────────────── */}
+        {activeTab === 'withdrawals' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
+              {['All', 'Pending', 'Approved', 'Rejected'].map(f => (
+                <button key={f} onClick={() => setWithdrawalFilter(f)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${withdrawalFilter === f ? 'bg-[#5E5CE6] text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>{f}</button>
+              ))}
+              <button onClick={fetchWithdrawals} className="ml-auto p-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-all"><RefreshCw className="w-4 h-4" /></button>
+            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" /></div>
+            ) : (
+              <div className="space-y-4">
+                {withdrawals.filter((w: any) => withdrawalFilter === 'All' || w.status === withdrawalFilter).length === 0 ? (
+                  <div className="text-center py-20 text-zinc-500">No withdrawal requests found.</div>
+                ) : withdrawals.filter((w: any) => withdrawalFilter === 'All' || w.status === withdrawalFilter).map((w: any) => (
+                  <div key={w.id} className="bg-[#111112] border border-zinc-800 rounded-2xl p-5 animate-fade-in-up card-hover">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-bold text-white">{w.user_name}</p>
+                          <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-lg">{w.user_type}</span>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${w.status === 'Pending' ? 'bg-amber-500/10 text-amber-400' : w.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>{w.status}</span>
+                        </div>
+                        <p className="text-2xl font-extrabold text-white">${w.amount?.toFixed(2)}</p>
+                        <div className="flex flex-wrap gap-3 mt-2 text-xs text-zinc-500">
+                          {w.payment_method && <span>Via: {w.payment_method}</span>}
+                          {w.bank_name && <span>Bank: {w.bank_name}</span>}
+                          {w.account_number && <span>Acc: ****{w.account_number?.slice(-4)}</span>}
+                          <span>{w.created_at?.slice(0, 10)}</span>
+                        </div>
+                      </div>
+                      {w.status === 'Pending' && (
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button onClick={() => handleWithdrawalAction(w.id, 'Approved')} className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-sm rounded-xl transition-all">Approve</button>
+                          <button onClick={() => handleWithdrawalAction(w.id, 'Rejected')} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-sm rounded-xl transition-all">Reject</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────────── ANALYTICS TAB ────────────────── */}
+        {activeTab === 'analytics' && (
+          <div className="animate-tab-content">
+            <div className="flex items-center justify-end mb-6">
+              <button onClick={fetchAnalytics} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-bold transition-all"><RefreshCw className="w-4 h-4" /> Refresh</button>
+            </div>
+            {tabLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 text-[#5E5CE6] animate-spin" /></div>
+            ) : !analytics ? (
+              <div className="text-center py-20 text-zinc-500">No analytics data available yet.</div>
+            ) : (
+              <div className="space-y-6">
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Total Revenue', value: `$${analytics.monthly_revenue?.reduce((a: number, m: any) => a + m.revenue, 0).toFixed(2) || '0.00'}`, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                    { label: 'Completed', value: analytics.status_breakdown?.['Completed'] || 0, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                    { label: 'Pending', value: analytics.status_breakdown?.['Pending'] || 0, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                    { label: 'Cancelled', value: analytics.status_breakdown?.['Cancelled'] || 0, color: 'text-red-400', bg: 'bg-red-500/10' },
+                  ].map((stat, i) => (
+                    <div key={i} className={`${stat.bg} border border-zinc-800 rounded-2xl p-5 animate-fade-in-up`} style={{animationDelay: `${i * 80}ms`}}>
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">{stat.label}</p>
+                      <p className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Monthly Revenue Chart */}
+                {analytics.monthly_revenue && analytics.monthly_revenue.length > 0 && (
+                  <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="font-bold text-white mb-4">Monthly Revenue</h3>
+                    <div className="flex items-end gap-2 h-40">
+                      {(() => {
+                        const maxRev = Math.max(...analytics.monthly_revenue.map((m: any) => m.revenue), 1);
+                        return analytics.monthly_revenue.map((m: any, i: number) => (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <span className="text-[10px] text-zinc-500 font-bold">${m.revenue > 0 ? m.revenue.toFixed(0) : ''}</span>
+                            <div
+                              className="w-full bg-[#5E5CE6] rounded-t-lg transition-all hover:bg-[#7B79F2] cursor-pointer"
+                              style={{ height: `${Math.max((m.revenue / maxRev) * 100, 4)}%` }}
+                              title={`${m.month}: $${m.revenue.toFixed(2)}`}
+                            />
+                            <span className="text-[10px] text-zinc-500">{m.month}</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Services */}
+                {analytics.top_services && analytics.top_services.length > 0 && (
+                  <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="font-bold text-white mb-4">Top Services by Bookings</h3>
+                    <div className="space-y-3">
+                      {analytics.top_services.map((s: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xs font-bold text-zinc-600 w-5 flex-shrink-0">#{i + 1}</span>
+                            <span className="text-sm font-semibold text-white truncate">{s.service}</span>
+                          </div>
+                          <div className="flex items-center gap-4 flex-shrink-0 text-right">
+                            <span className="text-xs text-zinc-500">{s.bookings} bookings</span>
+                            <span className="text-sm font-bold text-emerald-400">${s.revenue.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Status Breakdown */}
+                {analytics.status_breakdown && Object.keys(analytics.status_breakdown).length > 0 && (
+                  <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="font-bold text-white mb-4">Booking Status Distribution</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {Object.entries(analytics.status_breakdown).map(([status, count]: [string, any]) => {
+                        const colors: Record<string, string> = {
+                          Completed: 'bg-emerald-500/10 text-emerald-400',
+                          Pending: 'bg-amber-500/10 text-amber-400',
+                          Cancelled: 'bg-red-500/10 text-red-400',
+                          Accepted: 'bg-blue-500/10 text-blue-400',
+                          Ongoing: 'bg-purple-500/10 text-purple-400',
+                        };
+                        return (
+                          <div key={status} className={`${colors[status] || 'bg-zinc-800/50 text-zinc-400'} rounded-xl p-4 text-center`}>
+                            <p className="text-2xl font-extrabold">{count}</p>
+                            <p className="text-xs font-bold mt-1">{status}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── ZONES TAB ──────────── */}
+        {activeTab === 'zones' && (
+          <div className="animate-tab-content">
+            <div className="flex justify-end mb-6">
+              <button onClick={() => setIsZoneModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" />Create Zone
+              </button>
+            </div>
+            {tabLoading ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" /></div> : zones.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No service zones yet. Create your first zone.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {zones.map(z => (
+                  <div key={z.id} className="bg-[#111112] border border-zinc-800 rounded-2xl p-5 card-hover">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-white">{z.name}</h3>
+                        {z.description && <p className="text-xs text-zinc-500 mt-1">{z.description}</p>}
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${z.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-400'}`}>{z.status === 1 ? 'Active' : 'Inactive'}</span>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button onClick={() => handleDeleteZone(z.id)} className="flex-1 py-2 text-xs font-bold rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── TAXES TAB ──────────── */}
+        {activeTab === 'taxes' && (
+          <div className="animate-tab-content">
+            <div className="flex justify-end mb-6">
+              <button onClick={() => setIsTaxModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" />Add Tax
+              </button>
+            </div>
+            {tabLoading ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" /></div> : taxes.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No taxes configured yet.</div>
+            ) : (
+              <div className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-zinc-800 text-left"><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Name</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Rate</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Status</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Actions</th></tr></thead>
+                  <tbody className="divide-y divide-zinc-800/50">
+                    {taxes.map(t => (
+                      <tr key={t.id} className="hover:bg-zinc-800/20 transition-colors">
+                        <td className="px-6 py-4 font-semibold text-white">{t.name}</td>
+                        <td className="px-6 py-4 text-zinc-300">{t.percentage}%</td>
+                        <td className="px-6 py-4"><span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-400'}`}>{t.status === 1 ? 'Active' : 'Inactive'}</span></td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button onClick={() => handleToggleTax(t)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors">{t.status === 1 ? 'Disable' : 'Enable'}</button>
+                            <button onClick={() => handleDeleteTax(t.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── SERVICE ADD-ONS TAB ──────────── */}
+        {activeTab === 'addons' && (
+          <div className="animate-tab-content">
+            <div className="flex justify-end mb-6">
+              <button onClick={() => setIsAddonModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" />Add Service Add-on
+              </button>
+            </div>
+            {tabLoading ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" /></div> : addons.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No service add-ons yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {addons.map(a => (
+                  <div key={a.id} className="bg-[#111112] border border-zinc-800 rounded-2xl p-5 card-hover">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-white">{a.name}</h3>
+                        {a.description && <p className="text-xs text-zinc-500 mt-1">{a.description}</p>}
+                        <p className="text-lg font-extrabold text-[#5E5CE6] mt-2">${parseFloat(a.price || 0).toFixed(2)}</p>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${a.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-400'}`}>{a.status === 1 ? 'Active' : 'Inactive'}</span>
+                    </div>
+                    <button onClick={() => handleDeleteAddon(a.id)} className="w-full mt-4 py-2 text-xs font-bold rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── SUBSCRIPTION PLANS TAB ──────────── */}
+        {activeTab === 'plans' && (
+          <div className="animate-tab-content">
+            <div className="flex justify-end mb-6">
+              <button onClick={() => setIsPlanModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">
+                <Plus className="w-4 h-4" />Create Plan
+              </button>
+            </div>
+            {tabLoading ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" /></div> : plans.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No subscription plans yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {plans.map(p => (
+                  <div key={p.id} className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 card-hover flex flex-col">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-extrabold text-white text-lg">{p.name}</h3>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${p.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-700/40 text-zinc-400'}`}>{p.status === 1 ? 'Active' : 'Inactive'}</span>
+                    </div>
+                    <p className="text-3xl font-extrabold text-[#5E5CE6]">${parseFloat(p.price || 0).toFixed(2)}<span className="text-sm text-zinc-500 font-normal">/{p.duration_days}d</span></p>
+                    {p.max_bookings !== -1 && <p className="text-xs text-zinc-500 mt-1">Up to {p.max_bookings} bookings</p>}
+                    {p.features && p.features.length > 0 && (
+                      <ul className="mt-4 space-y-1.5 flex-1">
+                        {p.features.map((f: string, i: number) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-zinc-300"><CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />{f}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <button onClick={() => handleDeletePlan(p.id)} className="mt-5 w-full py-2 text-xs font-bold rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete Plan</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── POST JOBS TAB ──────────── */}
+        {activeTab === 'postjobs' && (
+          <div className="animate-tab-content">
+            <div className="flex gap-2 mb-6">
+              {['All', 'Open', 'Assigned', 'Completed', 'Cancelled'].map(f => (
+                <button key={f} onClick={() => { setPostJobFilter(f); setTimeout(fetchPostJobs, 0); }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${postJobFilter === f ? 'bg-[#5E5CE6] text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{f}</button>
+              ))}
+            </div>
+            {tabLoading ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" /></div> : postJobs.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500">No post job requests found.</div>
+            ) : (
+              <div className="bg-[#111112] border border-zinc-800 rounded-2xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-zinc-800 text-left"><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Job</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Customer</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Budget</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Bids</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Status</th><th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">Actions</th></tr></thead>
+                  <tbody className="divide-y divide-zinc-800/50">
+                    {postJobs.map(j => (
+                      <tr key={j.id} className="hover:bg-zinc-800/20 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-semibold text-white">{j.title}</p>
+                          {j.description && <p className="text-xs text-zinc-500 mt-0.5 truncate max-w-[200px]">{j.description}</p>}
+                        </td>
+                        <td className="px-6 py-4 text-zinc-300">{j.user_name}</td>
+                        <td className="px-6 py-4 text-zinc-300">{j.budget_min > 0 ? `$${j.budget_min}–$${j.budget_max}` : 'Negotiable'}</td>
+                        <td className="px-6 py-4 text-zinc-300">{j.bid_count || 0}</td>
+                        <td className="px-6 py-4">
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${j.status === 'Open' ? 'bg-emerald-500/10 text-emerald-400' : j.status === 'Assigned' ? 'bg-blue-500/10 text-blue-400' : j.status === 'Completed' ? 'bg-purple-500/10 text-purple-400' : 'bg-red-500/10 text-red-400'}`}>{j.status}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button onClick={() => handleDeletePostJob(j.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── PUSH NOTIFICATIONS TAB ──────────── */}
+        {activeTab === 'notifications' && (
+          <div className="animate-tab-content max-w-2xl mx-auto">
+            <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6 mb-6">
+              <h3 className="font-bold text-white mb-4">Send Push Notification</h3>
+              <form onSubmit={handleSendNotification} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Title</label>
+                  <input value={notifTitle} onChange={e => setNotifTitle(e.target.value)} required className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors" placeholder="Notification title" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Message</label>
+                  <textarea value={notifMessage} onChange={e => setNotifMessage(e.target.value)} required className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors h-24 resize-none" placeholder="Notification message" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Target Audience</label>
+                  <select value={notifUserType} onChange={e => setNotifUserType(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]">
+                    <option value="all">All Users</option>
+                    <option value="user">Customers Only</option>
+                    <option value="provider">Providers Only</option>
+                    <option value="handyman">Handymen Only</option>
+                  </select>
+                </div>
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                  <p className="text-xs text-amber-400">⚠️ OneSignal credentials must be configured in the backend .env for notifications to actually send. Without them, the request is logged but not delivered.</p>
+                </div>
+                <button type="submit" disabled={notifSending} className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                  {notifSending ? <><Loader2 className="w-4 h-4 animate-spin" />Sending...</> : <><Zap className="w-4 h-4" />Send Notification</>}
+                </button>
+              </form>
+            </div>
+            {notifLogs.length > 0 && (
+              <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                <h3 className="font-bold text-white mb-4">Recent Notifications</h3>
+                <div className="space-y-3">
+                  {notifLogs.slice(0, 10).map((n, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 bg-zinc-900/50 rounded-xl">
+                      <Zap className="w-4 h-4 text-[#5E5CE6] mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white">{n.title}</p>
+                        <p className="text-xs text-zinc-500 truncate">{n.message}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xs text-zinc-500">{n.recipient_count} recipients</span>
+                        <p className="text-xs text-zinc-600">{n.user_type}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──────────── PAYMENT GATEWAYS TAB ──────────── */}
+        {activeTab === 'payment-gateways' && (
+          <div className="animate-tab-content max-w-2xl mx-auto">
+            {tabLoading ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" /></div> : !paymentGateways ? (
+              <div className="text-center py-20 text-zinc-500">Loading...</div>
+            ) : (
+              <form onSubmit={handleSaveGateways} className="space-y-4">
+                {/* COD */}
+                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                  <h3 className="font-bold text-white mb-4">Basic Payment Methods</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-white text-sm">Cash on Delivery</p>
+                        <p className="text-xs text-zinc-500">Allow customers to pay in cash</p>
+                      </div>
+                      <button type="button" onClick={() => setPaymentGateways({...paymentGateways, cash_on_delivery_enabled: !paymentGateways.cash_on_delivery_enabled})} className={`w-12 h-6 rounded-full transition-colors relative ${paymentGateways.cash_on_delivery_enabled ? 'bg-[#5E5CE6]' : 'bg-zinc-700'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${paymentGateways.cash_on_delivery_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-white text-sm">Wallet Payment</p>
+                        <p className="text-xs text-zinc-500">Allow customers to pay from wallet</p>
+                      </div>
+                      <button type="button" onClick={() => setPaymentGateways({...paymentGateways, wallet_payment_enabled: !paymentGateways.wallet_payment_enabled})} className={`w-12 h-6 rounded-full transition-colors relative ${paymentGateways.wallet_payment_enabled ? 'bg-[#5E5CE6]' : 'bg-zinc-700'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${paymentGateways.wallet_payment_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {/* Stripe */}
+                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-bold text-white">Stripe</h3>
+                      <p className="text-xs text-zinc-500">Credit/debit card payments</p>
+                    </div>
+                    <button type="button" onClick={() => setPaymentGateways({...paymentGateways, stripe_enabled: !paymentGateways.stripe_enabled})} className={`w-12 h-6 rounded-full transition-colors relative ${paymentGateways.stripe_enabled ? 'bg-[#5E5CE6]' : 'bg-zinc-700'}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${paymentGateways.stripe_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  {paymentGateways.stripe_enabled && (
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Stripe Publishable Key</label>
+                      <input value={paymentGateways.stripe_publishable_key || ''} onChange={e => setPaymentGateways({...paymentGateways, stripe_publishable_key: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="pk_live_..." />
+                    </div>
+                  )}
+                </div>
+                {/* Razorpay */}
+                <div className="bg-[#111112] border border-zinc-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-bold text-white">Razorpay</h3>
+                      <p className="text-xs text-zinc-500">India-focused payment gateway</p>
+                    </div>
+                    <button type="button" onClick={() => setPaymentGateways({...paymentGateways, razorpay_enabled: !paymentGateways.razorpay_enabled})} className={`w-12 h-6 rounded-full transition-colors relative ${paymentGateways.razorpay_enabled ? 'bg-[#5E5CE6]' : 'bg-zinc-700'}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${paymentGateways.razorpay_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  {paymentGateways.razorpay_enabled && (
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Razorpay Key ID</label>
+                      <input value={paymentGateways.razorpay_key_id || ''} onChange={e => setPaymentGateways({...paymentGateways, razorpay_key_id: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="rzp_live_..." />
+                    </div>
+                  )}
+                </div>
+                <button type="submit" disabled={gwSaving} className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                  {gwSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Save className="w-4 h-4" />Save Payment Gateways</>}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
       </main>
+
+      {/* ──── ZONE MODAL ──── */}
+      {isZoneModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button onClick={() => setIsZoneModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Create Service Zone</h3>
+            <form onSubmit={handleCreateZone} className="space-y-4">
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Zone Name *</label><input value={zoneName} onChange={e => setZoneName(e.target.value)} required className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="e.g. Downtown, North Zone" /></div>
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Description</label><textarea value={zoneDesc} onChange={e => setZoneDesc(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] h-20 resize-none" placeholder="Zone coverage area description" /></div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all">Create Zone</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ──── TAX MODAL ──── */}
+      {isTaxModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button onClick={() => setIsTaxModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Add Tax Rate</h3>
+            <form onSubmit={handleCreateTax} className="space-y-4">
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Tax Name *</label><input value={taxName} onChange={e => setTaxName(e.target.value)} required className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="e.g. GST, VAT, Service Tax" /></div>
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Rate (%) *</label><input type="number" value={taxPercentage} onChange={e => setTaxPercentage(e.target.value)} required min="0" max="100" step="0.01" className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="5.0" /></div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all">Add Tax</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ──── ADDON MODAL ──── */}
+      {isAddonModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button onClick={() => setIsAddonModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Add Service Add-on</h3>
+            <form onSubmit={handleCreateAddon} className="space-y-4">
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Add-on Name *</label><input value={addonName} onChange={e => setAddonName(e.target.value)} required className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="e.g. Deep Cleaning, Extra Polish" /></div>
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Price *</label><input type="number" value={addonPrice} onChange={e => setAddonPrice(e.target.value)} required min="0" step="0.01" className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="9.99" /></div>
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Description</label><textarea value={addonDesc} onChange={e => setAddonDesc(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] h-20 resize-none" /></div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all">Create Add-on</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ──── PLAN MODAL ──── */}
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal my-4">
+            <button onClick={() => setIsPlanModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Create Subscription Plan</h3>
+            <form onSubmit={handleCreatePlan} className="space-y-4">
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Plan Name *</label><input value={planName} onChange={e => setPlanName(e.target.value)} required className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="e.g. Basic, Pro, Enterprise" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Price ($) *</label><input type="number" value={planPrice} onChange={e => setPlanPrice(e.target.value)} required min="0" step="0.01" className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" placeholder="29.99" /></div>
+                <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Duration (days) *</label><input type="number" value={planDuration} onChange={e => setPlanDuration(e.target.value)} required min="1" className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" /></div>
+              </div>
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Max Bookings (-1 = unlimited)</label><input type="number" value={planMaxBookings} onChange={e => setPlanMaxBookings(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6]" /></div>
+              <div><label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Features (one per line)</label><textarea value={planFeatures} onChange={e => setPlanFeatures(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] h-24 resize-none" placeholder={"Priority listing\nUnlimited bookings\n24/7 support"} /></div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all">Create Plan</button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* -------------------- EXPORT DATA MODAL -------------------- */}
       {isExportModalOpen && (
@@ -5499,6 +6971,184 @@ export default function DashboardPage() {
               >
                 Save Changes
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- CREATE COUPON MODAL -------------------- */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Create Coupon</h3>
+            <form onSubmit={handleCreateCoupon} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Coupon Code</label>
+                <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors uppercase tracking-widest font-mono" placeholder="e.g. SAVE20" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Discount Type</label>
+                  <select value={couponDiscountType} onChange={(e) => setCouponDiscountType(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors">
+                    <option value="flat">Flat Amount</option>
+                    <option value="percent">Percentage</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Value {couponDiscountType === 'percent' ? '(%)' : '($)'}</label>
+                  <input type="number" step="0.01" value={couponDiscountValue} onChange={(e) => setCouponDiscountValue(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="10" required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Min Order ($)</label>
+                  <input type="number" step="0.01" value={couponMinOrder} onChange={(e) => setCouponMinOrder(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Usage Limit</label>
+                  <input type="number" value={couponUsageLimit} onChange={(e) => setCouponUsageLimit(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="Unlimited" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Expiry Date</label>
+                <input type="date" value={couponExpiry} onChange={(e) => setCouponExpiry(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors" />
+              </div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">Create Coupon</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- HELP DESK REPLY MODAL -------------------- */}
+      {isReplyModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button onClick={() => setIsReplyModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Reply & Close Ticket</h3>
+            <form onSubmit={handleReplyTicket} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Admin Reply</label>
+                <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors h-28 resize-none" placeholder="Type your reply here..." required />
+              </div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">Send Reply & Close Ticket</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- CREATE COMMISSION MODAL -------------------- */}
+      {isCommissionModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-scale-in-modal">
+            <button onClick={() => setIsCommissionModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Add Commission Rule</h3>
+            <form onSubmit={handleCreateCommission} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Rule Name</label>
+                <input type="text" value={commissionName} onChange={(e) => setCommissionName(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="e.g. Standard Commission" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Type</label>
+                  <select value={commissionType} onChange={(e) => setCommissionType(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors">
+                    <option value="percent">Percentage (%)</option>
+                    <option value="flat">Flat Amount ($)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Value</label>
+                  <input type="number" step="0.01" value={commissionValue} onChange={(e) => setCommissionValue(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder={commissionType === 'percent' ? '15' : '10.00'} required />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Assign to Handyman (optional)</label>
+                <select value={commissionHandymanId} onChange={(e) => setCommissionHandymanId(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors">
+                  <option value="">All Handymen (global)</option>
+                  {providers.filter((p: any) => p.user_type === 'handyman').map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.display_name || `${p.first_name} ${p.last_name}`}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">Create Commission Rule</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- CREATE BLOG MODAL -------------------- */}
+      {isBlogModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative animate-scale-in-modal my-4">
+            <button onClick={() => setIsBlogModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Create Blog Post</h3>
+            <form onSubmit={handleCreateBlog} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Title</label>
+                <input type="text" value={blogTitle} onChange={(e) => setBlogTitle(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="Blog post title" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Short Description</label>
+                <textarea value={blogDesc} onChange={(e) => setBlogDesc(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors h-20 resize-none" placeholder="Brief summary..." required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Full Content</label>
+                <textarea value={blogContent} onChange={(e) => setBlogContent(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors h-32 resize-none" placeholder="Full article content..." required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Category</label>
+                  <input type="text" value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="General" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Read Time</label>
+                  <input type="text" value={blogReadTime} onChange={(e) => setBlogReadTime(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="5 min read" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Cover Image URL</label>
+                <input type="url" value={blogImage} onChange={(e) => setBlogImage(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#5E5CE6] transition-colors" placeholder="https://..." />
+              </div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">Publish Blog Post</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- EDIT BLOG MODAL -------------------- */}
+      {isEditBlogModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="bg-[#111112] border border-zinc-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative animate-scale-in-modal my-4">
+            <button onClick={() => setIsEditBlogModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-white mb-6">Edit Blog Post</h3>
+            <form onSubmit={handleUpdateBlog} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Title</label>
+                <input type="text" value={editBlogTitle} onChange={(e) => setEditBlogTitle(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Short Description</label>
+                <textarea value={editBlogDesc} onChange={(e) => setEditBlogDesc(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors h-20 resize-none" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Full Content</label>
+                <textarea value={editBlogContent} onChange={(e) => setEditBlogContent(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors h-32 resize-none" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Category</label>
+                  <input type="text" value={editBlogCategory} onChange={(e) => setEditBlogCategory(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Read Time</label>
+                  <input type="text" value={editBlogReadTime} onChange={(e) => setEditBlogReadTime(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Cover Image URL</label>
+                <input type="url" value={editBlogImage} onChange={(e) => setEditBlogImage(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#5E5CE6] transition-colors" />
+              </div>
+              <button type="submit" className="w-full bg-[#5E5CE6] hover:bg-[#4E4CD6] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20">Save Changes</button>
             </form>
           </div>
         </div>
