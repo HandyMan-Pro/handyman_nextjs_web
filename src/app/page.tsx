@@ -180,7 +180,7 @@ export default function DashboardPage() {
 
   // Sign Up modal states
   const [showSignUpModal, setShowSignUpModal] = useState(false);
-  const [signupFirstName, setSignupFirstName] = useState('');
+   const [signupFirstName, setSignupFirstName] = useState('');
   const [signupLastName, setSignupLastName] = useState('');
   const [signupUsername, setSignupUsername] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
@@ -190,6 +190,45 @@ export default function DashboardPage() {
   const [signupError, setSignupError] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+
+  // New multi-role signup and profile image states
+  const [signupRole, setSignupRole] = useState<'user' | 'provider'>('user');
+  const [signupProviderType, setSignupProviderType] = useState('');
+  const [signupProfileImage, setSignupProfileImage] = useState('');
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+
+  const handleUploadProfileImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSignupError("Image file size should not exceed 5MB.");
+      return;
+    }
+
+    setIsUploadingProfile(true);
+    setSignupError('');
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await apiClient.post("/register/upload-profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (res.data && res.data.url) {
+        setSignupProfileImage(res.data.url);
+        showToast("Profile image uploaded successfully!");
+      } else {
+        throw new Error("Failed to upload profile image.");
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || "Failed to upload image.";
+      setSignupError(msg);
+    } finally {
+      setIsUploadingProfile(false);
+    }
+  };
 
   // Forgot Password modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -1166,6 +1205,10 @@ export default function DashboardPage() {
       setSignupError('Password must be at least 6 characters.');
       return;
     }
+    if (signupRole === 'provider' && !signupProviderType) {
+      setSignupError('Please select a service type.');
+      return;
+    }
     setSignupLoading(true);
     try {
       await apiClient.post('/register', {
@@ -1175,7 +1218,9 @@ export default function DashboardPage() {
         last_name: signupLastName,
         password: signupPassword,
         contact_number: signupPhone || undefined,
-        user_type: 'user',
+        user_type: signupRole,
+        provider_type: signupRole === 'provider' ? signupProviderType : undefined,
+        profile_image: signupProfileImage || undefined,
       });
       setSignupSuccess(true);
       showToast('Account created! You can now sign in.');
@@ -1198,6 +1243,10 @@ export default function DashboardPage() {
     setSignupConfirmPassword('');
     setSignupError('');
     setSignupSuccess(false);
+    setSignupRole('user');
+    setSignupProviderType('');
+    setSignupProfileImage('');
+    setIsUploadingProfile(false);
     setShowSignUpModal(true);
   };
 
@@ -2897,7 +2946,7 @@ export default function DashboardPage() {
         {/* ── Sign Up Modal ─────────────────────────────────────────────── */}
         {showSignUpModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111112]/95 backdrop-blur-sm animate-fade-in overflow-y-auto">
-            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-2xl relative my-8">
+            <div className="bg-[#18181A] border border-zinc-800 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl relative my-8">
 
               {/* Close */}
               <button
@@ -2907,20 +2956,9 @@ export default function DashboardPage() {
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="text-center mb-8">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-[#5E5CE6]/10 rounded-2xl flex items-center justify-center border border-[#5E5CE6]/25">
-                    <svg className="w-10 h-10 text-[#5E5CE6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor" fillOpacity="0.2" />
-                      <path d="M14.7 12.8a1.5 1.5 0 0 0-2-2l-3.5 3.5a1.5 1.5 0 0 0 2 2z" />
-                      <path d="m9.2 14.3-3 3" />
-                      <path d="m11.2 12.3 3-3" />
-                      <path d="M16 8h2v2h-2z" />
-                    </svg>
-                  </div>
-                </div>
+              <div className="text-center mb-6">
                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Create Account</h2>
-                <p className="mt-1.5 text-sm text-zinc-400 font-medium">Join Handyman Pro today</p>
+                <p className="mt-1 text-xs text-zinc-400 font-medium">Join Handyman Pro today</p>
               </div>
 
               {signupSuccess ? (
@@ -2939,17 +2977,77 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <>
+                  {/* Account Type Tabs */}
+                  <div className="flex gap-2 p-1 bg-[#121214] border border-zinc-800 rounded-2xl mb-5">
+                    <button
+                      type="button"
+                      onClick={() => { setSignupRole('user'); setSignupError(''); }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        signupRole === 'user'
+                          ? 'bg-[#5E5CE6] text-white shadow-lg shadow-[#5E5CE6]/20'
+                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800/40'
+                      }`}
+                    >
+                      Handyman User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSignupRole('provider'); setSignupError(''); }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        signupRole === 'provider'
+                          ? 'bg-[#5E5CE6] text-white shadow-lg shadow-[#5E5CE6]/20'
+                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800/40'
+                      }`}
+                    >
+                      Handyman Provider
+                    </button>
+                  </div>
+
                   {signupError && (
-                    <div className="mb-5 p-4 rounded-2xl bg-red-950/40 border border-red-900/50 text-red-400 text-sm flex items-center gap-2">
+                    <div className="mb-4 p-4 rounded-2xl bg-red-950/40 border border-red-900/50 text-red-400 text-sm flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0" />
                       <span><span className="font-bold">Error:</span> {signupError}</span>
                     </div>
                   )}
 
-                  <form onSubmit={handleSignUp} className="space-y-4">
+                  {/* Profile Picture Uploader */}
+                  <div className="flex flex-col items-center mb-5">
+                    <div className="relative group">
+                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#5E5CE6]/30 hover:border-[#5E5CE6]/60 bg-zinc-900 overflow-hidden flex items-center justify-center relative transition-all">
+                        {isUploadingProfile ? (
+                          <Loader2 className="w-6 h-6 text-[#5E5CE6] animate-spin" />
+                        ) : signupProfileImage ? (
+                          <img src={signupProfileImage} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <svg className="w-8 h-8 text-zinc-600 group-hover:text-zinc-400 transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        )}
+                        
+                        {!isUploadingProfile && (
+                          <label htmlFor="signup-profile-upload" className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-[10px] font-bold text-white uppercase tracking-wider">
+                            Upload
+                          </label>
+                        )}
+                      </div>
+                      
+                      <input
+                        type="file"
+                        id="signup-profile-upload"
+                        onChange={handleUploadProfileImage}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                    </div>
+                    <span className="text-[10px] text-zinc-500 mt-1.5 font-medium">
+                      {signupRole === 'provider' ? 'Provider Photo (Recommended)' : 'Avatar Image (Optional)'}
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleSignUp} className="space-y-3.5">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
                           First Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -2958,11 +3056,11 @@ export default function DashboardPage() {
                           onChange={(e) => setSignupFirstName(e.target.value)}
                           required
                           placeholder="John"
-                          className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
                           Last Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -2971,27 +3069,41 @@ export default function DashboardPage() {
                           onChange={(e) => setSignupLastName(e.target.value)}
                           required
                           placeholder="Doe"
-                          className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                          Username <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={signupUsername}
+                          onChange={(e) => setSignupUsername(e.target.value)}
+                          required
+                          placeholder="johndoe"
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                          Phone <span className="text-zinc-500 font-normal">(optional)</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={signupPhone}
+                          onChange={(e) => setSignupPhone(e.target.value)}
+                          placeholder="+880 1700-000000"
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
-                        Username <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={signupUsername}
-                        onChange={(e) => setSignupUsername(e.target.value)}
-                        required
-                        placeholder="johndoe"
-                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
+                      <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
                         Email <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -3000,63 +3112,72 @@ export default function DashboardPage() {
                         onChange={(e) => setSignupEmail(e.target.value)}
                         required
                         placeholder="john@example.com"
-                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        className="block w-full px-3 py-2 bg-[#121214] border border-zinc-850 rounded-xl text-white placeholder-zinc-655 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
-                        Phone <span className="text-zinc-500 font-normal">(optional)</span>
-                      </label>
-                      <input
-                        type="tel"
-                        value={signupPhone}
-                        onChange={(e) => setSignupPhone(e.target.value)}
-                        placeholder="+880 1700 000000"
-                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
-                      />
+                    {signupRole === 'provider' && (
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                          Service Type <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={signupProviderType}
+                          onChange={(e) => setSignupProviderType(e.target.value)}
+                          required
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm cursor-pointer"
+                        >
+                          <option value="">Select the service you provide</option>
+                          {categories.map((cat: any) => (
+                            <option key={cat.name} value={cat.name}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                          Password <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          required
+                          placeholder="Min. 6 chars"
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                          Confirm Password <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={signupConfirmPassword}
+                          onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                          required
+                          placeholder="Re-enter password"
+                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
-                        Password <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={signupPassword}
-                        onChange={(e) => setSignupPassword(e.target.value)}
-                        required
-                        placeholder="Min. 6 characters"
-                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-zinc-300 mb-1.5">
-                        Confirm Password <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={signupConfirmPassword}
-                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                        required
-                        placeholder="Re-enter password"
-                        className="block w-full px-3 py-2.5 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
-                      />
-                    </div>
-
-                    <div className="pt-1">
+                    <div className="pt-2">
                       <button
                         type="submit"
                         disabled={signupLoading}
-                        className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all disabled:opacity-55 cursor-pointer shadow-lg shadow-[#5E5CE6]/20"
+                        className="w-full flex justify-center py-2.5 px-4 rounded-xl text-sm font-bold text-white bg-[#5E5CE6] hover:bg-[#4E4CD6] transition-all disabled:opacity-55 cursor-pointer shadow-lg shadow-[#5E5CE6]/20"
                       >
                         {signupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
                       </button>
                     </div>
                   </form>
 
-                  <div className="mt-6 text-center text-xs text-zinc-400 font-medium">
+                  <div className="mt-5 text-center text-xs text-zinc-400 font-medium">
                     Already have an account?{' '}
                     <button type="button" onClick={openSignIn} className="text-[#5E5CE6] hover:underline font-bold ml-1 cursor-pointer">
                       Sign In
@@ -3067,7 +3188,6 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
         {/* ── Forgot Password Modal ───────────────────────────────────────── */}
         {showForgotModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111112]/95 backdrop-blur-sm animate-fade-in">

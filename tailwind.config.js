@@ -9,12 +9,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#5E5CE6",
-        secondary: "#FFBD59",
+        primary: "#E4FD97",
+        secondary: "#2D3E2C",
         zinc: {
           850: "#1e1e20",
           950: "#09090b",
-        }
+        },
+        indigo: {
+          50: '#f7fee7',
+          100: '#ecfccb',
+          200: '#d9f99d',
+          300: '#bef264',
+          400: '#a3e635',
+          500: '#E4FD97',
+          600: '#2D3E2C',
+          700: '#243223',
+          800: '#1b261a',
+          900: '#121a11',
+          950: '#090d08',
+        },
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
@@ -59,7 +72,7 @@ module.exports = {
         bounceIn:       { '0%': { transform: 'scale(0.3)', opacity: '0' }, '50%': { transform: 'scale(1.05)' }, '70%': { transform: 'scale(0.9)' }, '100%': { transform: 'scale(1)', opacity: '1' } },
         toastSlide:     { from: { transform: 'translateX(100%)', opacity: '0' }, to: { transform: 'translateX(0)', opacity: '1' } },
         slideTabContent:{ from: { opacity: '0', transform: 'translateX(12px)' }, to: { opacity: '1', transform: 'translateX(0)' } },
-        glow:           { '0%, 100%': { boxShadow: '0 0 8px rgba(94, 92, 230, 0.3)' }, '50%': { boxShadow: '0 0 20px rgba(94, 92, 230, 0.6)' } },
+        glow:           { '0%, 100%': { boxShadow: '0 0 8px rgba(228, 253, 151, 0.3)' }, '50%': { boxShadow: '0 0 20px rgba(228, 253, 151, 0.6)' } },
       },
     },
   },
