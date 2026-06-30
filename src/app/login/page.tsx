@@ -28,9 +28,9 @@ export default function LoginPage() {
       const response = await apiClient.post('/login', { username, password });
       const { access_token, user_data } = response.data;
 
-      // Only allow admin / demo_admin
-      if (!['admin', 'demo_admin'].includes(user_data.user_type)) {
-        setError('Access denied. Admin credentials required.');
+      // Only allow admin / demo_admin / provider / handyman
+      if (!['admin', 'demo_admin', 'provider', 'handyman'].includes(user_data.user_type)) {
+        setError('Access denied. Admin or Provider credentials required.');
         setLoading(false);
         return;
       }

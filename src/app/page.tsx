@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Wrench,
   Users,
@@ -62,7 +63,12 @@ import {
   ToggleLeft,
   ToggleRight,
   Percent,
-  Mail
+  Mail,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize2
 } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 
@@ -168,6 +174,7 @@ interface Booking {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -252,8 +259,24 @@ export default function DashboardPage() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [landingSearchQuery, setLandingSearchQuery] = useState('');
   const [landingLocationQuery, setLandingLocationQuery] = useState('Current Location');
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [showTopBanner, setShowTopBanner] = useState(true);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
+  // How It Works interactive video states
+  const [howItWorksActiveStep, setHowItWorksActiveStep] = useState(0);
+  const [howItWorksIsPlaying, setHowItWorksIsPlaying] = useState(true);
+  const [howItWorksProgress, setHowItWorksProgress] = useState(0);
+
+  // Real Phone simulation states
+  const [phoneMode, setPhoneMode] = useState<'autoplay' | 'interactive'>('autoplay');
+  const [phoneScreen, setPhoneScreen] = useState<'search' | 'details' | 'booking' | 'checkout' | 'processing' | 'tracking' | 'success'>('search');
+  const [selectedDateIndex, setSelectedDateIndex] = useState(2); // Wed
+  const [selectedTimeIndex, setSelectedTimeIndex] = useState(1); // 12:00 PM
+  const [interactiveRating, setInteractiveRating] = useState(5);
+  const [scooterPosition, setScooterPosition] = useState(15);
 
   // Tab switching state
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -497,6 +520,23 @@ export default function DashboardPage() {
     }
   }, [toast]);
 
+  // How It Works Autoplay Progress
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (howItWorksIsPlaying) {
+      interval = setInterval(() => {
+        setHowItWorksProgress((prev) => {
+          if (prev >= 100) {
+            setHowItWorksActiveStep((curr) => (curr + 1) % 3);
+            return 0;
+          }
+          return prev + 2; // Fills in 5 seconds (100 / 50 steps of 100ms)
+        });
+      }, 100);
+    }
+    return () => clearInterval(interval);
+  }, [howItWorksIsPlaying]);
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
   };
@@ -506,10 +546,15 @@ export default function DashboardPage() {
     const token = localStorage.getItem('token');
     if (token) {
       setIsAuthenticated(true);
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem('user') || localStorage.getItem('user_data');
       if (userStr) {
         try {
-          setCurrentUser(JSON.parse(userStr));
+          const userObj = JSON.parse(userStr);
+          setCurrentUser(userObj);
+          if (userObj.user_type === 'provider' || userObj.user_type === 'handyman') {
+            router.push('/dashboard');
+            return;
+          }
         } catch (e) {}
       }
       fetchAdminStats();
@@ -541,6 +586,273 @@ export default function DashboardPage() {
     const nextTheme = !isDarkMode;
     setIsDarkMode(nextTheme);
     localStorage.setItem('theme', nextTheme ? 'dark' : 'light');
+  };
+
+  const fetchIpLocation = async () => {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      if (response.ok) {
+        const data = await response.json();
+        const city = data.city || 'Kolkata';
+        const region = data.region || 'West Bengal';
+        const formatted = `${city}, ${region}`;
+        setLandingLocationQuery(formatted);
+        showToast(`Location set via IP: ${formatted}`, 'success');
+      } else {
+        const backupRes = await fetch('https://ip-api.com/json/');
+        if (backupRes.ok) {
+          const backupData = await backupRes.json();
+          if (backupData.status === 'success') {
+            const formatted = `${backupData.city}, ${backupData.regionName}`;
+            setLandingLocationQuery(formatted);
+            showToast(`Location set via IP: ${formatted}`, 'success');
+            return;
+          }
+        }
+        setLandingLocationQuery('Kolkata, WB');
+      }
+    } catch (e) {
+      setLandingLocationQuery('Kolkata, WB');
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('Geolocation is not supported by your browser. Trying IP...', 'error');
+      fetchIpLocation();
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    showToast('Detecting your location...', 'success');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            {
+              headers: {
+                'User-Agent': 'HandymanPro-Web-Client/1.0'
+              }
+            }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            const address = data.address;
+            
+            // Build highly accurate, detailed, and human-readable exact address
+            let locationName = '';
+            if (data.display_name) {
+              const addressParts = data.display_name.split(',').map((p: any) => p.trim());
+              // Remove redundant country/state info to keep the string clean but extremely specific
+              const filteredParts = addressParts.filter((part: string) => {
+                const lower = part.toLowerCase();
+                return lower !== 'india' && lower !== 'west bengal';
+              });
+              
+              if (filteredParts.length > 0) {
+                // Take the first 3 most precise parts (e.g. road, neighborhood, city/suburb)
+                locationName = filteredParts.slice(0, 3).join(', ');
+              } else {
+                locationName = addressParts.slice(0, 3).join(', ');
+              }
+            }
+
+            // Fallback to individual fields if display_name couldn't be parsed
+            if (!locationName && address) {
+              const city = address.city || address.town || address.village || address.suburb || address.state || 'Kolkata';
+              locationName = city;
+            }
+
+            setLandingLocationQuery(locationName || 'Kolkata');
+            showToast(`Location set: ${locationName}`, 'success');
+          } else {
+            setLandingLocationQuery(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+            showToast('Resolved to coordinates.', 'success');
+          }
+        } catch (err) {
+          setLandingLocationQuery(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          showToast('Coordinates set.', 'success');
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (error) => {
+        let msg = 'Failed to get location. Trying IP...';
+        showToast(msg, 'success');
+        fetchIpLocation();
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  };
+
+  // Auto-detect location on load
+  useEffect(() => {
+    handleDetectLocation();
+  }, []);
+
+  const selectHowItWorksStep = (index: number) => {
+    setHowItWorksActiveStep(index);
+    setHowItWorksProgress(0);
+    setPhoneMode('autoplay');
+    setHowItWorksIsPlaying(true);
+  };
+
+  // Interactive mode scooter animation
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (phoneMode === 'interactive' && phoneScreen === 'tracking') {
+      timer = setInterval(() => {
+        setScooterPosition((prev) => {
+          if (prev >= 90) {
+            clearInterval(timer);
+            return 90;
+          }
+          return prev + 3;
+        });
+      }, 200);
+    }
+    return () => clearInterval(timer);
+  }, [phoneMode, phoneScreen]);
+
+  const getCursorStyle = () => {
+    let left = '50%';
+    let top = '50%';
+    let opacity = 0;
+    let scale = 1;
+    let ripple = false;
+
+    const lerp = (start: number, end: number, amt: number) => {
+      return start + (end - start) * amt;
+    };
+
+    if (howItWorksActiveStep === 0) {
+      if (howItWorksProgress < 10) {
+        left = '80%'; top = '85%'; opacity = 0;
+      } else if (howItWorksProgress < 30) {
+        // Move to search bar
+        const ratio = (howItWorksProgress - 10) / 20;
+        left = `${lerp(80, 50, ratio)}%`;
+        top = `${lerp(85, 27, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 50) {
+        // Typing: hover on search bar
+        left = '50%'; top = '27%'; opacity = 1;
+      } else if (howItWorksProgress < 65) {
+        // Move to dropdown card
+        const ratio = (howItWorksProgress - 50) / 15;
+        left = `${lerp(50, 60, ratio)}%`;
+        top = `${lerp(27, 44, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 70) {
+        // Tap dropdown card
+        left = '60%'; top = '44%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 67) ripple = true;
+      } else if (howItWorksProgress < 75) {
+        left = '60%'; top = '44%'; opacity = 0;
+      } else if (howItWorksProgress < 88) {
+        // Move to Book Service Now button
+        const ratio = (howItWorksProgress - 75) / 13;
+        left = `${lerp(60, 50, ratio)}%`;
+        top = `${lerp(44, 87, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 94) {
+        // Tap Book Service Now
+        left = '50%'; top = '87%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 90) ripple = true;
+      } else {
+        left = '50%'; top = '87%'; opacity = 0;
+      }
+    } else if (howItWorksActiveStep === 1) {
+      if (howItWorksProgress < 8) {
+        left = '50%'; top = '87%'; opacity = 0;
+      } else if (howItWorksProgress < 22) {
+        // Move to Wed 12 date card
+        const ratio = (howItWorksProgress - 8) / 14;
+        left = `${lerp(50, 52, ratio)}%`;
+        top = `${lerp(87, 38, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 27) {
+        // Tap Wed 12
+        left = '52%'; top = '38%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 24) ripple = true;
+      } else if (howItWorksProgress < 42) {
+        // Move to 12:00 PM time slot
+        const ratio = (howItWorksProgress - 27) / 15;
+        left = `${lerp(52, 50, ratio)}%`;
+        top = `${lerp(38, 50, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 47) {
+        // Tap 12:00 PM slot
+        left = '50%'; top = '50%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 44) ripple = true;
+      } else if (howItWorksProgress < 62) {
+        // Move to Proceed to Checkout button
+        const ratio = (howItWorksProgress - 47) / 15;
+        left = '50%';
+        top = `${lerp(50, 87, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 67) {
+        // Tap Proceed to Checkout
+        left = '50%'; top = '87%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 64) ripple = true;
+      } else if (howItWorksProgress < 72) {
+        left = '50%'; top = '87%'; opacity = 0;
+      } else if (howItWorksProgress < 85) {
+        // Move to Pay & Book Now
+        const ratio = (howItWorksProgress - 72) / 13;
+        left = '50%';
+        top = `${lerp(87, 87, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 90) {
+        // Tap Pay & Book Now
+        left = '50%'; top = '87%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 87) ripple = true;
+      } else {
+        left = '50%'; top = '87%'; opacity = 0;
+      }
+    } else if (howItWorksActiveStep === 2) {
+      if (howItWorksProgress < 55) {
+        // Scooter is moving, hide cursor
+        left = '50%'; top = '50%'; opacity = 0;
+      } else if (howItWorksProgress < 70) {
+        // Move to rating stars
+        const ratio = (howItWorksProgress - 55) / 15;
+        left = `${lerp(50, 70, ratio)}%`;
+        top = `${lerp(50, 56, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 76) {
+        // Tap stars (rating)
+        left = '70%'; top = '56%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 73) ripple = true;
+      } else if (howItWorksProgress < 87) {
+        // Move to Done/Return Home button
+        const ratio = (howItWorksProgress - 76) / 11;
+        left = `${lerp(70, 50, ratio)}%`;
+        top = `${lerp(56, 87, ratio)}%`;
+        opacity = 1;
+      } else if (howItWorksProgress < 92) {
+        // Tap Done button
+        left = '50%'; top = '87%'; opacity = 1;
+        scale = 0.8;
+        if (howItWorksProgress >= 89) ripple = true;
+      } else {
+        left = '50%'; top = '87%'; opacity = 0;
+      }
+    }
+
+    return { left, top, opacity, scale, ripple };
   };
 
   // Sync data whenever activeTab changes or login status changes
@@ -1172,20 +1484,26 @@ export default function DashboardPage() {
         }
       }
 
-      if (user_data.user_type !== 'admin' && user_data.user_type !== 'demo_admin') {
-        throw new Error('Access denied. Admin role required.');
-      }
-      
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user_data));
+      localStorage.setItem('user_data', JSON.stringify(user_data));
       setCurrentUser(user_data);
       setIsAuthenticated(true);
-      setActiveTab('dashboard');
+
+      if (user_data.user_type === 'admin' || user_data.user_type === 'demo_admin') {
+        setActiveTab('dashboard');
+        fetchAdminStats();
+        fetchBookings();
+        fetchProviders();
+        fetchServicesAndCategories();
+      } else if (user_data.user_type === 'provider' || user_data.user_type === 'handyman') {
+        setShowLoginModal(false);
+        router.push('/dashboard');
+      } else {
+        // Regular user stays on the landing page
+        setShowLoginModal(false);
+      }
       showToast('Sign in successful!');
-      fetchAdminStats();
-      fetchBookings();
-      fetchProviders();
-      fetchServicesAndCategories();
     } catch (error: any) {
       const msg = error.message || 'Login failed. Please check credentials.';
       setLoginError(msg);
@@ -1281,6 +1599,7 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('user_data');
     setCurrentUser(null);
     setIsAuthenticated(false);
     setUsername('');
@@ -2111,8 +2430,10 @@ export default function DashboardPage() {
     );
   }
 
-  // Render Landing Page if not authenticated
-  if (!isAuthenticated) {
+  const isRegularUser = currentUser && currentUser.user_type !== 'admin' && currentUser.user_type !== 'demo_admin';
+
+  // Render Landing Page if not authenticated or if they are a regular user/provider
+  if (!isAuthenticated || isRegularUser) {
     const defaultCategories = [
       { id: "c1", name: "AC CoolCare", description: "Experience Enhanced Comfort With Our AC CoolCare Service..." },
       { id: "c2", name: "Plumber", description: "Professional plumbing repairs, pipe fixing, and leak detection." },
@@ -2234,62 +2555,195 @@ export default function DashboardPage() {
         )}
 
         {/* 1st Banner: Gold info */}
-        <div className="bg-[#ffdb58] text-zinc-900 text-[11px] md:text-xs font-semibold py-2.5 px-4 text-center select-none shadow-sm relative z-20">
-          Welcome to our service! For more information, visit our About Us page.
-        </div>
+        {showTopBanner && (
+          <div className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-zinc-950 text-[11px] md:text-xs font-semibold py-2 px-4 flex items-center justify-between select-none shadow-sm relative z-40 transition-all duration-300">
+            <div className="flex-1 text-center">
+              Welcome to our service! For more information, visit our About Us page.
+            </div>
+            <button 
+              onClick={() => setShowTopBanner(false)}
+              className="p-1 hover:bg-zinc-950/10 rounded-lg transition-colors cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5 text-zinc-950" />
+            </button>
+          </div>
+        )}
 
         {/* 2nd Bar: Purple info */}
-        <div className="bg-[#5e4ae3] text-white text-xs py-2 px-4 md:px-12 flex justify-between items-center select-none font-medium relative z-20">
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-zinc-350 text-xs py-2 px-4 md:px-12 flex justify-between items-center select-none font-medium relative z-30 border-b border-slate-800/80">
           <div className="flex items-center gap-2">
-            <Phone className="w-3.5 h-3.5" />
+            <Phone className="w-3.5 h-3.5 text-indigo-400" />
             <span>+15265897485</span>
           </div>
-          <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-90 transition-opacity">
-            <Globe className="w-3.5 h-3.5" />
-            <span>EN</span>
-            <ChevronDown className="w-3.5 h-3.5 text-white/70" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
+              <Globe className="w-3.5 h-3.5 text-indigo-400" />
+              <span>EN</span>
+              <ChevronDown className="w-3 h-3 text-zinc-500" />
+            </div>
           </div>
         </div>
 
         {/* 3rd Header: Main Navbar */}
-        <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 py-4 px-4 md:px-12 sticky top-0 z-30 transition-colors">
+        <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-zinc-900/80 border-b border-slate-100 dark:border-zinc-800/60 py-3.5 px-4 md:px-12 transition-all duration-300">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setLandingSearchQuery(''); setSelectedCategoryFilter('All'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-              <div className="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-600/30">
+            <div 
+              className="flex items-center gap-3 cursor-pointer group" 
+              onClick={() => { setLandingSearchQuery(''); setSelectedCategoryFilter('All'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            >
+              <div className="bg-gradient-to-tr from-indigo-600 to-violet-500 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-600/20 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300 ease-out">
                 <Wrench className="w-5 h-5" />
               </div>
-              <span className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Handyman Pro</span>
+              <span className="text-xl font-extrabold text-slate-800 dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                Handyman <span className="bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">Pro</span>
+              </span>
             </div>
 
             {/* Menu Links */}
-            <nav className="hidden md:flex items-center gap-8 text-sm font-bold text-zinc-650 dark:text-zinc-300">
-              <a href="#home" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</a>
-              <a href="#categories" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Categories</a>
-              <a href="#services" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Services</a>
-              <a href="#shops" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Shops</a>
-              <a href="#download" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">App</a>
+            <nav className="hidden md:flex items-center gap-1 text-sm font-semibold text-zinc-650 dark:text-zinc-300">
+              <a href="#home" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Home</a>
+              <a href="#categories" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Categories</a>
+              <a href="#services" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Services</a>
+              <a href="#shops" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Shops</a>
+              <a href="#download" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">App</a>
             </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 relative">
               {/* Theme Toggle */}
               <button 
                 onClick={toggleTheme} 
-                className="p-2 rounded-xl text-zinc-500 hover:text-indigo-600 dark:text-zinc-450 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-2.5 rounded-xl border border-slate-100 dark:border-zinc-800/60 text-zinc-500 hover:text-indigo-600 dark:text-zinc-450 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-all duration-200 hover:scale-105"
                 title="Toggle Dark Mode"
               >
-                {isDarkMode ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-500" />}
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
               </button>
 
-              {/* Login Button */}
-              <button 
-                onClick={() => { setLoginError(''); setShowLoginModal(true); }}
-                className="flex items-center gap-2 border border-slate-200 dark:border-zinc-700 hover:border-indigo-600 dark:hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-850 text-sm font-bold px-4 py-2.5 rounded-2xl transition-all text-slate-700 dark:text-white"
-              >
-                <UserIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                <span>Login</span>
-              </button>
+              {/* Login/Profile Button */}
+              {isAuthenticated && isRegularUser ? (
+                <div className="relative">
+                  {/* Clickable Profile Button */}
+                  <button 
+                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                    className="flex items-center gap-2.5 p-1.5 pr-3 bg-slate-50 dark:bg-zinc-800/50 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/60 dark:border-zinc-700/50 rounded-2xl hover:border-indigo-500/35 transition-all duration-200 select-none cursor-pointer"
+                  >
+                    {currentUser.profile_image ? (
+                      <img 
+                        src={currentUser.profile_image} 
+                        alt="Profile" 
+                        className="w-8 h-8 rounded-full object-cover border border-indigo-500/20" 
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                        {currentUser.first_name ? currentUser.first_name[0].toUpperCase() : currentUser.username[0].toUpperCase()}
+                      </div>
+                    )}
+                    <span className="hidden sm:inline text-xs font-bold text-zinc-700 dark:text-zinc-200 max-w-[100px] truncate">
+                      {currentUser.first_name || currentUser.username}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-zinc-450 transition-transform duration-200 ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Card */}
+                  {showProfileDropdown && (
+                    <>
+                      {/* Backdrop to close dropdown on click outside */}
+                      <div className="fixed inset-0 z-40 cursor-default" onClick={() => setShowProfileDropdown(false)} />
+                      
+                      <div className="absolute right-0 mt-2.5 w-64 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xl shadow-slate-200/30 dark:shadow-black/40 py-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                        {/* Profile Info */}
+                        <div className="px-4 pb-3 flex items-center gap-3 border-b border-slate-100 dark:border-zinc-800/60">
+                          {currentUser.profile_image ? (
+                            <img 
+                              src={currentUser.profile_image} 
+                              alt="Profile" 
+                              className="w-10 h-10 rounded-full object-cover border border-indigo-500/30" 
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white flex items-center justify-center font-bold text-sm">
+                              {currentUser.first_name ? currentUser.first_name[0].toUpperCase() : currentUser.username[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-zinc-800 dark:text-white truncate">
+                              {currentUser.first_name} {currentUser.last_name || ''}
+                            </h4>
+                            <p className="text-[10px] text-zinc-450 dark:text-zinc-550 truncate mb-1">
+                              {currentUser.email || currentUser.username}
+                            </p>
+                            <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider border border-indigo-100/40 dark:border-indigo-900/30">
+                              {currentUser.user_type}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Navigation Options */}
+                        <div className="px-2 py-2 border-b border-slate-100 dark:border-zinc-800/60 flex flex-col gap-0.5">
+                          {['admin', 'demo_admin', 'provider', 'handyman'].includes(currentUser.user_type) && (
+                            <button 
+                              onClick={() => { setShowProfileDropdown(false); router.push('/dashboard'); }}
+                              className="flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold text-zinc-650 hover:text-indigo-650 dark:text-zinc-200 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-zinc-800/45 rounded-xl transition-colors text-left"
+                            >
+                              <LayoutDashboard className="w-4 h-4 text-zinc-405" />
+                              <span>Go to Dashboard</span>
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => { setShowProfileDropdown(false); showToast('My Bookings feature coming soon!'); }}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold text-zinc-600 hover:text-indigo-650 dark:text-zinc-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-zinc-800/45 rounded-xl transition-colors text-left"
+                          >
+                            <Calendar className="w-4 h-4 text-zinc-400" />
+                            <span>My Bookings</span>
+                          </button>
+                          <button 
+                            onClick={() => { setShowProfileDropdown(false); showToast('My Favorites feature coming soon!'); }}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold text-zinc-600 hover:text-indigo-650 dark:text-zinc-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-zinc-800/45 rounded-xl transition-colors text-left"
+                          >
+                            <Heart className="w-4 h-4 text-zinc-400" />
+                            <span>My Favorites</span>
+                          </button>
+                          <button 
+                            onClick={() => { setShowProfileDropdown(false); showToast('Account Settings coming soon!'); }}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold text-zinc-600 hover:text-indigo-650 dark:text-zinc-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-zinc-800/45 rounded-xl transition-colors text-left"
+                          >
+                            <UserIcon className="w-4 h-4 text-zinc-400" />
+                            <span>Account Settings</span>
+                          </button>
+                        </div>
+
+                        {/* Logout Option */}
+                        <div className="px-2 pt-2">
+                          <button 
+                            onClick={() => {
+                              setShowProfileDropdown(false);
+                              localStorage.removeItem('token');
+                              localStorage.removeItem('user');
+                              localStorage.removeItem('user_data');
+                              setCurrentUser(null);
+                              setIsAuthenticated(false);
+                              showToast('Logged out successfully');
+                            }}
+                            className="flex items-center gap-3 w-full px-3 py-2.5 text-xs font-bold text-rose-600 hover:text-rose-705 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-colors text-left cursor-pointer"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out</span>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <button 
+                  onClick={() => { setLoginError(''); setShowLoginModal(true); }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <UserIcon className="w-4 h-4 text-white/90" />
+                  <span>Login</span>
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -2312,24 +2766,51 @@ export default function DashboardPage() {
               </p>
 
               {/* Search Inputs */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-2 md:p-3 shadow-xl flex flex-col md:flex-row gap-2 max-w-2xl mx-auto lg:mx-0">
-                <div className="flex items-center gap-2 px-3 py-2 flex-1 border-b md:border-b-0 md:border-r border-slate-100 dark:border-zinc-800">
-                  <MapPin className="w-5 h-5 text-indigo-500 shrink-0" />
+              <div className="bg-white/85 dark:bg-zinc-900/85 backdrop-blur-xl border border-slate-200/80 dark:border-zinc-850 rounded-[28px] p-2 md:p-2.5 shadow-2xl shadow-indigo-500/5 dark:shadow-black/60 flex flex-col md:flex-row gap-2 max-w-2xl mx-auto lg:mx-0 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/40">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 flex-1 border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-zinc-800/60 group/loc relative min-w-0">
+                  <button 
+                    onClick={handleDetectLocation}
+                    disabled={isDetectingLocation}
+                    className="hover:scale-110 active:scale-95 transition-all text-indigo-500 hover:text-indigo-600 disabled:opacity-50 cursor-pointer shrink-0 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl"
+                    title="Detect Current Location"
+                  >
+                    {isDetectingLocation ? (
+                      <RefreshCw className="w-4.5 h-4.5 animate-spin text-indigo-500" />
+                    ) : (
+                      <MapPin className="w-4.5 h-4.5 text-indigo-500" />
+                    )}
+                  </button>
                   <input 
                     type="text" 
                     value={landingLocationQuery}
                     onChange={(e) => setLandingLocationQuery(e.target.value)}
-                    className="bg-transparent text-sm text-slate-850 dark:text-white outline-none w-full font-bold"
+                    className="bg-transparent text-xs sm:text-sm text-slate-800 dark:text-zinc-100 outline-none flex-1 min-w-0 font-bold placeholder-slate-400 dark:placeholder-zinc-600 pr-2 truncate"
                     placeholder="Enter location"
                   />
+                  <button 
+                    onClick={handleDetectLocation}
+                    disabled={isDetectingLocation}
+                    className="hidden sm:flex text-[9px] md:text-[10px] text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-extrabold uppercase tracking-wider shrink-0 mr-1.5 border border-emerald-500/25 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20 transition-all cursor-pointer items-center gap-1 shadow-sm active:scale-95"
+                  >
+                    {isDetectingLocation ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        Detecting
+                      </>
+                    ) : (
+                      'Current Location'
+                    )}
+                  </button>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 flex-1">
-                  <Search className="w-5 h-5 text-indigo-500 shrink-0" />
+                <div className="flex items-center gap-2.5 px-3 py-2 flex-1 group/search">
+                  <span className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl transition-colors">
+                    <Search className="w-5 h-5 text-indigo-500 shrink-0" />
+                  </span>
                   <input 
                     type="text" 
                     value={landingSearchQuery}
                     onChange={(e) => setLandingSearchQuery(e.target.value)}
-                    className="bg-transparent text-sm text-slate-850 dark:text-white outline-none w-full font-bold"
+                    className="bg-transparent text-sm text-slate-800 dark:text-zinc-100 outline-none w-full font-bold placeholder-slate-400 dark:placeholder-zinc-650"
                     placeholder="Search Service..."
                   />
                 </div>
@@ -2339,7 +2820,7 @@ export default function DashboardPage() {
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                     showToast(`Searching for "${landingSearchQuery || 'All'}" in ${landingLocationQuery}`);
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm px-6 py-3.5 rounded-2xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer shrink-0"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-650 hover:from-indigo-500 hover:to-purple-550 text-white font-extrabold text-sm px-7 py-3.5 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-indigo-600/15 cursor-pointer shrink-0"
                 >
                   Search
                 </button>
@@ -2619,54 +3100,832 @@ export default function DashboardPage() {
         </section>
 
         {/* How It Works Section */}
-        <section className="py-20 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300 relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        <section className="py-24 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300 relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
           <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-14">
+            <div className="text-center mb-16">
               <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-4 py-1.5 rounded-full inline-block mb-4">Simple Process</span>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">How It Works</h2>
-              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-3 max-w-lg mx-auto font-medium">Book a handyman in three simple steps. Fast, reliable, and hassle-free.</p>
+              <h2 className="text-3xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tight">How It Works</h2>
+              <p className="text-base text-slate-500 dark:text-zinc-400 mt-3 max-w-lg mx-auto font-medium">Book a verified handyman in three simple steps. Try the interactive video preview below.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-              {/* Connecting line (desktop only) */}
-              <div className="hidden md:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-indigo-600/20 via-indigo-600/40 to-indigo-600/20" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              {/* Left Column: Interactive Steps List */}
+              <div className="lg:col-span-5 space-y-6">
+                {[
+                  {
+                    step: "01",
+                    title: "Choose Your Service",
+                    description: "Browse through our extensive list of home services. Pick the one that fits your needs.",
+                    icon: "🔍",
+                    color: "border-indigo-500/20 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20"
+                  },
+                  {
+                    step: "02",
+                    title: "Book An Appointment",
+                    description: "Select your preferred date, time, and location. Confirm your booking instantly.",
+                    icon: "📅",
+                    color: "border-purple-500/20 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/20"
+                  },
+                  {
+                    step: "03",
+                    title: "Get It Done!",
+                    description: "Our verified professional arrives on time. Pay securely through the app when done.",
+                    icon: "✅",
+                    color: "border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20"
+                  }
+                ].map((item, idx) => {
+                  const isActive = howItWorksActiveStep === idx;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => selectHowItWorksStep(idx)}
+                      className={`p-6 rounded-3xl border transition-all duration-300 cursor-pointer relative overflow-hidden flex gap-4 ${
+                        isActive
+                          ? "bg-white dark:bg-zinc-900 border-indigo-500 shadow-xl shadow-indigo-500/5 translate-x-2"
+                          : "bg-transparent border-slate-200 dark:border-zinc-800 hover:bg-white/50 dark:hover:bg-zinc-900/40 hover:border-slate-300 dark:hover:border-zinc-700"
+                      }`}
+                    >
+                      {/* Active indicator progress line */}
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100 dark:bg-zinc-800">
+                          <div 
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-100" 
+                            style={{ width: `${howItWorksProgress}%` }}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border font-black text-lg ${item.color} shrink-0`}>
+                        {item.icon}
+                      </div>
+                      <div className="space-y-1 text-left">
+                        <h4 className="font-extrabold text-slate-800 dark:text-white text-base leading-snug flex items-center gap-2">
+                          <span className="text-xs bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-450 px-2 py-0.5 rounded-md font-black">{item.step}</span>
+                          {item.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 font-semibold leading-relaxed">{item.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-              {[
-                {
-                  step: "01",
-                  title: "Choose Your Service",
-                  description: "Browse through our extensive list of home services. Pick the one that fits your needs.",
-                  icon: "🔍",
-                  color: "from-indigo-500 to-indigo-700"
-                },
-                {
-                  step: "02",
-                  title: "Book An Appointment",
-                  description: "Select your preferred date, time, and location. Confirm your booking instantly.",
-                  icon: "📅",
-                  color: "from-purple-500 to-purple-700"
-                },
-                {
-                  step: "03",
-                  title: "Get It Done!",
-                  description: "Our verified professional arrives on time. Pay securely through the app when done.",
-                  icon: "✅",
-                  color: "from-emerald-500 to-emerald-700"
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="text-center relative group">
-                  <div className={`w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                    <span className="text-2xl">{item.icon}</span>
-                  </div>
-                  <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Step {item.step}</span>
-                  <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mt-2 mb-2">{item.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-zinc-400 font-medium max-w-xs mx-auto leading-relaxed">{item.description}</p>
+              {/* Right Column: Simulated Video Player Screen Mockup */}
+              <div className="lg:col-span-7 flex flex-col items-center justify-center">
+                {/* Mode Selector Toggle Switch */}
+                <div className="mb-5 bg-slate-100 dark:bg-zinc-800/80 backdrop-blur-md p-1.5 rounded-2xl flex gap-1 shadow-lg border border-slate-200/50 dark:border-zinc-700/50 relative z-20">
+                  <button 
+                    onClick={() => {
+                      setPhoneMode('autoplay');
+                      setHowItWorksIsPlaying(true);
+                      setHowItWorksProgress(0);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-1.5 cursor-pointer ${
+                      phoneMode === 'autoplay' 
+                        ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/20' 
+                        : 'text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Autoplay Demo</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setPhoneMode('interactive');
+                      setHowItWorksIsPlaying(false);
+                      setPhoneScreen('search');
+                      setSelectedDateIndex(2);
+                      setSelectedTimeIndex(1);
+                      setInteractiveRating(5);
+                      setScooterPosition(15);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-1.5 cursor-pointer ${
+                      phoneMode === 'interactive' 
+                        ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/20' 
+                        : 'text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+                    <span>Interactive Sandbox</span>
+                  </button>
                 </div>
-              ))}
+
+                <div className="w-full max-w-[390px] aspect-[9/19.5] rounded-[60px] bg-gradient-to-b from-[#2d2d30] via-[#1a1a1c] to-[#0f0f10] p-[10px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),_inset_0_2px_4px_rgba(255,255,255,0.15),_inset_0_-2px_4px_rgba(0,0,0,0.4)] ring-1 ring-white/10 relative group/player overflow-hidden">
+                  
+                  {/* Left physical buttons (Action button & Volume keys) */}
+                  <div className="absolute top-28 -left-[2px] w-[4px] h-8 bg-zinc-800 rounded-l-sm border-r border-black/40 z-30" />
+                  <div className="absolute top-40 -left-[2px] w-[4px] h-12 bg-zinc-800 rounded-l-sm border-r border-black/40 z-30" />
+                  <div className="absolute top-56 -left-[2px] w-[4px] h-12 bg-zinc-800 rounded-l-sm border-r border-black/40 z-30" />
+                  
+                  {/* Right physical button (Power/Sleep button) */}
+                  <div className="absolute top-44 -right-[2px] w-[4px] h-18 bg-zinc-800 rounded-r-sm border-l border-black/40 z-30" />
+
+                  {/* Bezel */}
+                  <div className="relative h-full w-full bg-black rounded-[50px] overflow-hidden p-2 flex flex-col justify-between shadow-inner">
+                    
+                    {/* Glass sheen overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.03] to-transparent pointer-events-none z-40 rounded-[40px]" />
+                    
+                    {/* Dynamic Island Notch */}
+                    <div className="absolute top-5 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-full z-45 flex items-center justify-between px-4 shadow-[inset_0_1.5px_2px_rgba(255,255,255,0.1)]">
+                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-950 border border-zinc-900/60 relative flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-900/60 blur-[0.5px]" />
+                      </div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500/80 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                    </div>
+
+                    {/* Speaker Grill */}
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-zinc-800 rounded-full z-45 border border-black/20" />
+
+                    {/* Inner Screen */}
+                    <div className="relative w-full h-full bg-slate-950 rounded-[42px] overflow-hidden border border-slate-900 flex flex-col justify-between pt-12 pb-4 select-none">
+                      
+                      {/* iOS Status Bar */}
+                      <div className="px-7 py-3 flex justify-between items-center text-white/95 text-[9.5px] font-bold tracking-tight w-full absolute top-0 left-0 bg-black/20 backdrop-blur-xs z-40 select-none">
+                        <span>9:41</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-end gap-[1px] h-2">
+                            <div className="w-[1.5px] h-1 bg-white rounded-2xs" />
+                            <div className="w-[1.5px] h-1.5 bg-white rounded-2xs" />
+                            <div className="w-[1.5px] h-2 bg-white rounded-2xs" />
+                            <div className="w-[1.5px] h-2.5 bg-white rounded-2xs" />
+                          </div>
+                          <span className="text-[7.5px] font-black tracking-tighter mr-0.5">5G</span>
+                          <span className="text-[7.5px] font-black opacity-80">100%</span>
+                          <div className="w-5 h-2.5 border border-white/80 rounded-[4px] p-[1.5px] flex items-center relative">
+                            <div className="h-full bg-emerald-500 rounded-[2px] w-full" />
+                            <div className="w-[1px] h-[3px] bg-white/80 absolute -right-[2px] top-1/2 -translate-y-1/2 rounded-r-xs" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Safari Web Address Bar */}
+                      <div className="absolute top-8 left-0 right-0 bg-[#161618]/95 border-b border-white/10 px-4 py-2 flex items-center justify-between z-30 backdrop-blur-md">
+                        <div className="flex items-center gap-3 text-zinc-400">
+                          <button 
+                            onClick={() => {
+                              if (phoneMode === 'interactive') {
+                                if (phoneScreen === 'details') setPhoneScreen('search');
+                                else if (phoneScreen === 'booking') setPhoneScreen('details');
+                                else if (phoneScreen === 'checkout') setPhoneScreen('booking');
+                                else if (phoneScreen === 'processing') setPhoneScreen('checkout');
+                                else if (phoneScreen === 'tracking') setPhoneScreen('checkout');
+                                else if (phoneScreen === 'success') setPhoneScreen('search');
+                              }
+                            }}
+                            className={`hover:text-white transition-colors cursor-pointer ${phoneMode === 'autoplay' ? 'opacity-30 cursor-not-allowed' : ''}`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (phoneMode === 'interactive') {
+                                if (phoneScreen === 'search') setPhoneScreen('details');
+                                else if (phoneScreen === 'details') setPhoneScreen('booking');
+                              }
+                            }}
+                            className={`hover:text-white transition-colors cursor-pointer ${phoneMode === 'autoplay' || phoneScreen === 'success' || phoneScreen === 'tracking' ? 'opacity-30 cursor-not-allowed' : ''}`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                          </button>
+                        </div>
+                        
+                        <div className="flex-1 mx-3 bg-[#242426] border border-white/5 rounded-xl py-1.5 px-3 flex items-center justify-between gap-1.5 text-[8.5px] font-medium text-zinc-400">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <svg className="w-2.5 h-2.5 text-emerald-500 shrink-0 fill-current" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                            <span className="text-zinc-200 tracking-tight truncate">handyman.ulmind.com</span>
+                          </div>
+                          <svg className="w-2.5 h-2.5 text-zinc-550 shrink-0 hover:text-white transition-colors cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                          </svg>
+                        </div>
+
+                        <div className="text-zinc-400 text-[8px] font-black border border-zinc-700/60 rounded px-1.5 py-0.5 bg-[#242426]">
+                          aA
+                        </div>
+                      </div>
+
+                      {/* Background glow effects */}
+                      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                      {/* Step Content Switcher */}
+                      <div className="flex-1 flex flex-col justify-start relative z-10 w-full overflow-hidden mt-12 pt-3">
+                      
+                      {/* SCREEN 1: SEARCH & HOME */}
+                      {((phoneMode === 'autoplay' && (howItWorksActiveStep === 0 && howItWorksProgress < 45)) || 
+                        (phoneMode === 'interactive' && phoneScreen === 'search')) && (
+                        <div className="w-full h-full flex flex-col justify-between p-4 animate-fade-in">
+                          <div className="space-y-4 flex-1 flex flex-col justify-start">
+                            {/* Header & Greetings */}
+                            <div className="text-left space-y-1 mt-1">
+                              <h4 className="text-sm font-black text-white flex items-center gap-1.5">
+                                Hi Samir! <span className="animate-bounce">👋</span>
+                              </h4>
+                              <p className="text-[10px] text-zinc-400 font-bold flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-[#6366f1] shrink-0" />
+                                <span>{landingLocationQuery || "Kolkata, West Bengal, India"}</span>
+                              </p>
+                            </div>
+
+                            {/* Grid Categories */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-left flex items-center gap-1.5 hover:bg-white/10 transition-colors">
+                                <span className="text-sm">🧹</span>
+                                <span className="text-[9px] text-white font-bold">Cleaning</span>
+                              </div>
+                              <div className="bg-[#6366f1]/10 border border-[#6366f1]/30 rounded-xl p-2.5 text-left flex items-center gap-1.5 shadow-sm hover:bg-[#6366f1]/15 transition-colors">
+                                <span className="text-sm">❄️</span>
+                                <span className="text-[9px] text-white font-bold">AC Repair</span>
+                              </div>
+                              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-left flex items-center gap-1.5 hover:bg-white/10 transition-colors">
+                                <span className="text-sm">🔌</span>
+                                <span className="text-[9px] text-white font-bold">Electrical</span>
+                              </div>
+                              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-left flex items-center gap-1.5 hover:bg-white/10 transition-colors">
+                                <span className="text-sm">🎨</span>
+                                <span className="text-[9px] text-white font-bold">Painting</span>
+                              </div>
+                            </div>
+
+                            {/* Search Bar Input */}
+                            <div 
+                              onClick={() => {
+                                if (phoneMode === 'interactive') {
+                                  setPhoneScreen('details');
+                                }
+                              }}
+                              className="bg-white/10 border border-white/15 rounded-xl p-2.5 flex items-center gap-2 relative cursor-pointer hover:bg-white/15 transition-colors"
+                            >
+                              <Search className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                              <div className="text-[10px] font-bold text-white flex-1 min-w-0 flex items-center gap-0.5">
+                                {phoneMode === 'autoplay' ? (
+                                  <>
+                                    <span>
+                                      {howItWorksProgress < 8 
+                                        ? "" 
+                                        : "AC Servicing & Repair".substring(0, Math.floor(((howItWorksProgress - 8) / 20) * "AC Servicing & Repair".length))}
+                                    </span>
+                                    <span className="w-0.5 h-3.5 bg-[#6366f1] animate-pulse shrink-0" />
+                                  </>
+                                ) : (
+                                  <span className="text-zinc-400">Search for AC, cleaning, etc...</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Suggestions / Recommended */}
+                            <div className="bg-slate-900/95 border border-white/10 rounded-xl p-1.5 shadow-xl space-y-1 animate-slide-up">
+                              <div 
+                                onClick={() => {
+                                  if (phoneMode === 'interactive') {
+                                    setPhoneScreen('details');
+                                  }
+                                }}
+                                className={`p-1.5 rounded-lg flex items-center gap-2 transition-colors duration-200 cursor-pointer ${
+                                  phoneMode === 'autoplay' 
+                                    ? (howItWorksProgress >= 36 ? 'bg-[#6366f1]/15 border border-[#6366f1]/30' : 'bg-transparent border border-transparent')
+                                    : 'hover:bg-white/5 border border-transparent'
+                                }`}
+                              >
+                                <span className="text-xs shrink-0">❄️</span>
+                                <div className="text-left flex-1 min-w-0">
+                                  <h5 className="text-[9px] font-black text-white leading-tight">AC Servicing & Repair</h5>
+                                  <p className="text-[7px] text-zinc-400">54 verified experts</p>
+                                </div>
+                                <ChevronRight className="w-3 h-3 text-zinc-500" />
+                              </div>
+                              <div className="p-1.5 rounded-lg flex items-center gap-2 opacity-60">
+                                <span className="text-xs shrink-0">🔌</span>
+                                <div className="text-left flex-1 min-w-0">
+                                  <h5 className="text-[9px] font-black text-white leading-tight">Electrician & Wiring</h5>
+                                  <p className="text-[7px] text-zinc-400">12 experts available</p>
+                                </div>
+                                <ChevronRight className="w-3 h-3 text-zinc-500" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SCREEN 2: DETAILS */}
+                      {((phoneMode === 'autoplay' && (howItWorksActiveStep === 0 && howItWorksProgress >= 45)) || 
+                        (phoneMode === 'interactive' && phoneScreen === 'details')) && (
+                        <div className="w-full h-full flex flex-col justify-between p-4 animate-fade-in">
+                          <div className="flex-1 flex flex-col justify-between animate-slide-in-right p-1 mt-1">
+                            <div className="space-y-3.5">
+                              {/* Service Poster Image */}
+                              <div className="w-full h-28 bg-gradient-to-br from-indigo-500/20 via-cyan-500/10 to-purple-500/20 border border-white/10 rounded-xl relative overflow-hidden flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent animate-pulse" />
+                                <div className="text-center relative z-10">
+                                  <span className="text-3xl filter drop-shadow animate-bounce">❄️</span>
+                                  <p className="text-[9px] text-cyan-300 font-extrabold tracking-widest uppercase mt-2">AC DEEP CLEANING</p>
+                                </div>
+                              </div>
+
+                              {/* Details Block */}
+                              <div className="text-left space-y-1.5">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="text-[12px] font-black text-white leading-tight">AC Servicing & Repair</h4>
+                                  <span className="text-[8px] bg-emerald-500/20 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded-full">$49.00</span>
+                                </div>
+                                
+                                {/* Ratings */}
+                                <div className="flex items-center gap-1 text-[8px] font-bold text-zinc-400">
+                                  <div className="flex gap-0.5 text-amber-400">
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                      <Star key={s} className="w-2.5 h-2.5 fill-current" />
+                                    ))}
+                                  </div>
+                                  <span>4.9 (120 reviews)</span>
+                                </div>
+
+                                <p className="text-[8px] text-zinc-400 font-semibold leading-relaxed">
+                                  Full indoor unit service, cooling check, filter wash, pressure test, and carbon dust cleanup. Done by certified professionals.
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* CTA Button */}
+                            <div className="pt-2">
+                              <button 
+                                onClick={() => {
+                                  if (phoneMode === 'interactive') {
+                                    setPhoneScreen('booking');
+                                  }
+                                }}
+                                className={`w-full py-2.5 rounded-xl font-extrabold text-[10px] text-white bg-gradient-to-r from-[#6366f1] to-[#4f46e5] border border-[#6366f1]/40 shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
+                                  phoneMode === 'autoplay' && howItWorksProgress >= 80 ? 'scale-95 shadow-inner opacity-90' : 'hover:brightness-110 active:scale-98'
+                                }`}
+                              >
+                                <span>Book Service Now</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SCREEN 3: BOOKING CALENDAR */}
+                      {((phoneMode === 'autoplay' && (howItWorksActiveStep === 1 && howItWorksProgress < 60)) || 
+                        (phoneMode === 'interactive' && phoneScreen === 'booking')) && (
+                        <div className="w-full h-full flex flex-col justify-between p-4 animate-fade-in">
+                          <div className="space-y-3.5 flex-1 flex flex-col justify-between p-1 mt-1">
+                            <div className="space-y-3">
+                              {/* Handyman Header */}
+                              <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex items-center gap-2.5">
+                                <img 
+                                  src="https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=120&q=80" 
+                                  alt="Provider" 
+                                  className="w-8 h-8 rounded-lg object-cover border border-white/10" 
+                                />
+                                <div className="text-left flex-1 min-w-0">
+                                  <h5 className="text-[10px] font-black text-white flex items-center gap-1.5 leading-tight">
+                                    Debasis Das
+                                    <span className="text-[7px] bg-[#6366f1]/20 text-[#818cf8] font-black px-1.5 py-0.25 rounded-full uppercase tracking-wider">Top Pro</span>
+                                  </h5>
+                                  <p className="text-[8px] text-zinc-400 font-bold">AC Service Expert</p>
+                                </div>
+                              </div>
+
+                              {/* Mini Calendar Section */}
+                              <div className="text-left space-y-1">
+                                <h6 className="text-[8px] font-extrabold text-zinc-400 uppercase tracking-wider">Select Date</h6>
+                                <div className="grid grid-cols-5 gap-1">
+                                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, idx) => {
+                                    const isSelected = phoneMode === 'autoplay' 
+                                      ? (idx === 2 && howItWorksProgress >= 25)
+                                      : (idx === selectedDateIndex);
+                                    return (
+                                      <div 
+                                        key={idx} 
+                                        onClick={() => {
+                                          if (phoneMode === 'interactive') {
+                                            setSelectedDateIndex(idx);
+                                          }
+                                        }}
+                                        className={`p-1 rounded-lg border transition-all duration-200 text-center cursor-pointer ${
+                                          isSelected 
+                                            ? 'bg-indigo-600 border-indigo-500 text-white scale-105 shadow-md shadow-indigo-600/30' 
+                                            : 'border-white/5 text-zinc-400 bg-white/5 hover:bg-white/10'
+                                        }`}
+                                      >
+                                        <p className="text-[6px] uppercase font-black">{day}</p>
+                                        <p className="text-[8px] font-black">{10 + idx}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Mini Time Slot Section */}
+                              <div className="text-left space-y-1">
+                                <h6 className="text-[8px] font-extrabold text-zinc-400 uppercase tracking-wider">Select Time Slot</h6>
+                                <div className="grid grid-cols-3 gap-1 text-center">
+                                  {['09:00 AM', '12:00 PM', '03:00 PM'].map((slot, idx) => {
+                                    const isSelected = phoneMode === 'autoplay'
+                                      ? (idx === 1 && howItWorksProgress >= 48)
+                                      : (idx === selectedTimeIndex);
+                                    return (
+                                      <div 
+                                        key={idx} 
+                                        onClick={() => {
+                                          if (phoneMode === 'interactive') {
+                                            setSelectedTimeIndex(idx);
+                                          }
+                                        }}
+                                        className={`py-1.5 text-[7px] font-black rounded-lg border transition-all duration-200 cursor-pointer ${
+                                          isSelected 
+                                            ? 'bg-indigo-600 border-indigo-500 text-white scale-105' 
+                                            : 'border-white/5 text-zinc-400 bg-white/5 hover:bg-white/10'
+                                        }`}
+                                      >
+                                        {slot}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Progress Booking Button */}
+                            <div className="pt-2">
+                              {phoneMode === 'autoplay' ? (
+                                <button className="w-full py-2 rounded-xl font-extrabold text-[10px] text-white bg-white/5 border border-white/10 cursor-not-allowed text-center">
+                                  Choose Date & Time
+                                </button>
+                              ) : (
+                                <button 
+                                  onClick={() => setPhoneScreen('checkout')}
+                                  className="w-full py-2.5 rounded-xl font-extrabold text-[10px] text-white bg-gradient-to-r from-indigo-600 to-indigo-700 border border-indigo-500/40 shadow-lg shadow-indigo-600/20 text-center active:scale-98 transition-all hover:brightness-110 cursor-pointer"
+                                >
+                                  Proceed to Checkout
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SCREEN 4: BILLING & CHECKOUT */}
+                      {((phoneMode === 'autoplay' && (howItWorksActiveStep === 1 && howItWorksProgress >= 60)) || 
+                        (phoneMode === 'interactive' && phoneScreen === 'checkout')) && (
+                        <div className="w-full h-full flex flex-col justify-between p-4 animate-fade-in">
+                          <div className="flex-1 flex flex-col justify-between animate-slide-up p-1 mt-1">
+                            <div className="space-y-3">
+                              <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 space-y-2.5 shadow-inner">
+                                <h5 className="text-[9px] font-black text-white border-b border-white/10 pb-1.5 text-left uppercase tracking-wider flex items-center gap-1.5">
+                                  <span>🧾</span> Price Details
+                                </h5>
+                                <div className="space-y-1.5 text-[8px] font-bold text-zinc-350">
+                                  <div className="flex justify-between">
+                                    <span>Service Charge</span>
+                                    <span className="text-white">$49.00</span>
+                                  </div>
+                                  <div className="flex justify-between text-emerald-400">
+                                    <span>Coupon Applied (WELCOME10)</span>
+                                    <span>-$10.00</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Platform Fee</span>
+                                    <span className="text-white">$2.00</span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-white/10 pt-2 text-[10px] font-black text-white">
+                                    <span>Total Amount</span>
+                                    <span className="text-indigo-450">$41.00</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Checkout Button & Modal */}
+                            <div className="pt-2 relative">
+                              {phoneMode === 'autoplay' ? (
+                                <button className={`w-full py-2.5 rounded-xl font-extrabold text-[10px] text-white bg-gradient-to-r from-emerald-600 to-teal-600 border border-emerald-500/40 shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all duration-150 ${howItWorksProgress >= 70 ? 'scale-95 shadow-inner opacity-90' : ''}`}>
+                                  <span>Proceed to Pay $41.00</span>
+                                </button>
+                              ) : (
+                                <button 
+                                  onClick={() => {
+                                    setPhoneScreen('processing');
+                                    setTimeout(() => {
+                                      setPhoneScreen('tracking');
+                                      setScooterPosition(15);
+                                    }, 1500);
+                                  }}
+                                  className="w-full py-2.5 rounded-xl font-extrabold text-[10px] text-white bg-gradient-to-r from-emerald-600 to-teal-600 border border-emerald-500/40 shadow-lg shadow-emerald-600/20 text-center active:scale-98 transition-all hover:brightness-110 cursor-pointer"
+                                >
+                                  Pay & Book Now ($41.00)
+                                </button>
+                              )}
+                              
+                              {/* Processing Overlay (Autoplay) */}
+                              {phoneMode === 'autoplay' && howItWorksProgress >= 78 && (
+                                <div className="absolute inset-x-0 -top-44 bg-slate-950/95 rounded-xl flex flex-col items-center justify-center p-4 border border-white/10 space-y-3 z-30 animate-fade-in">
+                                  {howItWorksProgress < 94 ? (
+                                    <>
+                                      <Loader2 className="w-8 h-8 text-[#6366f1] animate-spin" />
+                                      <p className="text-[9px] font-black text-white uppercase tracking-widest animate-pulse text-center">Processing Payment...</p>
+                                    </>
+                                  ) : (
+                                    <div className="text-center space-y-1.5 animate-scale-in">
+                                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center mx-auto shadow-md">
+                                        <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                      </div>
+                                      <h5 className="text-[10px] font-black text-white">Payment Successful!</h5>
+                                      <p className="text-[7px] text-zinc-400 font-bold">Your booking is confirmed.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SCREEN 5: PROCESSING LOADER (Interactive Only) */}
+                      {phoneMode === 'interactive' && phoneScreen === 'processing' && (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center animate-fade-in space-y-3">
+                          <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">Processing Payment</p>
+                            <p className="text-[8px] text-zinc-500">Securing payment gateway...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SCREEN 6: LIVE TRACKER MAP */}
+                      {((phoneMode === 'autoplay' && (howItWorksActiveStep === 2 && howItWorksProgress < 55)) || 
+                        (phoneMode === 'interactive' && phoneScreen === 'tracking')) && (
+                        <div className="w-full h-full flex flex-col justify-between p-4 animate-fade-in">
+                          <div className="flex-1 flex flex-col justify-between p-1 mt-1">
+                            {/* Vector Map Mock */}
+                            <div className="w-full h-32 bg-zinc-900 border border-white/10 rounded-xl relative overflow-hidden shadow-inner">
+                              <svg className="absolute inset-0 w-full h-full stroke-white/5" strokeWidth={1.5}>
+                                <path d="M0 40h200M0 90h200M50 0v150M150 0v150" />
+                                <path d="M-10 100 C 40 90, 80 110, 210 100" fill="none" stroke="#2563eb" strokeWidth={3} className="opacity-20" />
+                                <path 
+                                  d="M 30 90 L 30 35 L 120 35 L 120 70" 
+                                  fill="none" 
+                                  stroke="#6366f1" 
+                                  strokeWidth={2.5} 
+                                  strokeDasharray="3,3" 
+                                  className="opacity-60"
+                                />
+                              </svg>
+
+                              {/* Customer Marker (House) */}
+                              <div className="absolute left-[120px] top-[70px] -translate-x-1/2 -translate-y-1/2 bg-[#6366f1]/30 border border-[#6366f1] rounded-full p-0.5 shadow-md">
+                                <MapPin className="w-3.5 h-3.5 text-white" />
+                              </div>
+
+                              {/* Handyman Scooter Marker moving */}
+                              <div 
+                                className="absolute bg-emerald-500 border border-white rounded-full p-1 shadow-lg transition-all duration-300 z-10"
+                                style={{
+                                  left: phoneMode === 'autoplay'
+                                    ? (howItWorksProgress < 15
+                                        ? '30px'
+                                        : howItWorksProgress < 40
+                                          ? `${30 + ((howItWorksProgress - 15) / 25) * 90}px`
+                                          : '120px')
+                                    : (scooterPosition < 30
+                                        ? '30px'
+                                        : scooterPosition < 70
+                                          ? `${30 + ((scooterPosition - 30) / 40) * 90}px`
+                                          : '120px'),
+                                  top: phoneMode === 'autoplay'
+                                    ? (howItWorksProgress < 15
+                                        ? `${90 - (howItWorksProgress / 15) * 55}px`
+                                        : howItWorksProgress < 40
+                                          ? '35px'
+                                          : `${35 + ((howItWorksProgress - 40) / 15) * 35}px`)
+                                    : (scooterPosition < 30
+                                        ? `${90 - (scooterPosition / 30) * 55}px`
+                                        : scooterPosition < 70
+                                          ? '35px'
+                                          : `${35 + ((scooterPosition - 70) / 20) * 35}px`),
+                                  transform: 'translate(-50%, -50%)'
+                                }}
+                              >
+                                <span className="text-[10px] leading-none block">🛵</span>
+                              </div>
+                            </div>
+
+                            {/* Status Cards */}
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-left space-y-1.5">
+                              <div className="flex justify-between items-center">
+                                <h5 className="text-[9px] font-black text-white uppercase tracking-wider">
+                                  {phoneMode === 'autoplay' ? (
+                                    howItWorksProgress < 50 ? "Technician Dispatched" : "Technician Arrived"
+                                  ) : (
+                                    scooterPosition < 85 ? "Technician En Route" : "Technician Arrived"
+                                  )}
+                                </h5>
+                                <span className="text-[6px] bg-emerald-500/20 text-emerald-400 font-extrabold px-1.5 py-0.25 rounded-full uppercase tracking-wider animate-pulse">Live</span>
+                              </div>
+                              <p className="text-[8px] text-zinc-400 font-semibold leading-normal">
+                                {phoneMode === 'autoplay' ? (
+                                  howItWorksProgress < 50 
+                                    ? "Debasis Das is heading to your place. ETA: 8 mins."
+                                    : "Debasis Das has arrived. Work is under progress."
+                                ) : (
+                                  scooterPosition < 85
+                                    ? `Debasis is riding to your place. ETA: ${Math.max(1, Math.ceil((90 - scooterPosition) / 10))} mins.`
+                                    : "Debasis has arrived. Work is under progress."
+                                )}
+                              </p>
+
+                              {/* Work Progress bar (Autoplay) */}
+                              {phoneMode === 'autoplay' && howItWorksProgress >= 50 && (
+                                <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2.5">
+                                  <div className="flex-1 bg-white/10 h-1 rounded-full overflow-hidden">
+                                    <div className="bg-indigo-500 h-full" style={{ width: '60%' }} />
+                                  </div>
+                                  <span className="text-[7px] font-black text-[#818cf8] uppercase tracking-widest animate-pulse shrink-0">Working...</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Button to Complete (Interactive Only) */}
+                            {phoneMode === 'interactive' && (
+                              <div className="pt-2">
+                                <button 
+                                  onClick={() => setPhoneScreen('success')}
+                                  className="w-full py-2 rounded-xl font-extrabold text-[9px] text-white bg-gradient-to-r from-indigo-600 to-indigo-700 border border-indigo-500/40 text-center active:scale-98 transition-all hover:brightness-110 cursor-pointer"
+                                >
+                                  {scooterPosition < 85 ? "Simulate Arrival" : "Complete Booking"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SCREEN 7: JOB COMPLETED & RATING */}
+                      {((phoneMode === 'autoplay' && (howItWorksActiveStep === 2 && howItWorksProgress >= 55)) || 
+                        (phoneMode === 'interactive' && phoneScreen === 'success')) && (
+                        <div className="w-full h-full flex flex-col justify-between p-4 animate-fade-in">
+                          <div className="flex-1 flex flex-col justify-between animate-slide-up p-1 mt-1">
+                            <div className="space-y-3 text-center">
+                              <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center mx-auto shadow-md">
+                                <CheckCircle className="w-6 h-6 text-emerald-400 animate-bounce" />
+                              </div>
+                              <div className="space-y-0.5">
+                                <h4 className="text-[11px] font-black text-white leading-tight">Job Completed successfully!</h4>
+                                <p className="text-[7px] text-zinc-400 font-bold">AC Deep Clean has been completed</p>
+                              </div>
+
+                              {/* Handyman Rating Card */}
+                              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <img src="https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=120&q=80" alt="Provider" className="w-7 h-7 rounded-full object-cover border border-white/10" />
+                                  <div className="text-left">
+                                    <h5 className="text-[9px] font-black text-white leading-tight">Debasis Das</h5>
+                                    <p className="text-[7px] text-zinc-400 font-bold">AC Specialist</p>
+                                  </div>
+                                </div>
+
+                                {/* Stars rating */}
+                                <div className="flex gap-0.5 text-zinc-700">
+                                  {[1, 2, 3, 4, 5].map((s) => {
+                                    const isStarred = phoneMode === 'autoplay'
+                                      ? (howItWorksProgress >= 62 + s * 3.5)
+                                      : (s <= interactiveRating);
+                                    return (
+                                      <Star 
+                                        key={s} 
+                                        onClick={() => {
+                                          if (phoneMode === 'interactive') {
+                                            setInteractiveRating(s);
+                                          }
+                                        }}
+                                        className={`w-3.5 h-3.5 transition-all duration-200 cursor-pointer ${
+                                          isStarred 
+                                            ? 'text-amber-400 fill-amber-400 scale-110' 
+                                            : 'text-zinc-600'
+                                        }`} 
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Return CTA */}
+                            <div className="pt-2">
+                              <button 
+                                onClick={() => {
+                                  if (phoneMode === 'interactive') {
+                                    setPhoneScreen('search');
+                                  } else {
+                                    selectHowItWorksStep(0);
+                                  }
+                                }}
+                                className="w-full py-2.5 rounded-xl font-extrabold text-[10px] text-white bg-gradient-to-r from-[#6366f1] to-[#4f46e5] border border-[#6366f1]/40 shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all duration-150 hover:brightness-110 cursor-pointer"
+                              >
+                                <span>Return to Home</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Virtual cursor/pointer hand indicator (Only in Autoplay) */}
+                    {phoneMode === 'autoplay' && howItWorksIsPlaying && (
+                      <div 
+                        className="absolute pointer-events-none z-50 transition-all duration-300 ease-out"
+                        style={{
+                          left: getCursorStyle().left,
+                          top: getCursorStyle().top,
+                          opacity: getCursorStyle().opacity,
+                          transform: `translate(-50%, -50%) scale(${getCursorStyle().scale})`,
+                        }}
+                      >
+                        {/* Circle cursor pointer ring */}
+                        <div className="w-8 h-8 rounded-full bg-[#6366f1]/25 border-2 border-[#6366f1] shadow-xl flex items-center justify-center relative">
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#6366f1] shadow-sm" />
+                          {/* Ripple click effect */}
+                          {getCursorStyle().ripple && (
+                            <span className="absolute -inset-2 rounded-full border-2 border-[#6366f1]/80 animate-ping" />
+                          )}
+                        </div>
+                        
+                        {/* Custom Pointer Hand SVG */}
+                        <div className="absolute top-4 left-4 text-white drop-shadow-md">
+                          <svg className="w-6 h-6 fill-[#6366f1] stroke-white" strokeWidth={1.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.303.197-1.591 1.591M21.75 12h-2.25m-.197 5.303-1.591-1.591M12 21.75V19.5m-5.303-.197 1.591-1.591M2.25 12h2.25m.197-5.303 1.591 1.591" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* iOS Home Indicator Bar */}
+                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-28 h-1 bg-white/20 rounded-full z-45" />
+
+                    {/* Interactive Video Control Overlay (Only in Autoplay) */}
+                    {phoneMode === 'autoplay' && (
+                      <div className="px-4 pt-3 border-t border-white/10 bg-black/60 backdrop-blur-md relative z-20">
+                        {/* Video Progress scrubbing bar */}
+                        <div className="w-full h-1 bg-white/20 rounded-full cursor-pointer relative overflow-hidden mb-2">
+                          <div className="absolute left-[33%] top-0 bottom-0 w-0.5 bg-black/30 z-10" />
+                          <div className="absolute left-[66%] top-0 bottom-0 w-0.5 bg-black/30 z-10" />
+                          
+                          <div 
+                            className="h-full bg-gradient-to-r from-[#6366f1] to-purple-500 transition-all duration-100" 
+                            style={{ width: `${((howItWorksActiveStep * 100) + (howItWorksProgress || 0)) / 3}%` }}
+                          />
+                        </div>
+
+                        {/* Video play/pause, volume, time indicators */}
+                        <div className="flex items-center justify-between text-zinc-300">
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => setHowItWorksIsPlaying(!howItWorksIsPlaying)}
+                              className="hover:text-white transition-colors cursor-pointer"
+                            >
+                              {howItWorksIsPlaying ? (
+                                <Pause className="w-4 h-4 text-white fill-white" />
+                              ) : (
+                                <Play className="w-4 h-4 text-white fill-white" />
+                              )}
+                            </button>
+                            
+                            <span className="text-[10px] font-bold tracking-wider">
+                              0:0{howItWorksActiveStep + 1} / 0:03
+                            </span>
+                            
+                            <span className="text-[8px] bg-indigo-600 text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                              Demo Play
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button className="hover:text-white transition-colors cursor-pointer">
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                            <span className="text-[9px] font-extrabold border border-white/20 rounded px-1 text-white">
+                              HD
+                            </span>
+                            <button 
+                              onClick={() => showToast("Full video demo available on our Mobile App!", "success")}
+                              className="hover:text-white transition-colors cursor-pointer"
+                            >
+                              <Maximize2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
         {/* Shops Section */}
         <section id="shops" className="py-16 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">

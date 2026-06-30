@@ -87,7 +87,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {!collapsed && (
             <div className="animate-fade-in">
               <h1 className="text-sm font-bold tracking-tight leading-none">Handyman Pro</h1>
-              <p className="text-[10px] text-zinc-500 mt-0.5">Admin Panel</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5 capitalize">
+                {user?.user_type === 'demo_admin' ? 'Demo Admin' : user?.user_type ? `${user.user_type} Panel` : 'Admin Panel'}
+              </p>
             </div>
           )}
 
@@ -201,10 +203,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
             </button>
 
-            {/* Admin badge */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-lg text-xs font-medium">
+            {/* Role badge */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-lg text-xs font-medium capitalize">
               <Shield className="w-3 h-3" />
-              Admin
+              {user?.user_type === 'demo_admin' ? 'Demo Admin' : user?.user_type || 'Admin'}
             </div>
           </div>
         </header>
