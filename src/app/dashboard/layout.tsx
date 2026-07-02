@@ -44,9 +44,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/login');
       return;
     }
-    setUser(getUserData());
+    const userData = getUserData();
+    setUser(userData);
     setAuthChecked(true);
-  }, [router]);
+
+    if (userData) {
+      const isAdmin = userData.user_type === 'admin' || userData.user_type === 'demo_admin';
+      const adminOnlyPaths = [
+        '/dashboard/services',
+        '/dashboard/providers',
+        '/dashboard/handymen',
+        '/dashboard/customers',
+        '/dashboard/finance',
+        '/dashboard/coupons',
+        '/dashboard/notifications',
+        '/dashboard/settings'
+      ];
+      
+      const isCurrentPathAdminOnly = pathname === '/dashboard' || adminOnlyPaths.some(p => pathname.startsWith(p));
+
+      if (isCurrentPathAdminOnly && !isAdmin) {
+        router.replace('/dashboard/bookings');
+      }
+    }
+  }, [router, pathname]);
 
   if (!authChecked) {
     return (
@@ -59,6 +80,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
+  };
+
+  const getFilteredNavItems = () => {
+    if (!user) return [];
+    if (user.user_type === 'admin' || user.user_type === 'demo_admin') {
+      return NAV_ITEMS;
+    }
+    if (user.user_type === 'provider' || user.user_type === 'handyman') {
+      return NAV_ITEMS.filter(item => 
+        ['Bookings'].includes(item.label)
+      );
+    }
+    if (user.user_type === 'user') {
+      return NAV_ITEMS.filter(item => 
+        ['Bookings'].includes(item.label)
+      );
+    }
+    return NAV_ITEMS;
   };
 
   return (
@@ -104,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          {NAV_ITEMS.map((item) => {
+          {getFilteredNavItems().map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;
             return (

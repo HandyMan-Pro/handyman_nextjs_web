@@ -257,9 +257,9 @@ export default function BookingsPage() {
                     <Clock className="w-3.5 h-3.5 text-zinc-500" />
                     <span>Slot: {b.booking_slot || 'Anytime'}</span>
                   </div>
-                  <div className="flex items-center gap-2 col-span-2">
-                    <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                    <span className="truncate">Address: {b.address || 'Not specified'}</span>
+                  <div className="flex items-start gap-2 col-span-2">
+                    <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                    <span className="break-words whitespace-normal">Address: {b.address || 'Not specified'}</span>
                   </div>
                 </div>
 

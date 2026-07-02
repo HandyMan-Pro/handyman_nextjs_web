@@ -68,7 +68,8 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Maximize2
+  Maximize2,
+  Navigation
 } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 
@@ -551,7 +552,7 @@ export default function DashboardPage() {
         try {
           const userObj = JSON.parse(userStr);
           setCurrentUser(userObj);
-          if (userObj.user_type === 'provider' || userObj.user_type === 'handyman') {
+          if (['admin', 'demo_admin', 'provider', 'handyman'].includes(userObj.user_type)) {
             router.push('/dashboard');
             setAuthLoading(false);
             return;
@@ -1491,19 +1492,8 @@ export default function DashboardPage() {
       setCurrentUser(user_data);
       setIsAuthenticated(true);
 
-      if (user_data.user_type === 'admin' || user_data.user_type === 'demo_admin') {
-        setActiveTab('dashboard');
-        fetchAdminStats();
-        fetchBookings();
-        fetchProviders();
-        fetchServicesAndCategories();
-      } else if (user_data.user_type === 'provider' || user_data.user_type === 'handyman') {
-        setShowLoginModal(false);
-        router.push('/dashboard');
-      } else {
-        // Regular user stays on the landing page
-        setShowLoginModal(false);
-      }
+      setShowLoginModal(false);
+      router.push('/dashboard');
       showToast('Sign in successful!');
     } catch (error: any) {
       const msg = error.message || 'Login failed. Please check credentials.';
@@ -2431,8 +2421,8 @@ export default function DashboardPage() {
     );
   }
 
-  // Redirect providers and handymen to the dashboard immediately
-  if (currentUser && (currentUser.user_type === 'provider' || currentUser.user_type === 'handyman')) {
+  // Redirect admin, demo_admin, providers, and handymen to the dashboard immediately
+  if (currentUser && ['admin', 'demo_admin', 'provider', 'handyman'].includes(currentUser.user_type)) {
     router.push('/dashboard');
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -2778,40 +2768,48 @@ export default function DashboardPage() {
 
               {/* Search Inputs */}
               <div className="bg-white/85 dark:bg-zinc-900/85 backdrop-blur-xl border border-slate-200/80 dark:border-zinc-850 rounded-[28px] p-2 md:p-2.5 shadow-2xl shadow-indigo-500/5 dark:shadow-black/60 flex flex-col md:flex-row gap-2 max-w-2xl mx-auto lg:mx-0 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/40">
-                <div className="flex items-center gap-2 px-2.5 py-1.5 flex-1 border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-zinc-800/60 group/loc relative min-w-0">
-                  <button 
-                    onClick={handleDetectLocation}
-                    disabled={isDetectingLocation}
-                    className="hover:scale-110 active:scale-95 transition-all text-indigo-500 hover:text-indigo-600 disabled:opacity-50 cursor-pointer shrink-0 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl"
-                    title="Detect Current Location"
-                  >
-                    {isDetectingLocation ? (
-                      <RefreshCw className="w-4.5 h-4.5 animate-spin text-indigo-500" />
-                    ) : (
-                      <MapPin className="w-4.5 h-4.5 text-indigo-500" />
-                    )}
-                  </button>
-                  <input 
-                    type="text" 
-                    value={landingLocationQuery}
-                    onChange={(e) => setLandingLocationQuery(e.target.value)}
-                    className="bg-transparent text-xs sm:text-sm text-slate-800 dark:text-zinc-100 outline-none flex-1 min-w-0 font-bold placeholder-slate-400 dark:placeholder-zinc-600 pr-2 truncate"
-                    placeholder="Enter location"
-                  />
-                  <button 
-                    onClick={handleDetectLocation}
-                    disabled={isDetectingLocation}
-                    className="hidden sm:flex text-[9px] md:text-[10px] text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-extrabold uppercase tracking-wider shrink-0 mr-1.5 border border-emerald-500/25 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20 transition-all cursor-pointer items-center gap-1 shadow-sm active:scale-95"
-                  >
-                    {isDetectingLocation ? (
-                      <>
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                        Detecting
-                      </>
-                    ) : (
-                      'Current Location'
-                    )}
-                  </button>
+                <div className="flex flex-col justify-center gap-1.5 px-2.5 py-1.5 flex-1 border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-zinc-800/60 group/loc relative min-w-0">
+                  <div className="flex items-center gap-2 w-full">
+                    <button 
+                      onClick={handleDetectLocation}
+                      disabled={isDetectingLocation}
+                      className="hover:scale-110 active:scale-95 transition-all text-indigo-500 hover:text-indigo-600 disabled:opacity-50 cursor-pointer shrink-0 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl"
+                      title="Detect Current Location"
+                    >
+                      {isDetectingLocation ? (
+                        <RefreshCw className="w-4.5 h-4.5 animate-spin text-indigo-500" />
+                      ) : (
+                        <MapPin className="w-4.5 h-4.5 text-indigo-500" />
+                      )}
+                    </button>
+                    <input 
+                      type="text" 
+                      value={landingLocationQuery}
+                      onChange={(e) => setLandingLocationQuery(e.target.value)}
+                      title={landingLocationQuery}
+                      className="bg-transparent text-xs sm:text-sm text-slate-800 dark:text-zinc-100 outline-none w-full font-bold placeholder-slate-400 dark:placeholder-zinc-600 pr-2"
+                      placeholder="Enter location"
+                    />
+                  </div>
+                  <div className="pl-9 flex">
+                    <button 
+                      onClick={handleDetectLocation}
+                      disabled={isDetectingLocation}
+                      className="flex text-[9px] md:text-[10px] text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-extrabold uppercase tracking-wider shrink-0 border border-emerald-500/25 px-2 py-1 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20 transition-all cursor-pointer items-center gap-1 shadow-sm active:scale-95"
+                    >
+                      {isDetectingLocation ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          Detecting...
+                        </>
+                      ) : (
+                        <>
+                          <Navigation className="w-3 h-3 rotate-45 text-emerald-500 fill-emerald-500/10" />
+                          Current Location
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2.5 px-3 py-2 flex-1 group/search">
                   <span className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl transition-colors">
