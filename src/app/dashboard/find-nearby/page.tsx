@@ -181,7 +181,7 @@ export default function FindNearbyProviderPage() {
     });
     userMarkerRef.current = userMarker;
 
-    // Drag Listener to update location coordinates
+    // Drag Listener to update location coordinates + restart scan at pin
     userMarker.addListener('dragend', () => {
       const position = userMarker.getPosition();
       if (position) {
@@ -189,10 +189,12 @@ export default function FindNearbyProviderPage() {
         setCoords(newCoords);
         reverseGeocode(newCoords);
         fetchProviders(newCoords);
+        // Restart scan centered on the dragged pin position
+        startScanAnimation(googleMap, newCoords);
       }
     });
 
-    // --- Radar Scanning Animation (20km pulse) ---
+    // --- Radar Scanning Animation (10km pulse) ---
     startScanAnimation(googleMap, initialCoords);
 
   }, [mapLoaded]);
@@ -206,9 +208,9 @@ export default function FindNearbyProviderPage() {
 
     const google = (window as any).google;
     const MAX_RADIUS = 10000; // 10km in meters
-    const NUM_WAVES = 3;
-    const CYCLE_MS = 4000; // full cycle duration
-    const FPS = 30;
+    const NUM_WAVES = 2;
+    const CYCLE_MS = 8000; // slow 8s full cycle for smooth visual
+    const FPS = 24;
     const INTERVAL = 1000 / FPS;
 
     // Create wave circles
@@ -230,7 +232,7 @@ export default function FindNearbyProviderPage() {
       scanCirclesRef.current.push(circle);
     }
 
-    // Also add a static boundary ring at 20km
+    // Static boundary ring at 10km
     const boundaryCircle = new google.maps.Circle({
       center,
       radius: MAX_RADIUS,
