@@ -7,7 +7,8 @@ import {
   LayoutDashboard, Users, Wrench, CalendarCheck, DollarSign,
   Megaphone, Settings, LogOut, ChevronLeft, ChevronRight,
   Bell, Search, Menu, X, Shield,
-  Hammer, UserCheck, Briefcase, Tag, MessageSquare
+  Hammer, UserCheck, Briefcase, Tag, MessageSquare,
+  MapPin, Clock, User
 } from 'lucide-react';
 
 interface NavItem {
@@ -30,6 +31,16 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Notifications', icon: Megaphone,     href: '/dashboard/notifications', step: '6' },
   { label: 'Settings',    icon: Settings,        href: '/dashboard/settings',    step: '7' },
 ];
+
+const USER_NAV_ITEMS: NavItem[] = [
+  { label: 'Find Provider',        icon: Search,        href: '/dashboard/find-provider' },
+  { label: 'Find Nearby Provider', icon: MapPin,        href: '/dashboard/find-nearby' },
+  { label: 'My Booking',           icon: CalendarCheck, href: '/dashboard/my-bookings' },
+  { label: 'Booking History',      icon: Clock,         href: '/dashboard/booking-history' },
+  { label: 'notification',         icon: Bell,          href: '/dashboard/user-notifications' },
+  { label: "User's profile page",  icon: User,          href: '/dashboard/profile' },
+];
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -64,8 +75,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isCurrentPathAdminOnly = pathname === '/dashboard' || adminOnlyPaths.some(p => pathname.startsWith(p));
 
       if (isCurrentPathAdminOnly && !isAdmin) {
-        router.replace('/dashboard/bookings');
+        if (userData.user_type === 'user') {
+          router.replace('/dashboard/find-provider');
+        } else {
+          router.replace('/dashboard/bookings');
+        }
       }
+
     }
   }, [router, pathname]);
 
@@ -93,12 +109,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       );
     }
     if (user.user_type === 'user') {
-      return NAV_ITEMS.filter(item => 
-        ['Bookings'].includes(item.label)
-      );
+      return USER_NAV_ITEMS;
     }
     return NAV_ITEMS;
   };
+
 
   return (
     <div className="min-h-screen flex bg-zinc-950">

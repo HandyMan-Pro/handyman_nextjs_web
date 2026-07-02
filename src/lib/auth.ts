@@ -9,7 +9,10 @@ export interface UserData {
   display_name?: string;
   user_type: string;
   profile_image?: string;
+  address?: string;
+  contact_number?: string;
 }
+
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;

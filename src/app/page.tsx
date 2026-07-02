@@ -552,7 +552,7 @@ export default function DashboardPage() {
         try {
           const userObj = JSON.parse(userStr);
           setCurrentUser(userObj);
-          if (['admin', 'demo_admin', 'provider', 'handyman'].includes(userObj.user_type)) {
+          if (['admin', 'demo_admin', 'provider', 'handyman', 'user'].includes(userObj.user_type)) {
             router.push('/dashboard');
             setAuthLoading(false);
             return;
@@ -2421,8 +2421,8 @@ export default function DashboardPage() {
     );
   }
 
-  // Redirect admin, demo_admin, providers, and handymen to the dashboard immediately
-  if (currentUser && ['admin', 'demo_admin', 'provider', 'handyman'].includes(currentUser.user_type)) {
+  // Redirect authenticated users to the dashboard immediately
+  if (currentUser && ['admin', 'demo_admin', 'provider', 'handyman', 'user'].includes(currentUser.user_type)) {
     router.push('/dashboard');
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -2433,8 +2433,8 @@ export default function DashboardPage() {
 
   const isRegularUser = currentUser && currentUser.user_type !== 'admin' && currentUser.user_type !== 'demo_admin';
 
-  // Render Landing Page if not authenticated or if they are a regular user/provider
-  if (!isAuthenticated || isRegularUser) {
+  // Render Landing Page if not authenticated
+  if (!isAuthenticated) {
     const defaultCategories = [
       { id: "c1", name: "AC CoolCare", description: "Experience Enhanced Comfort With Our AC CoolCare Service..." },
       { id: "c2", name: "Plumber", description: "Professional plumbing repairs, pipe fixing, and leak detection." },
