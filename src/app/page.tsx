@@ -553,6 +553,7 @@ export default function DashboardPage() {
           setCurrentUser(userObj);
           if (userObj.user_type === 'provider' || userObj.user_type === 'handyman') {
             router.push('/dashboard');
+            setAuthLoading(false);
             return;
           }
         } catch (e) {}
@@ -2423,6 +2424,16 @@ export default function DashboardPage() {
   };
 
   if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Redirect providers and handymen to the dashboard immediately
+  if (currentUser && (currentUser.user_type === 'provider' || currentUser.user_type === 'handyman')) {
+    router.push('/dashboard');
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
