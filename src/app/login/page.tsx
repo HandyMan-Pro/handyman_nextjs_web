@@ -167,6 +167,16 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Provider Registration Link */}
+        <div className="text-center mt-5 bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-4">
+          <p className="text-zinc-400 text-xs">
+            Are you a service professional?{' '}
+            <a href="/register" className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors">
+              Register as a Partner →
+            </a>
+          </p>
+        </div>
+
         {/* Footer */}
         <p className="text-center text-zinc-600 text-xs mt-6">
           © 2026 Handyman Pro. All rights reserved.
