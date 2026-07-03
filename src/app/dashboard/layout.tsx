@@ -32,6 +32,18 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Settings',    icon: Settings,        href: '/dashboard/settings',    step: '7' },
 ];
 
+const PROVIDER_NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard' },
+  { label: 'Handymen',      icon: Users,           href: '/dashboard/handymen' },
+  { label: 'My Services',   icon: Wrench,          href: '/dashboard/services' },
+  { label: 'Bookings',      icon: CalendarCheck,   href: '/dashboard/bookings' },
+  { label: 'Finance',       icon: DollarSign,      href: '/dashboard/finance' },
+  { label: 'Live Tracking',  icon: MapPin,          href: '/dashboard/live-tracking' },
+  { label: 'Unified Inbox',  icon: MessageSquare,   href: '/dashboard/inbox' },
+  { label: 'Reviews',        icon: UserCheck,       href: '/dashboard/reviews' },
+  { label: 'Settings',      icon: Settings,        href: '/dashboard/settings' },
+];
+
 const USER_NAV_ITEMS: NavItem[] = [
   { label: 'Find Provider',        icon: Search,        href: '/dashboard/find-provider' },
   { label: 'Find Nearby Provider', icon: MapPin,        href: '/dashboard/find-nearby' },
@@ -61,27 +73,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     if (userData) {
       const isAdmin = userData.user_type === 'admin' || userData.user_type === 'demo_admin';
-      const adminOnlyPaths = [
-        '/dashboard/services',
-        '/dashboard/providers',
-        '/dashboard/handymen',
-        '/dashboard/customers',
-        '/dashboard/finance',
-        '/dashboard/coupons',
-        '/dashboard/notifications',
-        '/dashboard/settings'
-      ];
-      
-      const isCurrentPathAdminOnly = pathname === '/dashboard' || adminOnlyPaths.some(p => pathname.startsWith(p));
+      const isProvider = userData.user_type === 'provider';
+      const path = pathname;
 
-      if (isCurrentPathAdminOnly && !isAdmin) {
-        if (userData.user_type === 'user') {
+      if (userData.user_type === 'user') {
+        const userAllowed = [
+          '/dashboard/find-provider',
+          '/dashboard/find-nearby',
+          '/dashboard/my-bookings',
+          '/dashboard/booking-history',
+          '/dashboard/user-notifications',
+          '/dashboard/profile'
+        ];
+        if (!userAllowed.some(p => path.startsWith(p))) {
           router.replace('/dashboard/find-provider');
-        } else {
+        }
+      } else if (isProvider) {
+        const providerAllowed = [
+          '/dashboard',
+          '/dashboard/services',
+          '/dashboard/handymen',
+          '/dashboard/bookings',
+          '/dashboard/finance',
+          '/dashboard/settings',
+          '/dashboard/live-tracking',
+          '/dashboard/inbox',
+          '/dashboard/reviews'
+        ];
+        const isAllowed = providerAllowed.some(p => path === p || path.startsWith(p + '/'));
+        if (!isAllowed) {
+          router.replace('/dashboard');
+        }
+      } else if (userData.user_type === 'handyman') {
+        if (!path.startsWith('/dashboard/bookings')) {
           router.replace('/dashboard/bookings');
         }
+      } else {
+        // Admin - allow all
       }
-
     }
   }, [router, pathname]);
 
@@ -103,7 +132,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user.user_type === 'admin' || user.user_type === 'demo_admin') {
       return NAV_ITEMS;
     }
-    if (user.user_type === 'provider' || user.user_type === 'handyman') {
+    if (user.user_type === 'provider') {
+      return PROVIDER_NAV_ITEMS;
+    }
+    if (user.user_type === 'handyman') {
       return NAV_ITEMS.filter(item => 
         ['Bookings'].includes(item.label)
       );

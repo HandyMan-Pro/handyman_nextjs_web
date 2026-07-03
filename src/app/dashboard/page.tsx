@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../lib/apiClient';
+import { getUserData } from '../../lib/auth';
 import {
   Users, Briefcase, Hammer, CalendarCheck, DollarSign,
   TrendingUp, ArrowUpRight, ArrowDownRight, Wrench,
@@ -20,6 +21,7 @@ interface DashboardStats {
     total_partners: number;
     total_customers: number;
     total_services: number;
+    provider_earnings?: number;
   };
   status_distribution: Record<string, number>;
   recent_bookings: any[];
@@ -39,11 +41,20 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [role, setRole] = useState<'admin' | 'provider' | 'handyman' | 'user' | null>(null);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/admin/stats');
+      const user = getUserData();
+      const userRole = user?.user_type || 'admin';
+      setRole(userRole as any);
+
+      const url = userRole === 'provider' 
+        ? `/admin/stats?provider_id=${user?.id}` 
+        : '/admin/stats';
+        
+      const response = await apiClient.get(url);
       setStats(response.data);
       setError('');
     } catch (err: any) {
@@ -95,7 +106,38 @@ export default function DashboardPage() {
 
   const { summary } = stats;
 
-  const statCards = [
+  const statCards = role === 'provider' ? [
+    {
+      label: "Today's Earnings (Net)",
+      value: `₹${(summary.provider_earnings || 0).toLocaleString('en-IN')}`,
+      subtext: `Commission Share: ${100 - summary.commission_rate}% of ₹${summary.total_revenue.toLocaleString('en-IN')}`,
+      icon: IndianRupee,
+      gradient: 'from-emerald-500 to-teal-500',
+      shadowColor: 'shadow-emerald-500/10',
+    },
+    {
+      label: 'My Bookings',
+      value: summary.total_bookings,
+      icon: CalendarCheck,
+      gradient: 'from-blue-500 to-cyan-500',
+      shadowColor: 'shadow-blue-500/10',
+    },
+    {
+      label: 'My Handymen (Staff)',
+      value: summary.active_handymen,
+      icon: Hammer,
+      gradient: 'from-amber-500 to-orange-500',
+      shadowColor: 'shadow-amber-500/10',
+    },
+    {
+      label: 'Platform Commission Paid',
+      value: `₹${summary.platform_earnings.toLocaleString('en-IN')}`,
+      subtext: `Commission Rate: ${summary.commission_rate}%`,
+      icon: Briefcase,
+      gradient: 'from-violet-500 to-purple-500',
+      shadowColor: 'shadow-violet-500/10',
+    },
+  ] : [
     {
       label: 'Total Customers',
       value: summary.total_customers,
@@ -132,7 +174,9 @@ export default function DashboardPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {role === 'provider' ? 'Provider Dashboard' : 'Dashboard'}
+          </h1>
           <p className="text-zinc-500 text-sm mt-0.5">Welcome back! Here&apos;s what&apos;s happening today.</p>
         </div>
         <button
