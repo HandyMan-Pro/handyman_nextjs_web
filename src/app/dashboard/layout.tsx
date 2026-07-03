@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.replace('/login');
+      router.replace('/?login=true');
       return;
     }
     const userData = getUserData();

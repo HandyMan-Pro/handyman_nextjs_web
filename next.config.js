@@ -12,6 +12,20 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/login',
+        destination: '/?login=true',
+        permanent: true,
+      },
+      {
+        source: '/register',
+        destination: '/?register=true',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

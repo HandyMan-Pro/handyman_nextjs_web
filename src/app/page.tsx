@@ -563,6 +563,17 @@ export default function DashboardPage() {
       fetchBookings();
       fetchCustomers();
       fetchSettings();
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('login') === 'true') {
+        setShowLoginModal(true);
+      } else if (params.get('register') === 'true') {
+        setShowSignUpModal(true);
+        const role = params.get('role');
+        if (role) {
+          setSignupRole(role as any);
+        }
+      }
     }
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
