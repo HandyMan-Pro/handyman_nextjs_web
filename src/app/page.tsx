@@ -204,6 +204,10 @@ export default function DashboardPage() {
   const [signupProviderType, setSignupProviderType] = useState('');
   const [signupProfileImage, setSignupProfileImage] = useState('');
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [customServiceName, setCustomServiceName] = useState('');
+  const [customServiceCategory, setCustomServiceCategory] = useState('');
+  const [customServicePrice, setCustomServicePrice] = useState(0);
+  const [customServiceDuration, setCustomServiceDuration] = useState(1);
 
   const handleUploadProfileImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1529,8 +1533,23 @@ export default function DashboardPage() {
       setSignupError('Please select a service type.');
       return;
     }
+    if (signupRole === 'provider' && signupProviderType === 'custom') {
+      if (!customServiceName.trim()) {
+        setSignupError('Please enter the custom service name.');
+        return;
+      }
+    }
     setSignupLoading(true);
     try {
+      const suggestedServicePayload = signupRole === 'provider' && signupProviderType === 'custom' ? {
+        name: customServiceName,
+        category: 'Unassigned',
+        price: Number(customServicePrice),
+        base_price: Number(customServicePrice),
+        duration: Number(customServiceDuration),
+        description: `Suggested by provider ${signupFirstName} ${signupLastName} during signup`
+      } : undefined;
+
       await apiClient.post('/register', {
         username: signupUsername,
         email: signupEmail,
@@ -1539,8 +1558,9 @@ export default function DashboardPage() {
         password: signupPassword,
         contact_number: signupPhone || undefined,
         user_type: signupRole,
-        provider_type: signupRole === 'provider' ? signupProviderType : undefined,
+        provider_type: signupRole === 'provider' ? (signupProviderType === 'custom' ? customServiceName : signupProviderType) : undefined,
         profile_image: signupProfileImage || undefined,
+        suggested_service: suggestedServicePayload,
       });
       setSignupSuccess(true);
       showToast('Account created! You can now sign in.');
@@ -1567,6 +1587,10 @@ export default function DashboardPage() {
     setSignupProviderType('');
     setSignupProfileImage('');
     setIsUploadingProfile(false);
+    setCustomServiceName('');
+    setCustomServiceCategory(categories[0]?.name || '');
+    setCustomServicePrice(0);
+    setCustomServiceDuration(1);
     setShowSignUpModal(true);
   };
 
@@ -4396,23 +4420,46 @@ export default function DashboardPage() {
                     </div>
 
                     {signupRole === 'provider' && (
-                      <div>
-                        <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                          Service Type <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={signupProviderType}
-                          onChange={(e) => setSignupProviderType(e.target.value)}
-                          required
-                          className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm cursor-pointer"
-                        >
-                          <option value="">Select the service you provide</option>
-                          {categories.map((cat: any) => (
-                            <option key={cat.name} value={cat.name}>
-                              {cat.name}
-                            </option>
-                          ))}
-                        </select>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                            Service Type <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={signupProviderType}
+                            onChange={(e) => setSignupProviderType(e.target.value)}
+                            required
+                            className="block w-full px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm cursor-pointer"
+                          >
+                            <option value="">Select the service you provide</option>
+                            {services.filter((s: any) => s.status === 1).map((svc: any) => (
+                              <option key={svc.id || svc.name} value={svc.name}>
+                                {svc.name} ({svc.category})
+                              </option>
+                            ))}
+                            <option value="custom">Other (Suggest a new service)</option>
+                          </select>
+                        </div>
+
+                        {signupProviderType === 'custom' && (
+                          <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-3 animate-fade-in">
+                            <p className="text-xs text-[#5E5CE6] font-semibold">Suggest a new service for review:</p>
+                            
+                            <div>
+                              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">
+                                Service Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={customServiceName}
+                                onChange={(e) => setCustomServiceName(e.target.value)}
+                                required
+                                placeholder="e.g. Smart Lock Installation"
+                                className="block w-full px-3 py-1.5 bg-[#121214] border border-zinc-850 rounded-lg text-white outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-xs"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

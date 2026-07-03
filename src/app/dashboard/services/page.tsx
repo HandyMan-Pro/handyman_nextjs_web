@@ -371,9 +371,11 @@ export default function ServicesPage() {
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                         svc.status === 1
                           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : svc.status === 2
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           : 'bg-zinc-800 text-zinc-500 border-zinc-700/40'
                       }`}>
-                        {svc.status === 1 ? 'Active' : 'Inactive'}
+                        {svc.status === 1 ? 'Active' : svc.status === 2 ? 'Pending Review' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -643,6 +645,7 @@ export default function ServicesPage() {
                     className="w-full h-11 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   >
                     <option value={1}>Active</option>
+                    <option value={2}>Pending Review</option>
                     <option value={0}>Inactive</option>
                   </select>
                 </div>
