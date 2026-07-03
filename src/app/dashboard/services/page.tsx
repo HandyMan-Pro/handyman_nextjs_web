@@ -387,22 +387,32 @@ export default function ServicesPage() {
     }
   };
 
+  const isSubscribed = (svcId: string) => {
+    return providerServices.some(ps => ps.service_id === svcId);
+  };
+
   // Filter lists based on search queries
-  const filteredServices = services.filter(s =>
-    (s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (role === 'admin' || s.status === 1) // Providers only see approved catalog services
-  );
+  const filteredServices = services.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.category.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    if (!matchesSearch) return false;
+    if (role === 'admin') return true;
+    if (s.status !== 1) return false;
+    if (!currentUser || !currentUser.provider_type) return true;
+    
+    return (
+      s.name === currentUser.provider_type ||
+      s.category === currentUser.provider_type ||
+      isSubscribed(s.id)
+    );
+  });
 
   const pendingApprovalServices = services.filter(s => s.status === 2);
 
   const filteredCategories = categories.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const isSubscribed = (svcId: string) => {
-    return providerServices.some(ps => ps.service_id === svcId);
-  };
 
   return (
     <div className="space-y-6">

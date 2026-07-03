@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/apiClient';
+import { getUserData } from '../../../lib/auth';
+import UserProfilePage from '../profile/page';
 import {
   Settings, Save, RefreshCw, X, Loader2, Info, HelpCircle,
   Percent, ShieldCheck, Mail, Phone, IndianRupee, Globe
@@ -27,6 +29,7 @@ interface SystemSettings {
 }
 
 export default function SettingsPage() {
+  const [role, setRole] = useState<'admin' | 'provider' | 'handyman'>('admin');
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,7 +37,14 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchSettings();
+    const user = getUserData();
+    if (user?.user_type === 'provider' || user?.user_type === 'handyman') {
+      setRole(user.user_type as any);
+      setLoading(false);
+    } else {
+      setRole('admin');
+      fetchSettings();
+    }
   }, []);
 
   const fetchSettings = async () => {
@@ -73,6 +83,10 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  if (role === 'provider' || role === 'handyman') {
+    return <UserProfilePage />;
+  }
 
   if (loading) {
     return (

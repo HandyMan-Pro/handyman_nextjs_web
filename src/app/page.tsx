@@ -208,6 +208,11 @@ export default function DashboardPage() {
   const [customServiceCategory, setCustomServiceCategory] = useState('');
   const [customServicePrice, setCustomServicePrice] = useState(0);
   const [customServiceDuration, setCustomServiceDuration] = useState(1);
+  // Provider location states
+  const [signupAddress, setSignupAddress] = useState('');
+  const [signupLat, setSignupLat] = useState<number | null>(null);
+  const [signupLng, setSignupLng] = useState<number | null>(null);
+  const [signupLocating, setSignupLocating] = useState(false);
 
   const handleUploadProfileImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1518,6 +1523,33 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDetectProviderLocation = () => {
+    if (!navigator.geolocation) return;
+    setSignupLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setSignupLat(lat);
+        setSignupLng(lng);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const addr = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          setSignupAddress(addr);
+        } catch {
+          setSignupAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        }
+        setSignupLocating(false);
+      },
+      () => setSignupLocating(false),
+      { timeout: 12000, enableHighAccuracy: true }
+    );
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignupError('');
@@ -1561,6 +1593,9 @@ export default function DashboardPage() {
         provider_type: signupRole === 'provider' ? (signupProviderType === 'custom' ? customServiceName : signupProviderType) : undefined,
         profile_image: signupProfileImage || undefined,
         suggested_service: suggestedServicePayload,
+        address: signupRole === 'provider' ? (signupAddress || undefined) : undefined,
+        latitude: signupRole === 'provider' ? (signupLat ?? undefined) : undefined,
+        longitude: signupRole === 'provider' ? (signupLng ?? undefined) : undefined,
       });
       setSignupSuccess(true);
       showToast('Account created! You can now sign in.');
@@ -1591,6 +1626,10 @@ export default function DashboardPage() {
     setCustomServiceCategory(categories[0]?.name || '');
     setCustomServicePrice(0);
     setCustomServiceDuration(1);
+    setSignupAddress('');
+    setSignupLat(null);
+    setSignupLng(null);
+    setSignupLocating(false);
     setShowSignUpModal(true);
   };
 
@@ -2141,7 +2180,7 @@ export default function DashboardPage() {
   const handleEditServiceClick = (service: any) => {
     setEditServiceId(service.id);
     setEditServiceName(service.name);
-    setEditServicePrice(service.price.toString());
+    setEditServicePrice((service.price ?? service.base_price ?? 0).toString());
     setEditServiceCategory(service.category);
     setEditServiceDuration(service.duration);
     setIsEditServiceModalOpen(true);
@@ -2547,7 +2586,7 @@ export default function DashboardPage() {
       return {
         id: s.id,
         name: s.name,
-        price: s.price,
+        price: s.price ?? s.base_price ?? 0,
         duration: s.duration,
         category: s.category,
         handyman_name: s.handyman_name || "Jennifer Davis",
@@ -3076,7 +3115,7 @@ export default function DashboardPage() {
                         <h3 className="font-extrabold text-base text-slate-850 dark:text-white mt-1 leading-snug line-clamp-1">{svc.name}</h3>
                         
                         <div className="flex items-center gap-1.5 mt-2">
-                          <span className="text-indigo-600 dark:text-indigo-400 font-black text-base">${svc.price.toFixed(2)}</span>
+                          <span className="text-indigo-600 dark:text-indigo-400 font-black text-base">${(svc.price ?? 0).toFixed(2)}</span>
                           <span className="text-[11px] text-slate-400 dark:text-zinc-550 font-bold">•</span>
                           <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-semibold flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-zinc-500 shrink-0" /> {svc.duration}
@@ -4444,7 +4483,7 @@ export default function DashboardPage() {
                         {signupProviderType === 'custom' && (
                           <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-3 animate-fade-in">
                             <p className="text-xs text-[#5E5CE6] font-semibold">Suggest a new service for review:</p>
-                            
+
                             <div>
                               <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">
                                 Service Name <span className="text-red-500">*</span>
@@ -4460,6 +4499,39 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* Provider Location */}
+                        <div className="space-y-2">
+                          <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                            Service Location <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={signupAddress}
+                              onChange={(e) => setSignupAddress(e.target.value)}
+                              required
+                              placeholder="Your city / area (e.g. Kolaghat, West Bengal)"
+                              className="flex-1 px-3 py-2 bg-[#121214] border border-zinc-800 rounded-xl text-white placeholder-zinc-650 outline-none focus:border-[#5E5CE6] focus:ring-1 focus:ring-[#5E5CE6] transition-all text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleDetectProviderLocation}
+                              disabled={signupLocating}
+                              title="Auto-detect my location"
+                              className="h-10 px-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap"
+                            >
+                              {signupLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                              {signupLocating ? 'Detecting...' : 'Detect'}
+                            </button>
+                          </div>
+                          {signupLat && signupLng && (
+                            <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              GPS: {signupLat.toFixed(5)}°N, {signupLng.toFixed(5)}°E — location saved
+                            </p>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -7670,7 +7742,7 @@ export default function DashboardPage() {
                 >
                   <option value="">-- Choose Service --</option>
                   {services.map((svc, idx) => (
-                    <option key={idx} value={svc.name}>{svc.name} (${svc.price})</option>
+                    <option key={idx} value={svc.name}>{svc.name} (${svc.price ?? svc.base_price ?? 0})</option>
                   ))}
                 </select>
               </div>

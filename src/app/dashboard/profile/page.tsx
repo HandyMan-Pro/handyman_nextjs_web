@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/apiClient';
 import { getUserData, setUserData } from '../../../lib/auth';
 import {
-  User, Mail, Phone, MapPin, ShieldAlert,
+  User, Mail, Phone, MapPin, Navigation,
   Loader2, Sparkles, CheckCircle, X, Upload
 } from 'lucide-react';
 
@@ -12,6 +12,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -25,6 +26,8 @@ export default function UserProfilePage() {
   const [address, setAddress] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [userType, setUserType] = useState('user');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   useEffect(() => {
     fetchProfileDetails();
@@ -53,6 +56,8 @@ export default function UserProfilePage() {
         setAddress(data.address || '');
         setProfileImage(data.profile_image || '');
         setUserType(data.user_type || 'user');
+        setLatitude(data.latitude ?? null);
+        setLongitude(data.longitude ?? null);
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch profile details.');
@@ -88,6 +93,36 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lng);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          if (data.display_name) setAddress(data.display_name);
+        } catch {}
+        setLocating(false);
+      },
+      () => {
+        setError('Unable to detect location. Please allow location access and try again.');
+        setLocating(false);
+      },
+      { timeout: 12000, enableHighAccuracy: true }
+    );
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -95,7 +130,7 @@ export default function UserProfilePage() {
     setSuccessMsg('');
 
     try {
-      const payload = {
+      const payload: any = {
         id: userId,
         first_name: firstName,
         last_name: lastName,
@@ -104,18 +139,18 @@ export default function UserProfilePage() {
         contact_number: contactNumber,
         address: address,
         display_name: `${firstName} ${lastName}`,
-        profile_image: profileImage || undefined
+        profile_image: profileImage || undefined,
       };
+      if (latitude !== null) payload.latitude = latitude;
+      if (longitude !== null) payload.longitude = longitude;
 
       const res = await apiClient.post('/update-profile', payload);
       setSuccessMsg('Profile updated successfully!');
-      
-      // Update local storage session
+
       if (res.data?.data) {
         setUserData(res.data.data);
       }
-      
-      // Refresh the page data
+
       fetchProfileDetails();
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to save profile changes.');
@@ -123,6 +158,8 @@ export default function UserProfilePage() {
       setSaving(false);
     }
   };
+
+  const isProvider = userType === 'provider' || userType === 'handyman';
 
   return (
     <div className="space-y-6">
@@ -133,7 +170,7 @@ export default function UserProfilePage() {
           My Profile
         </h1>
         <p className="text-zinc-400 text-sm mt-0.5 font-medium">
-          Manage your personal profile details, contact numbers, and {userType === 'provider' || userType === 'handyman' ? 'service addresses' : 'addresses'}.
+          Manage your personal profile details, contact numbers, and {isProvider ? 'service location' : 'address'}.
         </p>
       </div>
 
@@ -275,7 +312,7 @@ export default function UserProfilePage() {
 
               <div>
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
-                  {userType === 'provider' || userType === 'handyman' ? 'Service Address / Location' : 'Address / Location'}
+                  {isProvider ? 'Service Address / Location' : 'Address / Location'}
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -289,6 +326,64 @@ export default function UserProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* Provider Location GPS Section */}
+            {isProvider && (
+              <div className="border border-zinc-800/60 rounded-2xl p-4 space-y-3 bg-zinc-950/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                      <Navigation className="w-4 h-4 text-indigo-400" />
+                      GPS Location for Nearby Discovery
+                    </h4>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Users will find you based on this location. Click "Detect" to use your current GPS position.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={locating}
+                    className="h-9 px-4 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                    {locating ? 'Detecting...' : 'Detect My Location'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={latitude ?? ''}
+                      onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="e.g. 22.5726"
+                      className="w-full h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={longitude ?? ''}
+                      onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="e.g. 88.3639"
+                      className="w-full h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {latitude !== null && longitude !== null && (
+                  <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    Location set: {latitude.toFixed(5)}°N, {longitude.toFixed(5)}°E — users within 20 km will see you first
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="pt-4 flex justify-end">

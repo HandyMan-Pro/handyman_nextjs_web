@@ -345,7 +345,7 @@ export default function FindNearbyProviderPage() {
         content: `
           <div style="color: #18181b; padding: 6px; font-family: sans-serif; min-width: 140px;">
             <h4 style="font-weight: 700; margin: 0 0 2px 0; font-size: 13px;">${p.display_name}</h4>
-            <p style="font-size: 11px; margin: 0 0 8px 0; color: #4b5563;">Distance: ${p.distance} km</p>
+            <p style="font-size: 11px; margin: 0 0 8px 0; color: #4b5563;">${p.distance !== undefined ? `Distance: ${p.distance} km` : 'Nearby provider'}</p>
             <button id="map-book-btn-${p.id}" style="background: #4f46e5; color: #ffffff; border: none; width: 100%; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; text-align: center;">
               Book Now
             </button>
@@ -420,28 +420,15 @@ export default function FindNearbyProviderPage() {
   const fetchProviders = async (userCoords: { lat: number; lng: number }) => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/providers');
-      const activeProviders = (res.data || []).filter(
-        (p: Provider) => p.user_type === 'provider' && p.status === 1
-      );
+      const res = await apiClient.get(`/providers/nearby?lat=${userCoords.lat}&lng=${userCoords.lng}`);
+      const data: any[] = res.data?.data || [];
 
-      // Map coordinates symmetrically around coordinates
-      const mapped = activeProviders.map((p: Provider, idx: number) => {
-        const angle = (idx * 2 * Math.PI) / Math.max(activeProviders.length, 1);
-        const radius = 0.005 + idx * 0.004 + Math.random() * 0.001; // offset within ~1km to 3km
-        const lat = userCoords.lat + radius * Math.sin(angle);
-        const lng = userCoords.lng + radius * Math.cos(angle);
-
-        return {
-          ...p,
-          lat,
-          lng,
-          distance: Number((0.4 + idx * 0.7 + Math.random() * 0.3).toFixed(1))
-        };
-      });
-
-      // Sort by closest distance
-      mapped.sort((a: Provider, b: Provider) => (a.distance || 0) - (b.distance || 0));
+      const mapped: Provider[] = data.map((p: any) => ({
+        ...p,
+        lat: p.latitude ?? undefined,
+        lng: p.longitude ?? undefined,
+        distance: p.distance_km ?? undefined,
+      }));
 
       setProviders(mapped);
       setError('');
@@ -721,9 +708,15 @@ export default function FindNearbyProviderPage() {
                         {p.address || 'Service Area Hub'}
                       </span>
                       <span className="text-zinc-500">•</span>
-                      <span className="text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded-md">
-                        {p.distance || '0.5'} km away
-                      </span>
+                      {p.distance !== undefined ? (
+                        <span className="text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded-md">
+                          {p.distance} km away
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 font-medium bg-zinc-800/50 border border-zinc-700/30 px-2 py-0.5 rounded-md text-[10px]">
+                          Location not set
+                        </span>
+                      )}
                       {p.is_verified && (
                         <>
                           <span className="text-zinc-500">•</span>

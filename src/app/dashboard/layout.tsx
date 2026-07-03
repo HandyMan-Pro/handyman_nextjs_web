@@ -38,7 +38,6 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
   { label: 'My Services',   icon: Wrench,          href: '/dashboard/services' },
   { label: 'Bookings',      icon: CalendarCheck,   href: '/dashboard/bookings' },
   { label: 'Finance',       icon: DollarSign,      href: '/dashboard/finance' },
-  { label: 'Live Tracking',  icon: MapPin,          href: '/dashboard/live-tracking' },
   { label: 'Unified Inbox',  icon: MessageSquare,   href: '/dashboard/inbox' },
   { label: 'Reviews',        icon: UserCheck,       href: '/dashboard/reviews' },
   { label: 'Settings',      icon: Settings,        href: '/dashboard/settings' },
@@ -96,7 +95,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/bookings',
           '/dashboard/finance',
           '/dashboard/settings',
-          '/dashboard/live-tracking',
           '/dashboard/inbox',
           '/dashboard/reviews'
         ];
