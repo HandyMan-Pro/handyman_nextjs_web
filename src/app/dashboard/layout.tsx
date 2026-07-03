@@ -207,7 +207,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
+              {user?.profile_image ? (
+                <img
+                  src={user.profile_image}
+                  alt={user.display_name || 'User Profile'}
+                  className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-zinc-850"
+                  onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                    if (fallback) fallback.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0 ${user?.profile_image ? 'hidden' : ''}`}>
                 {user?.first_name?.charAt(0) || 'A'}{user?.last_name?.charAt(0) || ''}
               </div>
               <div className="flex-1 min-w-0">

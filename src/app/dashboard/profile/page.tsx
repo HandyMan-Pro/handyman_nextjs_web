@@ -24,6 +24,7 @@ export default function UserProfilePage() {
   const [contactNumber, setContactNumber] = useState('');
   const [address, setAddress] = useState('');
   const [profileImage, setProfileImage] = useState('');
+  const [userType, setUserType] = useState('user');
 
   useEffect(() => {
     fetchProfileDetails();
@@ -51,6 +52,7 @@ export default function UserProfilePage() {
         setContactNumber(data.contact_number || '');
         setAddress(data.address || '');
         setProfileImage(data.profile_image || '');
+        setUserType(data.user_type || 'user');
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch profile details.');
@@ -130,7 +132,9 @@ export default function UserProfilePage() {
           <User className="w-6 h-6 text-indigo-500" />
           My Profile
         </h1>
-        <p className="text-zinc-400 text-sm mt-0.5 font-medium">Manage your personal profile details, contact numbers, and service addresses.</p>
+        <p className="text-zinc-400 text-sm mt-0.5 font-medium">
+          Manage your personal profile details, contact numbers, and {userType === 'provider' || userType === 'handyman' ? 'service addresses' : 'addresses'}.
+        </p>
       </div>
 
       {successMsg && (
@@ -270,7 +274,9 @@ export default function UserProfilePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Service Address / Location</label>
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
+                  {userType === 'provider' || userType === 'handyman' ? 'Service Address / Location' : 'Address / Location'}
+                </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
