@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { apiClient } from '../../../lib/apiClient';
 import { getUserData } from '../../../lib/auth';
 import FavoriteButton from '../../../components/FavoriteButton';
+import AIBookingAssistant from '../../../components/AIBookingAssistant';
 import {
   Heart, Star, ShieldCheck, Mail, Calendar, Clock,
   MapPin, Tag, Shield, Loader2, Sparkles,
@@ -49,6 +50,7 @@ export default function FavoritesPage() {
   const [bookingAddress, setBookingAddress] = useState('');
   const [bookingDesc, setBookingDesc] = useState('');
   const [bookingSubmitLoading, setBookingSubmitLoading] = useState(false);
+  const [isAIAssistOpen, setIsAIAssistOpen] = useState(false);
 
   useEffect(() => {
     fetchFavorites();
@@ -416,7 +418,17 @@ export default function FavoritesPage() {
 
                     {/* Description */}
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 block">Instructions & Notes</label>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Instructions & Notes</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsAIAssistOpen(true)}
+                          className="inline-flex items-center gap-1 text-[10px] font-extrabold text-primary hover:text-white transition-all bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/45 px-2 py-0.5 rounded-lg active:scale-95 cursor-pointer"
+                        >
+                          <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                          <span>AI Assist</span>
+                        </button>
+                      </div>
                       <textarea
                         rows={2}
                         value={bookingDesc}
@@ -481,6 +493,13 @@ export default function FavoritesPage() {
           </div>
         </div>
       )}
+
+      {/* AI Booking Assistant Modal */}
+      <AIBookingAssistant
+        isOpen={isAIAssistOpen}
+        onClose={() => setIsAIAssistOpen(false)}
+        onApply={(text) => setBookingDesc(text)}
+      />
     </div>
   );
 }

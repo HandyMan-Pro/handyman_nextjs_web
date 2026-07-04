@@ -8,6 +8,7 @@ import {
   IndianRupee, Tag, Shield, Loader2, Sparkles, Navigation,
   CheckCircle, Wrench, X, Plus, Minus, Search
 } from 'lucide-react';
+import AIBookingAssistant from '../../../components/AIBookingAssistant';
 
 interface Provider {
   id: string;
@@ -55,6 +56,7 @@ export default function FindNearbyProviderPage() {
   const [bookingDesc, setBookingDesc] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [bookingSubmitLoading, setBookingSubmitLoading] = useState(false);
+  const [isAIAssistOpen, setIsAIAssistOpen] = useState(false);
 
   // Google Maps Refs & Script State
   const mapRef = useRef<HTMLDivElement>(null);
@@ -897,7 +899,17 @@ export default function FindNearbyProviderPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 block">Additional instructions</label>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">Additional instructions</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAIAssistOpen(true)}
+                      className="inline-flex items-center gap-1 text-[10px] font-extrabold text-primary hover:text-white transition-all bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/45 px-2 py-0.5 rounded-lg active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                      <span>AI Assist</span>
+                    </button>
+                  </div>
                   <textarea
                     rows={2}
                     value={bookingDesc}
@@ -980,6 +992,13 @@ export default function FindNearbyProviderPage() {
           </div>
         </div>
       )}
+
+      {/* AI Booking Assistant Modal */}
+      <AIBookingAssistant
+        isOpen={isAIAssistOpen}
+        onClose={() => setIsAIAssistOpen(false)}
+        onApply={(text) => setBookingDesc(text)}
+      />
     </div>
   );
 }
