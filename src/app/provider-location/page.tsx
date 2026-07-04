@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateProviderLocation, getCurrentPosition } from '@/lib/geoApi';
+import { updateProviderLocation, getCurrentPosition } from '../../lib/geoApi';
 
 interface FormState {
   latitude: string;
