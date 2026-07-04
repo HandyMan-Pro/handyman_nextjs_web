@@ -163,7 +163,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/finance',
           '/dashboard/settings',
           '/dashboard/inbox',
-          '/dashboard/reviews'
+          '/dashboard/reviews',
+          '/dashboard/provider-notifications'
         ];
         const isAllowed = providerAllowed.some(p => path === p || path.startsWith(p + '/'));
         if (!isAllowed) {
@@ -363,7 +364,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3">
             {/* Notification bell */}
             <button 
-              onClick={() => router.push('/dashboard/user-notifications')}
+              onClick={() => {
+                if (user?.user_type === 'provider') {
+                  router.push('/dashboard/provider-notifications');
+                } else {
+                  router.push('/dashboard/user-notifications');
+                }
+              }}
               className="relative w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-all"
             >
               <Bell className="w-[18px] h-[18px]" />

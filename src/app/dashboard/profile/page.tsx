@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/apiClient';
 import { getUserData, setUserData } from '../../../lib/auth';
 import {
-  User, Mail, Phone, MapPin, Navigation,
-  Loader2, Sparkles, CheckCircle, X, Upload
+  User, Mail, Phone, MapPin, Locate,
+  Loader2, X, Upload, Shield
 } from 'lucide-react';
 
 export default function UserProfilePage() {
@@ -201,7 +201,7 @@ export default function UserProfilePage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
-          <User className="w-6 h-6 text-indigo-500" />
+          <User className="w-6 h-6 text-primary" />
           My Profile
         </h1>
         <p className="text-zinc-400 text-sm mt-0.5 font-medium">
@@ -212,7 +212,7 @@ export default function UserProfilePage() {
       {successMsg && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl px-4 py-3 text-sm animate-fade-in flex justify-between items-center">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-zinc-550 hover:text-white">
+          <button onClick={() => setSuccessMsg('')} className="text-zinc-500 hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -221,7 +221,7 @@ export default function UserProfilePage() {
       {error && (
         <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl px-4 py-3 text-sm animate-fade-in flex justify-between items-center">
           <span>{error}</span>
-          <button onClick={() => setError('')} className="text-zinc-550 hover:text-white">
+          <button onClick={() => setError('')} className="text-zinc-500 hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -248,7 +248,7 @@ export default function UserProfilePage() {
             {/* Profile Avatar Edit Section */}
             <div className="flex flex-col sm:flex-row items-center gap-5 border-b border-zinc-850 pb-6">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-zinc-800 border-2 border-indigo-500/20 flex items-center justify-center font-bold text-indigo-400 text-3xl select-none">
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-zinc-800 border-2 border-primary/20 flex items-center justify-center font-bold text-primary text-3xl select-none">
                   {profileImage ? (
                     <img src={profileImage} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -257,7 +257,7 @@ export default function UserProfilePage() {
                 </div>
                 {uploading && (
                   <div className="absolute inset-0 bg-black/75 rounded-full flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
                 )}
                 <label className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-[10px] font-bold text-white uppercase tracking-wider">
@@ -287,7 +287,7 @@ export default function UserProfilePage() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="e.g. Rahul"
-                  className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                  className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                 />
               </div>
 
@@ -299,7 +299,7 @@ export default function UserProfilePage() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="e.g. Kumar"
-                  className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                  className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                 />
               </div>
 
@@ -311,7 +311,7 @@ export default function UserProfilePage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. rahul_kumar"
-                  className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                  className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                 />
               </div>
 
@@ -325,7 +325,7 @@ export default function UserProfilePage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="e.g. rahul@example.com"
-                    className="w-full h-11 pl-10 pr-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                    className="w-full h-11 pl-10 pr-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                   />
                 </div>
               </div>
@@ -340,7 +340,7 @@ export default function UserProfilePage() {
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}
                     placeholder="e.g. 9876543210"
-                    className="w-full h-11 pl-10 pr-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                    className="w-full h-11 pl-10 pr-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                   />
                 </div>
               </div>
@@ -356,19 +356,19 @@ export default function UserProfilePage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="e.g. Salt Lake, Sector V, Kolkata"
-                    className="w-full h-11 pl-10 pr-12 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                    className="w-full h-11 pl-10 pr-12 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                   />
                   <button
                     type="button"
                     onClick={handleDetectLocation}
                     disabled={locating}
                     title="Locate me automatically"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-zinc-400 transition-all duration-205 hover:text-emerald-400 hover:bg-zinc-750 hover:border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-zinc-850 border border-zinc-800/80 text-zinc-400 transition-all duration-200 hover:text-primary hover:bg-zinc-800 hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed group/btn"
                   >
                     {locating ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     ) : (
-                      <Navigation className="w-4 h-4 transition-transform duration-300 group-hover/btn:scale-110" />
+                      <Locate className="w-4 h-4 transition-transform duration-300 group-hover/btn:scale-110" />
                     )}
                   </button>
                 </div>
@@ -386,7 +386,7 @@ export default function UserProfilePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                      <Navigation className="w-4 h-4 text-indigo-400" />
+                      <Locate className="w-4 h-4 text-primary" />
                       GPS Location for Nearby Discovery
                     </h4>
                     <p className="text-xs text-zinc-500 mt-0.5">
@@ -397,9 +397,9 @@ export default function UserProfilePage() {
                     type="button"
                     onClick={handleDetectLocation}
                     disabled={locating}
-                    className="h-9 px-4 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    className="h-9 px-4 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                    {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Locate className="w-3.5 h-3.5" />}
                     {locating ? 'Detecting...' : 'Detect My Location'}
                   </button>
                 </div>
@@ -413,7 +413,7 @@ export default function UserProfilePage() {
                       value={latitude ?? ''}
                       onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : null)}
                       placeholder="e.g. 22.5726"
-                      className="w-full h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 font-mono"
+                      className="w-full h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/50 font-mono"
                     />
                   </div>
                   <div>
@@ -424,7 +424,7 @@ export default function UserProfilePage() {
                       value={longitude ?? ''}
                       onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : null)}
                       placeholder="e.g. 88.3639"
-                      className="w-full h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 font-mono"
+                      className="w-full h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-primary/50 font-mono"
                     />
                   </div>
                 </div>
@@ -443,7 +443,7 @@ export default function UserProfilePage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="h-11 px-8 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-indigo-650/15"
+                className="h-11 px-8 bg-primary hover:bg-primary/90 text-zinc-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-primary/15"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Save Changes
