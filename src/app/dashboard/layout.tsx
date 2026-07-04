@@ -35,7 +35,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const PROVIDER_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard' },
-  { label: 'Handymen',      icon: Users,           href: '/dashboard/handymen' },
+  { label: 'Handymen',      icon: Users,           href: '/dashboard/team' },
   { label: 'My Services',   icon: Wrench,          href: '/dashboard/services' },
   { label: 'Bookings',      icon: CalendarCheck,   href: '/dashboard/bookings' },
   { label: 'Finance',       icon: DollarSign,      href: '/dashboard/finance' },

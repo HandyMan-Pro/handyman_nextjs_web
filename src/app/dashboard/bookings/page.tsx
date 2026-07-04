@@ -68,6 +68,7 @@ export default function BookingsPage() {
   const [assigning, setAssigning] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [activeChatBooking, setActiveChatBooking] = useState<Booking | null>(null);
+  const [providerHandymen, setProviderHandymen] = useState<any[]>([]);
 
   const notifications = useNotificationStore(state => state.notifications);
 
@@ -84,12 +85,14 @@ export default function BookingsPage() {
     setLoading(true);
     try {
       if (currentUser?.user_type === 'provider') {
-        const [reqsRes, upcomingRes] = await Promise.all([
+        const [reqsRes, upcomingRes, handymenRes] = await Promise.all([
           apiClient.get('/provider/bookings/requests'),
-          apiClient.get('/provider/bookings/upcoming')
+          apiClient.get('/provider/bookings/upcoming'),
+          apiClient.get('/provider/handymen/list').catch(() => ({ data: { data: [] } }))
         ]);
         setProviderRequests(reqsRes.data?.data || []);
         setProviderUpcoming(upcomingRes.data?.data || []);
+        setProviderHandymen(handymenRes.data?.data || []);
       } else {
         const [bookingsRes, partnersRes] = await Promise.all([
           apiClient.get('/booking-list'),
@@ -176,26 +179,33 @@ export default function BookingsPage() {
 
     setAssigning(true);
     try {
-      const selectedPartner = partners.find(p => p.id === assigneeId);
-      const payload: any = {
-        booking_id: selectedBooking.id,
-        status: selectedBooking.status
-      };
-
-      if (assigneeType === 'handyman') {
-        payload.handyman_id = assigneeId;
-        payload.handyman_name = selectedPartner ? selectedPartner.display_name : '';
+      if (currentUser?.user_type === 'provider') {
+        await apiClient.put(`/provider/bookings/${selectedBooking.id}/assign`, {
+          handyman_id: assigneeId
+        });
+        showSuccess(`Booking successfully assigned to team member.`);
       } else {
-        payload.provider_id = assigneeId;
-        payload.provider_name = selectedPartner ? selectedPartner.display_name : '';
-      }
+        const selectedPartner = partners.find(p => p.id === assigneeId);
+        const payload: any = {
+          booking_id: selectedBooking.id,
+          status: selectedBooking.status
+        };
 
-      await apiClient.post('/booking-update', payload);
-      showSuccess(`Assigned ${assigneeType} successfully.`);
+        if (assigneeType === 'handyman') {
+          payload.handyman_id = assigneeId;
+          payload.handyman_name = selectedPartner ? selectedPartner.display_name : '';
+        } else {
+          payload.provider_id = assigneeId;
+          payload.provider_name = selectedPartner ? selectedPartner.display_name : '';
+        }
+
+        await apiClient.post('/booking-update', payload);
+        showSuccess(`Assigned ${assigneeType} successfully.`);
+      }
       setIsAssignModalOpen(false);
       fetchBookingsAndPartners();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to assign partner');
+      setError(err.response?.data?.detail || 'Failed to assign handyman.');
     } finally {
       setAssigning(false);
     }
@@ -211,6 +221,13 @@ export default function BookingsPage() {
   };
 
   const getFilteredPartners = () => {
+    if (currentUser?.user_type === 'provider') {
+      return providerHandymen.map(h => ({
+        id: h.id,
+        display_name: `${h.display_name} (${h.status})`,
+        user_type: 'handyman'
+      }));
+    }
     return partners.filter(p => p.user_type === assigneeType);
   };
 
@@ -511,10 +528,17 @@ export default function BookingsPage() {
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/40">
                   <button
                     onClick={() => setActiveChatBooking(b)}
-                    className="h-8 px-3 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 mr-auto active:scale-95"
+                    className="h-8 px-3 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-primary" />
                     Chat
+                  </button>
+
+                  <button
+                    onClick={() => openAssignModal(b, 'handyman')}
+                    className="h-8 px-3 bg-zinc-850 hover:bg-zinc-750 text-zinc-250 border border-zinc-700/30 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 active:scale-95 mr-auto"
+                  >
+                    {b.handyman_id ? `Assigned: ${b.handyman_name || 'Handyman'}` : '+ Assign'}
                   </button>
 
                   {b.status.toLowerCase() === 'accepted' && (
