@@ -6,8 +6,10 @@ import {
   CalendarCheck, Wrench, User, Calendar, MapPin, IndianRupee,
   Briefcase, CheckCircle, XCircle, Search, Clock, Loader2,
   Tag, Shield, AlertTriangle, RefreshCw, X, Eye, Grid, Calendar as CalendarIcon,
-  ChevronLeft, ChevronRight, Check
+  ChevronLeft, ChevronRight, Check, MessageSquare
 } from 'lucide-react';
+import { getUserData, UserData } from '../../../lib/auth';
+import BookingChatWidget from '../../../components/BookingChatWidget';
 
 interface Booking {
   id: string;
@@ -17,6 +19,7 @@ interface Booking {
   handyman_name: string;
   handyman_id?: string;
   customer_name: string;
+  customer_id?: string;
   status: string;
   status_label: string;
   date: string;
@@ -58,9 +61,12 @@ export default function BookingsPage() {
   const [assigneeId, setAssigneeId] = useState('');
   const [assigneeType, setAssigneeType] = useState<'provider' | 'handyman'>('handyman');
   const [assigning, setAssigning] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+  const [activeChatBooking, setActiveChatBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     fetchBookingsAndPartners();
+    setCurrentUser(getUserData());
   }, []);
 
   const fetchBookingsAndPartners = async () => {
@@ -548,6 +554,13 @@ export default function BookingsPage() {
 
                   {/* Status Update Actions */}
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800/40 justify-end">
+                    <button
+                      onClick={() => setActiveChatBooking(b)}
+                      className="h-8 px-3 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 mr-auto active:scale-95"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                      Chat
+                    </button>
                     {b.status.toLowerCase() === 'pending' && (
                       <button
                         onClick={() => handleStatusUpdate(b.id, 'Accepted')}
@@ -649,6 +662,28 @@ export default function BookingsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Drawer for Booking Chat */}
+      {activeChatBooking && currentUser && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop with fade-in */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setActiveChatBooking(null)}
+          />
+          {/* Panel content with slide-in from right */}
+          <div className="relative z-10 w-full max-w-md h-full bg-zinc-950 shadow-2xl flex flex-col transform transition-transform duration-300 ease-out border-l border-zinc-800">
+            <BookingChatWidget
+              bookingId={activeChatBooking.id}
+              currentUserId={currentUser.id}
+              receiverId={activeChatBooking.customer_id || ''}
+              receiverName={activeChatBooking.customer_name}
+              receiverRole="Customer"
+              onClose={() => setActiveChatBooking(null)}
+            />
           </div>
         </div>
       )}
