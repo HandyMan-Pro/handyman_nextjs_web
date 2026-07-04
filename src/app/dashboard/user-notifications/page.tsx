@@ -16,41 +16,35 @@ interface Notification {
   created_at: string;
 }
 
+import { useNotificationStore } from '../../../store/useNotificationStore';
+
 export default function UserNotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const notifications = useNotificationStore(state => state.notifications);
+  const loading = useNotificationStore(state => state.loading);
+  const storeError = useNotificationStore(state => state.error);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(storeError);
+  }, [storeError]);
+  const fetchNotifications = useNotificationStore(state => state.fetchNotifications);
+  const markAsRead = useNotificationStore(state => state.markAsRead);
+  const markAllAsRead = useNotificationStore(state => state.markAllAsRead);
+
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get('/notifications');
-      setNotifications(res.data?.data || []);
-      setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to retrieve notifications.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-    );
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead(id);
     setSuccessMsg('Notification marked as read.');
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, is_read: true }))
-    );
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
     setSuccessMsg('All notifications marked as read.');
     setTimeout(() => setSuccessMsg(''), 3000);
   };

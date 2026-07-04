@@ -15,6 +15,7 @@ export default function UserProfilePage() {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [locationError, setLocationError] = useState('');
 
   // Form Fields
   const [userId, setUserId] = useState('');
@@ -95,10 +96,11 @@ export default function UserProfilePage() {
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+      setLocationError('Geolocation is not supported by your browser.');
       return;
     }
     setLocating(true);
+    setLocationError('');
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
@@ -107,17 +109,50 @@ export default function UserProfilePage() {
         setLongitude(lng);
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-            { headers: { 'Accept-Language': 'en' } }
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en', 'User-Agent': 'HandymanPro-LocationClient/1.0' } }
           );
+          if (!res.ok) {
+            throw new Error("Unable to resolve location address.");
+          }
           const data = await res.json();
-          if (data.display_name) setAddress(data.display_name);
-        } catch {}
-        setLocating(false);
+          if (data && data.display_name) {
+            const addr = data.address || {};
+            const parts = [];
+            
+            if (addr.house_number) parts.push(addr.house_number);
+            if (addr.road) parts.push(addr.road);
+            if (addr.suburb || addr.neighbourhood) parts.push(addr.suburb || addr.neighbourhood);
+            if (addr.city || addr.town || addr.village) parts.push(addr.city || addr.town || addr.village);
+            if (addr.state) parts.push(addr.state);
+            if (addr.postcode) parts.push(addr.postcode);
+
+            const formattedAddress = parts.length > 0 ? parts.join(", ") : data.display_name;
+            setAddress(formattedAddress);
+          } else {
+            setLocationError("No address found for these coordinates.");
+          }
+        } catch (err: any) {
+          setLocationError("Failed to fetch address from geocoding service.");
+        } finally {
+          setLocating(false);
+        }
       },
-      () => {
-        setError('Unable to detect location. Please allow location access and try again.');
+      (geoError) => {
         setLocating(false);
+        switch (geoError.code) {
+          case geoError.PERMISSION_DENIED:
+            setLocationError("Location access denied. Please allow location permissions in your browser.");
+            break;
+          case geoError.POSITION_UNAVAILABLE:
+            setLocationError("Position unavailable. Please input address manually.");
+            break;
+          case geoError.TIMEOUT:
+            setLocationError("Request timed out. Please try again.");
+            break;
+          default:
+            setLocationError("An error occurred while finding your location.");
+        }
       },
       { timeout: 12000, enableHighAccuracy: true }
     );
@@ -314,16 +349,34 @@ export default function UserProfilePage() {
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
                   {isProvider ? 'Service Address / Location' : 'Address / Location'}
                 </label>
-                <div className="relative">
+                <div className="relative group">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="e.g. Salt Lake, Sector V, Kolkata"
-                    className="w-full h-11 pl-10 pr-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                    className="w-full h-11 pl-10 pr-12 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-655 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
                   />
+                  <button
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={locating}
+                    title="Locate me automatically"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-zinc-400 transition-all duration-205 hover:text-emerald-400 hover:bg-zinc-750 hover:border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                  >
+                    {locating ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    ) : (
+                      <Navigation className="w-4 h-4 transition-transform duration-300 group-hover/btn:scale-110" />
+                    )}
+                  </button>
                 </div>
+                {locationError && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1.5 animate-slideUp">
+                    <span className="font-semibold shrink-0">⚠️</span> {locationError}
+                  </p>
+                )}
               </div>
             </div>
 

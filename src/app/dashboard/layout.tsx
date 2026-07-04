@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated, getUserData, logout, type UserData } from '../../lib/auth';
+import { useNotificationStore } from '../../store/useNotificationStore';
 import {
   LayoutDashboard, Users, Wrench, CalendarCheck, DollarSign,
   Megaphone, Settings, LogOut, ChevronLeft, ChevronRight,
@@ -60,6 +61,72 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+
+  const fetchNotifications = useNotificationStore(state => state.fetchNotifications);
+  const addNotification = useNotificationStore(state => state.addNotification);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
+
+  useEffect(() => {
+    if (authChecked && user) {
+      fetchNotifications();
+
+      const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY || '2d5b62b109b0b46be69e';
+      const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
+      const channelName = `user-${user.id}`;
+      
+      const wsUrl = `wss://ws-${pusherCluster}.pusher.com/app/${pusherKey}?protocol=7&client=js&version=8.4.0`;
+      
+      let ws: WebSocket | null = null;
+      let reconnectTimeout: NodeJS.Timeout;
+
+      const connect = () => {
+        try {
+          ws = new WebSocket(wsUrl);
+          
+          ws.onopen = () => {
+            console.log('[WebSocket] Connected to Pusher');
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                event: 'pusher:subscribe',
+                data: { channel: channelName }
+              }));
+            }
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const payload = JSON.parse(event.data);
+              if (payload.event === 'new-notification') {
+                const rawData = typeof payload.data === 'string' ? JSON.parse(payload.data) : payload.data;
+                console.log('[WebSocket] New Notification:', rawData);
+                addNotification(rawData);
+              }
+            } catch (err) {
+              console.error('[WebSocket] Parse Error:', err);
+            }
+          };
+
+          ws.onclose = (e) => {
+            console.log('[WebSocket] Connection closed, reconnecting in 5s...', e);
+            reconnectTimeout = setTimeout(connect, 5000);
+          };
+
+          ws.onerror = (err) => {
+            console.error('[WebSocket] Error:', err);
+          };
+        } catch (e) {
+          console.error('[WebSocket] Setup failed:', e);
+        }
+      };
+
+      connect();
+
+      return () => {
+        if (ws) ws.close();
+        clearTimeout(reconnectTimeout);
+      };
+    }
+  }, [authChecked, user, fetchNotifications, addNotification]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -295,9 +362,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-all">
+            <button 
+              onClick={() => router.push('/dashboard/user-notifications')}
+              className="relative w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-all"
+            >
               <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white ring-2 ring-zinc-950">
+                  {unreadCount}
+                </span>
+              )}
             </button>
 
             {/* Role badge */}
