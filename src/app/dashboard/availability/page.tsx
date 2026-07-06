@@ -29,6 +29,53 @@ const DAYS_OF_WEEK = [
   'Sunday'
 ];
 
+const validateDaySchedule = (daySchedule: DaySchedule): string[] => {
+  if (!daySchedule.isAvailable) return [];
+  const errors: string[] = [];
+  const parsedSlots: { startVal: number; endVal: number; idx: number }[] = [];
+  const timeRegex = /^\d{2}:\d{2}$/;
+
+  daySchedule.slots.forEach((slot, idx) => {
+    if (!slot.start || !slot.end) {
+      errors.push(`Slot ${idx + 1}: Start and end times are required.`);
+      return;
+    }
+    if (!timeRegex.test(slot.start) || !timeRegex.test(slot.end)) {
+      errors.push(`Slot ${idx + 1}: Times must be in HH:MM format.`);
+      return;
+    }
+
+    const [startH, startM] = slot.start.split(':').map(Number);
+    const [endH, endM] = slot.end.split(':').map(Number);
+
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM) ||
+        startH < 0 || startH > 23 || startM < 0 || startM > 59 ||
+        endH < 0 || endH > 23 || endM < 0 || endM > 59) {
+      errors.push(`Slot ${idx + 1}: Invalid hours or minutes.`);
+      return;
+    }
+
+    const startVal = startH * 60 + startM;
+    const endVal = endH * 60 + endM;
+
+    if (startVal >= endVal) {
+      errors.push(`Slot ${idx + 1}: Start time (${slot.start}) must be before end time (${slot.end}).`);
+    } else {
+      parsedSlots.push({ startVal, endVal, idx });
+    }
+  });
+
+  // Check overlaps
+  parsedSlots.sort((a, b) => a.startVal - b.startVal);
+  for (let i = 1; i < parsedSlots.length; i++) {
+    if (parsedSlots[i].startVal < parsedSlots[i - 1].endVal) {
+      errors.push(`Overlap: Slot ${parsedSlots[i - 1].idx + 1} and Slot ${parsedSlots[i].idx + 1} overlap.`);
+    }
+  }
+
+  return errors;
+};
+
 export default function AvailabilityPage() {
   const [schedule, setSchedule] = useState<DaySchedule[]>(
     DAYS_OF_WEEK.map(day => ({
@@ -37,6 +84,11 @@ export default function AvailabilityPage() {
       slots: [{ start: '09:00', end: '17:00' }]
     }))
   );
+
+  const dayErrors = schedule.reduce((acc, daySchedule) => {
+    acc[daySchedule.day] = validateDaySchedule(daySchedule);
+    return acc;
+  }, {} as Record<string, string[]>);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -169,32 +221,16 @@ export default function AvailabilityPage() {
 
   const handleSave = async () => {
     setError('');
-    setSaving(true);
 
-    // Validate that start time is before end time for all active days
-    let validationPassed = true;
-    schedule.forEach(daySchedule => {
-      if (daySchedule.isAvailable) {
-        daySchedule.slots.forEach(slot => {
-          const [startH, startM] = slot.start.split(':').map(Number);
-          const [endH, endM] = slot.end.split(':').map(Number);
-          const startVal = startH * 60 + startM;
-          const endVal = endH * 60 + endM;
-          if (startVal >= endVal) {
-            validationPassed = false;
-            setError(
-              `Validation Error: On ${daySchedule.day}, slot starting at ${slot.start} must end after its start time.`
-            );
-          }
-        });
-      }
-    });
-
-    if (!validationPassed) {
-      setSaving(false);
+    // Validate that schedule has no inline errors
+    const allErrors = Object.entries(dayErrors).filter(([_, errs]) => errs.length > 0);
+    if (allErrors.length > 0) {
+      const firstErr = allErrors[0];
+      setError(`Validation Error on ${firstErr[0]}: ${firstErr[1][0]}`);
       return;
     }
 
+    setSaving(true);
     try {
       // Build API Payload
       const availabilityList = schedule
@@ -337,6 +373,17 @@ export default function AvailabilityPage() {
                         </div>
                       ))}
                     </div>
+
+                    {dayErrors[daySchedule.day]?.length > 0 && (
+                      <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl p-3 space-y-1.5 mt-2">
+                        {dayErrors[daySchedule.day].map((err, errIdx) => (
+                          <div key={errIdx} className="flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-red-400" />
+                            <span>{err}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between gap-4 pt-1">
                       <button

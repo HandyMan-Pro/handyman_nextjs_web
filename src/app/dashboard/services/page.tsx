@@ -161,8 +161,8 @@ export default function ServicesPage() {
       return;
     }
 
-    if (formType === 'package' && formIncludedServices.length === 0) {
-      setError('A service package must bundle at least one individual service.');
+    if (formType === 'package' && formIncludedServices.length < 2) {
+      setError('A service package must bundle at least two individual services.');
       return;
     }
 
@@ -620,7 +620,22 @@ export default function ServicesPage() {
               {/* Dynamic Package Builder (Checklist of existing 'single' services) */}
               {formType === 'package' && (
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Bundle Included Services *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Bundle Included Services *</label>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      formIncludedServices.length < 2
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    }`}>
+                      Selected: {formIncludedServices.length} (Min: 2)
+                    </span>
+                  </div>
+                  {formIncludedServices.length < 2 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs rounded-xl p-3 flex items-start gap-2">
+                      <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>Please select at least 2 individual services to create this package.</span>
+                    </div>
+                  )}
                   <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 max-h-36 overflow-y-auto space-y-2.5">
                     {providerServices.filter(s => s.type === 'single').length === 0 ? (
                       <p className="text-zinc-600 text-xs text-center py-4">No individual services configured yet. Add them first.</p>

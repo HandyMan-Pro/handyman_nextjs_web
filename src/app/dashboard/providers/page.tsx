@@ -349,6 +349,7 @@ export default function ProvidersPage() {
             </table>
           </div>
         </div>
+      )}
       {/* Edit Provider Modal */}
       {isModalOpen && editingProvider && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
