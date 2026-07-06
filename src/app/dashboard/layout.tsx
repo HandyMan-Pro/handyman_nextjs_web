@@ -69,9 +69,9 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
     category: 'SERVICE',
     children: [
       { label: 'All Services', icon: List, href: '/dashboard/services' },
-      { label: 'Packages', icon: Package, href: '/dashboard/packages' },
-      { label: 'Addons', icon: Blocks, href: '/dashboard/addons' },
-      { label: 'Service Request List', icon: ClipboardList, href: '/dashboard/service-requests' }
+      { label: 'Packages', icon: Package, href: '/dashboard/services/packages' },
+      { label: 'Addons', icon: Blocks, href: '/dashboard/services/addons' },
+      { label: 'Service Request List', icon: ClipboardList, href: '/dashboard/services/requests' }
     ]
   },
   {

@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../lib/apiClient';
+import { apiClient } from '../../../../lib/apiClient';
 import {
-  Wrench, Plus, Edit2, Trash2, HelpCircle, Search,
-  X, Loader2, AlertCircle, CheckCircle, Image as ImageIcon,
-  User, CheckSquare, Square
+  Package, Plus, Edit2, Trash2, HelpCircle, Search,
+  X, Loader2, AlertCircle, CheckCircle, User
 } from 'lucide-react';
 
 interface CatalogItem {
@@ -16,40 +15,33 @@ interface CatalogItem {
   type: string;
   price_type: string;
   price: number;
-  duration?: string;
+  included_services: string[];
   status: number; // 1: Active, 0: Inactive
-  category?: string;
-  image_url?: string;
   created_at: string;
   updated_at: string;
 }
 
-export default function AllServicesPage() {
+export default function PackagesPage() {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Table Selection
+  // Table Selection & Filters
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all, active, inactive
+  const [statusFilter, setStatusFilter] = useState('all');
   const [entriesCount, setEntriesCount] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editItemId, setEditItemId] = useState<string | null>(null);
 
   // Form State
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formPriceType, setFormPriceType] = useState('Fixed');
   const [formPrice, setFormPrice] = useState(0.0);
-  const [formDuration, setFormDuration] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [formImageUrl, setFormImageUrl] = useState('');
+  const [formIncludedServicesStr, setFormIncludedServicesStr] = useState('');
   const [formSaving, setFormSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -61,39 +53,20 @@ export default function AllServicesPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await apiClient.get('/provider/catalog/single');
+      const res = await apiClient.get('/provider/catalog/package');
       setItems(res.data || []);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to fetch services.');
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch packages.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleOpenCreateModal = () => {
-    setIsEditMode(false);
-    setEditItemId(null);
     setFormName('');
     setFormDesc('');
-    setFormPriceType('Fixed');
     setFormPrice(0.0);
-    setFormDuration('');
-    setFormCategory('');
-    setFormImageUrl('');
-    setFormError('');
-    setModalOpen(true);
-  };
-
-  const handleOpenEditModal = (item: CatalogItem) => {
-    setIsEditMode(true);
-    setEditItemId(item.id);
-    setFormName(item.name);
-    setFormDesc(item.description || '');
-    setFormPriceType(item.price_type || 'Fixed');
-    setFormPrice(item.price);
-    setFormDuration(item.duration || '');
-    setFormCategory(item.category || '');
-    setFormImageUrl(item.image_url || '');
+    setFormIncludedServicesStr('');
     setFormError('');
     setModalOpen(true);
   };
@@ -103,11 +76,17 @@ export default function AllServicesPage() {
     setFormError('');
 
     if (!formName.trim()) {
-      setFormError('Service name is required.');
+      setFormError('Package name is required.');
       return;
     }
-    if (formPrice < 0) {
-      setFormError('Price must be greater than or equal to 0.');
+    
+    const includedServices = formIncludedServicesStr
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id.length > 0);
+
+    if (includedServices.length < 2) {
+      setFormError('A service package must include at least 2 service IDs.');
       return;
     }
 
@@ -115,22 +94,20 @@ export default function AllServicesPage() {
     const payload = {
       name: formName.trim(),
       description: formDesc.trim() || undefined,
-      type: 'single',
-      price_type: formPriceType,
+      type: 'package',
+      price_type: 'Fixed',
       price: Number(formPrice),
-      duration: formDuration.trim() || undefined,
-      category: formCategory.trim() || undefined,
-      image_url: formImageUrl.trim() || undefined,
+      included_services: includedServices,
       status: 1
     };
 
     try {
       await apiClient.post('/provider/catalog/', payload);
-      setSuccess('Service created successfully!');
+      setSuccess('Package created successfully!');
       setModalOpen(false);
       fetchItems();
     } catch (err: any) {
-      setFormError(err.response?.data?.detail || err.message || 'Failed to save service.');
+      setFormError(err.response?.data?.detail || err.message || 'Failed to save package.');
     } finally {
       setFormSaving(false);
     }
@@ -142,7 +119,7 @@ export default function AllServicesPage() {
 
     try {
       await apiClient.put(`/provider/catalog/${item.id}/status`, { status: newStatus });
-      setSuccess(`Service status updated successfully!`);
+      setSuccess('Package status updated successfully!');
     } catch (err: any) {
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: item.status } : i));
       setError(err.response?.data?.detail || err.message || 'Failed to toggle status.');
@@ -150,16 +127,16 @@ export default function AllServicesPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm('Are you sure you want to delete this service?')) {
+    if (!window.confirm('Are you sure you want to delete this package?')) {
       return;
     }
 
     try {
       await apiClient.delete(`/provider/catalog/${itemId}`);
-      setSuccess('Service deleted successfully.');
+      setSuccess('Package deleted successfully.');
       fetchItems();
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to delete service.');
+      setError(err.response?.data?.detail || err.message || 'Failed to delete package.');
     }
   };
 
@@ -180,10 +157,7 @@ export default function AllServicesPage() {
   };
 
   const filteredItems = items.filter(item => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
-
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = 
       statusFilter === 'all' ||
       (statusFilter === 'active' && item.status === 1) ||
@@ -202,11 +176,11 @@ export default function AllServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Wrench className="w-5.5 h-5.5 text-[#5E5CE6]" />
-            All Services
+            <Package className="w-5.5 h-5.5 text-[#5E5CE6]" />
+            Packages
           </h1>
           <p className="text-zinc-550 text-xs mt-0.5">
-            Manage your single service catalog and service offerings.
+            Manage bundled service packages offered to customers.
           </p>
         </div>
 
@@ -298,9 +272,6 @@ export default function AllServicesPage() {
                   Provider
                 </th>
                 <th className="py-3 px-4 text-left text-[11px] font-bold text-white uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="py-3 px-4 text-left text-[11px] font-bold text-white uppercase tracking-wider">
                   Price
                 </th>
                 <th className="py-3 px-4 text-left text-[11px] font-bold text-white uppercase tracking-wider">
@@ -316,14 +287,8 @@ export default function AllServicesPage() {
                 [...Array(3)].map((_, i) => (
                   <tr key={i} className="border-b border-zinc-850 animate-pulse">
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-4" /></td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-zinc-800 rounded-lg" />
-                        <div className="h-4 bg-zinc-800 rounded w-28" />
-                      </div>
-                    </td>
+                    <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-28" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-32" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-20" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-16" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-10" /></td>
                     <td className="py-4 px-4 text-right"><div className="h-4 bg-zinc-800 rounded w-12 ml-auto" /></td>
@@ -331,7 +296,7 @@ export default function AllServicesPage() {
                 ))
               ) : paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-zinc-550">
+                  <td colSpan={6} className="py-12 text-center text-xs text-zinc-550">
                     No data available in table
                   </td>
                 </tr>
@@ -347,15 +312,11 @@ export default function AllServicesPage() {
                       />
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-white">
-                      <div className="flex items-center gap-3">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt={item.name} className="w-9 h-9 rounded-lg object-cover border border-zinc-800" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center border border-zinc-850">
-                            <Wrench className="w-4 h-4 text-zinc-650" />
-                          </div>
-                        )}
-                        <span>{item.name}</span>
+                      <div>
+                        <p>{item.name}</p>
+                        <p className="text-[10px] text-zinc-550 mt-0.5">
+                          Includes {item.included_services.length} services
+                        </p>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-xs">
@@ -369,11 +330,8 @@ export default function AllServicesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-xs font-semibold text-zinc-400">
-                      {item.category || 'General'}
-                    </td>
                     <td className="py-3.5 px-4 text-xs font-bold text-white">
-                      ${item.price.toFixed(2)}-{item.price_type}
+                      ${item.price.toFixed(2)}
                     </td>
                     <td className="py-3.5 px-4">
                       <button
@@ -389,10 +347,7 @@ export default function AllServicesPage() {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => handleOpenEditModal(item)}
-                          className="p-1 hover:text-blue-400 text-zinc-500 transition-colors"
-                        >
+                        <button className="p-1 hover:text-blue-400 text-zinc-500 transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button 
@@ -459,14 +414,14 @@ export default function AllServicesPage() {
         </div>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* Add Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden text-zinc-300">
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-850 bg-[#121214]">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Wrench className="w-4.5 h-4.5 text-[#5E5CE6]" />
-                {isEditMode ? 'Update Service Details' : 'Create Service Catalog Item'}
+                <Package className="w-4.5 h-4.5 text-[#5E5CE6]" />
+                Create Bundle Package
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
@@ -486,90 +441,47 @@ export default function AllServicesPage() {
 
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                  Service Name *
+                  Package Name *
                 </label>
                 <input
                   type="text"
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. AC Filter Wash"
-                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#5E5CE6]/60 transition-all"
+                  placeholder="e.g. Living Room Cleaning Combo"
+                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Price Type
-                  </label>
-                  <select
-                    value={formPriceType}
-                    onChange={(e) => setFormPriceType(e.target.value)}
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white focus:outline-none"
-                  >
-                    <option value="Fixed">Fixed</option>
-                    <option value="Hourly">Hourly</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Price ($) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Duration
-                  </label>
-                  <input
-                    type="text"
-                    value={formDuration}
-                    onChange={(e) => setFormDuration(e.target.value)}
-                    placeholder="e.g. 1.5 hours"
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-650 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    placeholder="e.g. AC Repair"
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-650 focus:outline-none"
-                  />
-                </div>
               </div>
 
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                  Image URL
+                  Price ($) *
                 </label>
-                <div className="relative">
-                  <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                  <input
-                    type="url"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full h-10 pl-10 pr-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none"
-                  />
-                </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formPrice}
+                  onChange={(e) => setFormPrice(Number(e.target.value))}
+                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                  Included Service IDs * (Comma separated)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formIncludedServicesStr}
+                  onChange={(e) => setFormIncludedServicesStr(e.target.value)}
+                  placeholder="e.g. 60d5ec48f..., 60d5ec49f..."
+                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-650 focus:outline-none"
+                />
+                <span className="text-[10px] text-zinc-550 block mt-1">
+                  Enter at least 2 MongoDB Object IDs of your single services.
+                </span>
               </div>
 
               <div>
@@ -580,7 +492,7 @@ export default function AllServicesPage() {
                   rows={2}
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Service description..."
+                  placeholder="Package description..."
                   className="w-full p-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none"
                 />
               </div>

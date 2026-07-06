@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../lib/apiClient';
+import { apiClient } from '../../../../lib/apiClient';
 import {
-  Wrench, Plus, Edit2, Trash2, HelpCircle, Search,
-  X, Loader2, AlertCircle, CheckCircle, Image as ImageIcon,
-  User, CheckSquare, Square
+  Blocks, Plus, Edit2, Trash2, HelpCircle, Search,
+  X, Loader2, AlertCircle, CheckCircle, User
 } from 'lucide-react';
 
 interface CatalogItem {
@@ -16,40 +15,33 @@ interface CatalogItem {
   type: string;
   price_type: string;
   price: number;
-  duration?: string;
+  parent_service_id?: string;
   status: number; // 1: Active, 0: Inactive
-  category?: string;
-  image_url?: string;
   created_at: string;
   updated_at: string;
 }
 
-export default function AllServicesPage() {
+export default function AddonsPage() {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Table Selection
+  // Table Selection & Filters
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all, active, inactive
+  const [statusFilter, setStatusFilter] = useState('all');
   const [entriesCount, setEntriesCount] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editItemId, setEditItemId] = useState<string | null>(null);
 
   // Form State
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formPriceType, setFormPriceType] = useState('Fixed');
   const [formPrice, setFormPrice] = useState(0.0);
-  const [formDuration, setFormDuration] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [formImageUrl, setFormImageUrl] = useState('');
+  const [formParentServiceId, setFormParentServiceId] = useState('');
   const [formSaving, setFormSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -61,39 +53,20 @@ export default function AllServicesPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await apiClient.get('/provider/catalog/single');
+      const res = await apiClient.get('/provider/catalog/addon');
       setItems(res.data || []);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to fetch services.');
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch addons.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleOpenCreateModal = () => {
-    setIsEditMode(false);
-    setEditItemId(null);
     setFormName('');
     setFormDesc('');
-    setFormPriceType('Fixed');
     setFormPrice(0.0);
-    setFormDuration('');
-    setFormCategory('');
-    setFormImageUrl('');
-    setFormError('');
-    setModalOpen(true);
-  };
-
-  const handleOpenEditModal = (item: CatalogItem) => {
-    setIsEditMode(true);
-    setEditItemId(item.id);
-    setFormName(item.name);
-    setFormDesc(item.description || '');
-    setFormPriceType(item.price_type || 'Fixed');
-    setFormPrice(item.price);
-    setFormDuration(item.duration || '');
-    setFormCategory(item.category || '');
-    setFormImageUrl(item.image_url || '');
+    setFormParentServiceId('');
     setFormError('');
     setModalOpen(true);
   };
@@ -103,11 +76,7 @@ export default function AllServicesPage() {
     setFormError('');
 
     if (!formName.trim()) {
-      setFormError('Service name is required.');
-      return;
-    }
-    if (formPrice < 0) {
-      setFormError('Price must be greater than or equal to 0.');
+      setFormError('Addon name is required.');
       return;
     }
 
@@ -115,22 +84,20 @@ export default function AllServicesPage() {
     const payload = {
       name: formName.trim(),
       description: formDesc.trim() || undefined,
-      type: 'single',
-      price_type: formPriceType,
+      type: 'addon',
+      price_type: 'Fixed',
       price: Number(formPrice),
-      duration: formDuration.trim() || undefined,
-      category: formCategory.trim() || undefined,
-      image_url: formImageUrl.trim() || undefined,
+      parent_service_id: formParentServiceId.trim() || undefined,
       status: 1
     };
 
     try {
       await apiClient.post('/provider/catalog/', payload);
-      setSuccess('Service created successfully!');
+      setSuccess('Addon created successfully!');
       setModalOpen(false);
       fetchItems();
     } catch (err: any) {
-      setFormError(err.response?.data?.detail || err.message || 'Failed to save service.');
+      setFormError(err.response?.data?.detail || err.message || 'Failed to save addon.');
     } finally {
       setFormSaving(false);
     }
@@ -142,7 +109,7 @@ export default function AllServicesPage() {
 
     try {
       await apiClient.put(`/provider/catalog/${item.id}/status`, { status: newStatus });
-      setSuccess(`Service status updated successfully!`);
+      setSuccess('Addon status updated successfully!');
     } catch (err: any) {
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: item.status } : i));
       setError(err.response?.data?.detail || err.message || 'Failed to toggle status.');
@@ -150,16 +117,16 @@ export default function AllServicesPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm('Are you sure you want to delete this service?')) {
+    if (!window.confirm('Are you sure you want to delete this addon?')) {
       return;
     }
 
     try {
       await apiClient.delete(`/provider/catalog/${itemId}`);
-      setSuccess('Service deleted successfully.');
+      setSuccess('Addon deleted successfully.');
       fetchItems();
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to delete service.');
+      setError(err.response?.data?.detail || err.message || 'Failed to delete addon.');
     }
   };
 
@@ -180,10 +147,7 @@ export default function AllServicesPage() {
   };
 
   const filteredItems = items.filter(item => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
-
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = 
       statusFilter === 'all' ||
       (statusFilter === 'active' && item.status === 1) ||
@@ -202,11 +166,11 @@ export default function AllServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Wrench className="w-5.5 h-5.5 text-[#5E5CE6]" />
-            All Services
+            <Blocks className="w-5.5 h-5.5 text-[#5E5CE6]" />
+            Addons
           </h1>
           <p className="text-zinc-550 text-xs mt-0.5">
-            Manage your single service catalog and service offerings.
+            Manage service upgrades, accessory items, and customizable addons.
           </p>
         </div>
 
@@ -295,10 +259,10 @@ export default function AllServicesPage() {
                   Name
                 </th>
                 <th className="py-3 px-4 text-left text-[11px] font-bold text-white uppercase tracking-wider">
-                  Provider
+                  Service
                 </th>
                 <th className="py-3 px-4 text-left text-[11px] font-bold text-white uppercase tracking-wider">
-                  Category
+                  Provider
                 </th>
                 <th className="py-3 px-4 text-left text-[11px] font-bold text-white uppercase tracking-wider">
                   Price
@@ -316,14 +280,9 @@ export default function AllServicesPage() {
                 [...Array(3)].map((_, i) => (
                   <tr key={i} className="border-b border-zinc-850 animate-pulse">
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-4" /></td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-zinc-800 rounded-lg" />
-                        <div className="h-4 bg-zinc-800 rounded w-28" />
-                      </div>
-                    </td>
-                    <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-32" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-28" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-20" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-32" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-16" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-zinc-800 rounded w-10" /></td>
                     <td className="py-4 px-4 text-right"><div className="h-4 bg-zinc-800 rounded w-12 ml-auto" /></td>
@@ -347,16 +306,10 @@ export default function AllServicesPage() {
                       />
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-white">
-                      <div className="flex items-center gap-3">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt={item.name} className="w-9 h-9 rounded-lg object-cover border border-zinc-800" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center border border-zinc-850">
-                            <Wrench className="w-4 h-4 text-zinc-650" />
-                          </div>
-                        )}
-                        <span>{item.name}</span>
-                      </div>
+                      {item.name}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs font-semibold text-[#5E5CE6]">
+                      {item.parent_service_id || 'Global Addon'}
                     </td>
                     <td className="py-3.5 px-4 text-xs">
                       <div className="flex items-center gap-2">
@@ -369,11 +322,8 @@ export default function AllServicesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-xs font-semibold text-zinc-400">
-                      {item.category || 'General'}
-                    </td>
                     <td className="py-3.5 px-4 text-xs font-bold text-white">
-                      ${item.price.toFixed(2)}-{item.price_type}
+                      ${item.price.toFixed(2)}
                     </td>
                     <td className="py-3.5 px-4">
                       <button
@@ -389,10 +339,7 @@ export default function AllServicesPage() {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => handleOpenEditModal(item)}
-                          className="p-1 hover:text-blue-400 text-zinc-500 transition-colors"
-                        >
+                        <button className="p-1 hover:text-blue-400 text-zinc-500 transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button 
@@ -401,7 +348,7 @@ export default function AllServicesPage() {
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <button className="p-1 hover:text-zinc-300 text-zinc-550 transition-colors">
+                        <button className="p-1 hover:text-zinc-300 text-zinc-555 transition-colors">
                           <HelpCircle className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -459,14 +406,14 @@ export default function AllServicesPage() {
         </div>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* Add Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden text-zinc-300">
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-850 bg-[#121214]">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Wrench className="w-4.5 h-4.5 text-[#5E5CE6]" />
-                {isEditMode ? 'Update Service Details' : 'Create Service Catalog Item'}
+                <Blocks className="w-4.5 h-4.5 text-[#5E5CE6]" />
+                Create Service Addon
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
@@ -486,90 +433,46 @@ export default function AllServicesPage() {
 
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                  Service Name *
+                  Addon Name *
                 </label>
                 <input
                   type="text"
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. AC Filter Wash"
-                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#5E5CE6]/60 transition-all"
+                  placeholder="e.g. Premium Cable Upgrade"
+                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Price Type
-                  </label>
-                  <select
-                    value={formPriceType}
-                    onChange={(e) => setFormPriceType(e.target.value)}
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white focus:outline-none"
-                  >
-                    <option value="Fixed">Fixed</option>
-                    <option value="Hourly">Hourly</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Price ($) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Duration
-                  </label>
-                  <input
-                    type="text"
-                    value={formDuration}
-                    onChange={(e) => setFormDuration(e.target.value)}
-                    placeholder="e.g. 1.5 hours"
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-650 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    placeholder="e.g. AC Repair"
-                    className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-650 focus:outline-none"
-                  />
-                </div>
               </div>
 
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
-                  Image URL
+                  Price ($) *
                 </label>
-                <div className="relative">
-                  <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                  <input
-                    type="url"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full h-10 pl-10 pr-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none"
-                  />
-                </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formPrice}
+                  onChange={(e) => setFormPrice(Number(e.target.value))}
+                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                  Parent Service ID (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formParentServiceId}
+                  onChange={(e) => setFormParentServiceId(e.target.value)}
+                  placeholder="e.g. 60d5ec48f83f2a1b3c9d000a"
+                  className="w-full h-10 px-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-655 focus:outline-none"
+                />
+                <span className="text-[10px] text-zinc-550 block mt-1">
+                  Leave blank to register as a global, unlinked addon.
+                </span>
               </div>
 
               <div>
@@ -580,12 +483,12 @@ export default function AllServicesPage() {
                   rows={2}
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Service description..."
+                  placeholder="Addon description..."
                   className="w-full p-3 bg-[#2c2c2e] border border-zinc-800 rounded-xl text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="pt-3 border-t border-zinc-850 flex justify-end gap-3.5">
+              <div className="pt-3 border-t border-zinc-855 flex justify-end gap-3.5">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
