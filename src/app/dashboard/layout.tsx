@@ -270,7 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         bg-white dark:bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800/60
         flex flex-col transition-all duration-300 ease-spring
         ${collapsed ? 'w-[72px]' : 'w-64'}
-        ${mobileOpen ? 'translate-x-0 rtl:translate-x-0' : '-translate-x-full lg:translate-x-0 ltr:-translate-x-full rtl:translate-x-full lg:rtl:translate-x-0'}
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0'}
       `}>
         {/* Logo area */}
         <div className={`flex items-center h-16 px-4 border-b border-zinc-200 dark:border-zinc-800/60 ${collapsed ? 'justify-center' : 'gap-3'}`}>
