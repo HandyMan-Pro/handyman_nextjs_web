@@ -990,6 +990,7 @@ export default function BookingsPage() {
       {detailBooking && (
         <BookingDetailModal
           booking={detailBooking}
+          handymen={providerHandymen}
           onClose={() => setDetailBooking(null)}
           onRefresh={() => {
             fetchBookingsAndPartners();

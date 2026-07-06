@@ -330,7 +330,7 @@ export default function TeamPage() {
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        <span>Copy All Details</span>
+                        <span>Copy to Clipboard</span>
                       </>
                     )}
                   </button>

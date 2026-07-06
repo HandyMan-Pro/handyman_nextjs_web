@@ -2,62 +2,49 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/apiClient';
-import { getUserData, setUserData } from '../../../lib/auth';
+import { useAuthStore } from '../../../store/useAuthStore';
 import {
   Shield, ShieldAlert, ShieldCheck, FileText,
   Loader2, X, Upload, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
 export default function VerificationPage() {
+  const authStatus = useAuthStore(state => state.verification_status);
+  const authUser = useAuthStore(state => state.user);
+  const fetchUser = useAuthStore(state => state.fetchUser);
+  const setVerificationStatus = useAuthStore(state => state.setVerificationStatus);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Provider Data
-  const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified');
-  const [rejectionReason, setRejectionReason] = useState('');
+  // Form Inputs
   const [idProofType, setIdProofType] = useState('Passport');
   const [idProofNumber, setIdProofNumber] = useState('');
   const [documents, setDocuments] = useState<string[]>([]);
   const [newDocumentUrl, setNewDocumentUrl] = useState('');
 
+  const verificationStatus = authStatus || 'unverified';
+  const rejectionReason = (authUser as any)?.verification_rejection_reason || '';
+
   useEffect(() => {
-    fetchVerificationDetails();
-  }, []);
-
-  const fetchVerificationDetails = async () => {
-    setLoading(true);
-    setError('');
-    const user = getUserData();
-    if (!user) {
-      setError('Failed to resolve authenticated session.');
+    const init = async () => {
+      setLoading(true);
+      await fetchUser();
       setLoading(false);
-      return;
-    }
+    };
+    init();
+  }, [fetchUser]);
 
-    try {
-      const res = await apiClient.get(`/user-detail?id=${user.id}`);
-      const data = res.data?.data || res.data;
-      if (data) {
-        setVerificationStatus(data.verification_status || 'unverified');
-        setRejectionReason(data.verification_rejection_reason || '');
-        setIdProofType(data.id_proof_type || 'Passport');
-        setIdProofNumber(data.id_proof_number || '');
-        setDocuments(data.documents || []);
-
-        // Sync with local storage
-        setUserData({
-          ...user,
-          ...data
-        });
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to fetch verification status.');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (authUser) {
+      setIdProofType((authUser as any).id_proof_type || 'Passport');
+      setIdProofNumber((authUser as any).id_proof_number || '');
+      setDocuments((authUser as any).documents || []);
     }
-  };
+  }, [authUser]);
 
   const handleAddDocument = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,8 +83,7 @@ export default function VerificationPage() {
       if (res.data?.status) {
         setSuccessMsg(res.data.message || 'Verification details submitted successfully!');
         setVerificationStatus('pending');
-        // Retrieve fresh user info
-        fetchVerificationDetails();
+        await fetchUser();
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to submit verification details.');
@@ -105,6 +91,8 @@ export default function VerificationPage() {
       setSubmitting(false);
     }
   };
+
+  const isFormDisabled = verificationStatus === 'pending' || verificationStatus === 'verified';
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -256,109 +244,167 @@ export default function VerificationPage() {
             </div>
           )}
 
-          {/* 3. Verification Submission Form (shown if unverified or rejected) */}
-          {(verificationStatus === 'unverified' || verificationStatus === 'rejected') && (
-            <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-2xl p-6 shadow-xl space-y-6">
-              <div className="border-b border-zinc-850 pb-4">
-                <h3 className="text-lg font-bold text-zinc-250">Submit Identification Details</h3>
-                <p className="text-xs text-zinc-550 mt-1">
-                  Provide correct information and clear documents to prevent review rejection.
-                </p>
+          {/* 3. Verification Submission Form */}
+          <div className={`bg-zinc-900/40 border border-zinc-800/60 rounded-2xl p-6 shadow-xl space-y-6 ${isFormDisabled ? 'opacity-60' : ''}`}>
+            <div className="border-b border-zinc-850 pb-4">
+              <h3 className="text-lg font-bold text-zinc-250">Submit Identification Details</h3>
+              <p className="text-xs text-zinc-550 mt-1">
+                Provide correct information and clear documents to prevent review rejection.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
+                    ID Proof Document Type
+                  </label>
+                  <select
+                    disabled={isFormDisabled}
+                    value={idProofType}
+                    onChange={(e) => setIdProofType(e.target.value)}
+                    className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:cursor-not-allowed"
+                  >
+                    <option value="Passport">Passport</option>
+                    <option value="NID">National ID (NID)</option>
+                    <option value="Trade License">Trade License</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
+                    ID Document Number
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    disabled={isFormDisabled}
+                    value={idProofNumber}
+                    onChange={(e) => setIdProofNumber(e.target.value)}
+                    placeholder="e.g. PPT-1234567"
+                    className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
-                      ID Proof Document Type
-                    </label>
-                    <select
-                      value={idProofType}
-                      onChange={(e) => setIdProofType(e.target.value)}
-                      className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-primary/60"
-                    >
-                      <option value="Passport">Passport</option>
-                      <option value="National ID">National ID Card</option>
-                      <option value="Trade License">Trade License</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">
-                      ID Document Number
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={idProofNumber}
-                      onChange={(e) => setIdProofNumber(e.target.value)}
-                      placeholder="e.g. PPT-1234567"
-                      className="w-full h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
-                    />
-                  </div>
-                </div>
-
-                {/* Document URL addition */}
-                <div className="space-y-3">
-                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
-                    Upload Identification Proofs (URLs)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newDocumentUrl}
-                      onChange={(e) => setNewDocumentUrl(e.target.value)}
-                      placeholder="e.g. https://domain.com/my-passport.jpg"
-                      className="flex-1 h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-primary/60"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddDocument}
-                      className="h-11 px-4 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700/60 text-zinc-200 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      Add Link
-                    </button>
-                  </div>
-
-                  {/* Document List */}
-                  {documents.length > 0 && (
-                    <div className="space-y-2 mt-2">
-                      {documents.map((doc, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-3 bg-zinc-950/60 border border-zinc-850 rounded-xl"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FileText className="w-4 h-4 text-primary shrink-0" />
-                            <span className="text-xs text-zinc-400 truncate">{doc}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDocument(idx)}
-                            className="p-1 text-zinc-500 hover:text-rose-400 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="h-11 px-8 bg-primary hover:bg-primary/95 text-zinc-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-primary/10"
+              {/* Drag and Drop Zone */}
+              <div className="space-y-3">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block animate-fade-in">
+                  Drag and Drop File Upload Proofs
+                </label>
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!isFormDisabled) setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (isFormDisabled) return;
+                    const files = Array.from(e.dataTransfer.files);
+                    if (files.length > 0) {
+                      const mockUrls = files.map(file => `https://handyman-pro.s3.amazonaws.com/verifications/${Date.now()}_${file.name}`);
+                      setDocuments([...documents, ...mockUrls]);
+                    }
+                  }}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
+                    isDragging
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-zinc-800 bg-zinc-950/20 hover:border-zinc-750 text-zinc-400'
+                  } ${isFormDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-zinc-500" />
+                  <p className="text-sm font-semibold">Drag and drop your ID document here</p>
+                  <p className="text-xs text-zinc-500 mt-1">Supports PDF, JPG, PNG (Max 5MB)</p>
+                  <input
+                    type="file"
+                    disabled={isFormDisabled}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 0) {
+                        const mockUrls = files.map(file => `https://handyman-pro.s3.amazonaws.com/verifications/${Date.now()}_${file.name}`);
+                        setDocuments([...documents, ...mockUrls]);
+                      }
+                    }}
+                    className="hidden"
+                    id="file-upload"
+                    multiple
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className={`mt-4 inline-flex h-9 px-4 items-center justify-center bg-zinc-800 hover:bg-zinc-750 text-zinc-200 font-bold rounded-lg text-xs transition-all ${
+                      isFormDisabled ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                    }`}
                   >
-                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    Submit Verification Details
+                    Select Files
+                  </label>
+                </div>
+              </div>
+
+              {/* Document URL addition */}
+              <div className="space-y-3">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                  Or Add ID Proof Documents via URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    disabled={isFormDisabled}
+                    value={newDocumentUrl}
+                    onChange={(e) => setNewDocumentUrl(e.target.value)}
+                    placeholder="e.g. https://domain.com/my-passport.jpg"
+                    className="flex-1 h-11 px-3 bg-zinc-850/50 border border-zinc-800/80 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:cursor-not-allowed"
+                  />
+                  <button
+                    type="button"
+                    disabled={isFormDisabled}
+                    onClick={handleAddDocument}
+                    className="h-11 px-4 bg-zinc-850 hover:bg-zinc-800 border border-zinc-750 text-zinc-200 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 disabled:cursor-not-allowed"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Add Link
                   </button>
                 </div>
-              </form>
-            </div>
-          )}
+
+                {/* Document List */}
+                {documents.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    {documents.map((doc, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 bg-zinc-950/60 border border-zinc-850 rounded-xl"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-4 h-4 text-primary shrink-0" />
+                          <span className="text-xs text-zinc-400 truncate">{doc}</span>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isFormDisabled}
+                          onClick={() => handleRemoveDocument(idx)}
+                          className="p-1 text-zinc-500 hover:text-rose-450 transition-colors disabled:cursor-not-allowed"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submitting || isFormDisabled}
+                  className="h-11 px-8 bg-primary hover:bg-primary/95 text-zinc-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-primary/10 disabled:cursor-not-allowed"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Submit Verification Details
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

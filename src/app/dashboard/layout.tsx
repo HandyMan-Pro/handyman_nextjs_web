@@ -9,9 +9,10 @@ import {
   Megaphone, Settings, LogOut, ChevronLeft, ChevronRight,
   Bell, Search, Menu, X, Shield,
   Hammer, UserCheck, Briefcase, Tag, MessageSquare,
-  MapPin, Clock, User
+  MapPin, Clock, User, BadgeCheck
 } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface NavItem {
   label: string;
@@ -63,6 +64,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+
+  const authUser = useAuthStore(state => state.user);
+  const isVerified = useAuthStore(state => state.is_verified);
+
+  useEffect(() => {
+    if (authUser) {
+      setUser(authUser);
+    }
+  }, [authUser]);
 
   const fetchNotifications = useNotificationStore(state => state.fetchNotifications);
   const addNotification = useNotificationStore(state => state.addNotification);
@@ -137,6 +147,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     const userData = getUserData();
     setUser(userData);
+    useAuthStore.getState().setUser(userData);
+    useAuthStore.getState().fetchUser();
     setAuthChecked(true);
 
     if (userData) {
@@ -326,7 +338,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {user?.first_name?.charAt(0) || 'A'}{user?.last_name?.charAt(0) || ''}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.display_name || user?.first_name || 'Admin'}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-medium truncate">{user?.display_name || user?.first_name || 'Admin'}</p>
+                  {isVerified && (
+                    <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/20 shrink-0" />
+                  )}
+                </div>
                 <p className="text-[11px] text-zinc-500 truncate">{user?.email || 'admin@handyman.com'}</p>
               </div>
               <button
@@ -366,6 +383,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Provider Name and BadgeCheck in Top Navbar */}
+            {user?.user_type === 'provider' && (
+              <div className="hidden md:flex items-center gap-1.5 mr-2">
+                <span className="text-sm font-semibold text-zinc-200">
+                  {user.display_name || `${user.first_name} ${user.last_name}`.trim() || user.username}
+                </span>
+                {isVerified && (
+                  <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/20 shrink-0" />
+                )}
+              </div>
+            )}
+
             {/* Notification bell dropdown */}
             <NotificationBell />
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { apiClient } from '../lib/apiClient';
+import { getUserData } from '../lib/auth';
 import {
   X, Wrench, User, Calendar, Clock, MapPin, IndianRupee,
   CheckCircle, Circle, Loader2, Play, ShieldCheck,
@@ -37,6 +38,7 @@ interface Props {
   booking: Booking;
   onClose: () => void;
   onRefresh: () => void;
+  handymen?: any[];
 }
 
 const STATUS_STEPS = [
@@ -55,10 +57,14 @@ function getStepIndex(status: string): number {
   return -1; // Cancelled/Rejected
 }
 
-export default function BookingDetailModal({ booking, onClose, onRefresh }: Props) {
+export default function BookingDetailModal({ booking, onClose, onRefresh, handymen = [] }: Props) {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedHandymanId, setSelectedHandymanId] = useState('');
+
+  const currentUser = getUserData();
+  const isProvider = currentUser?.user_type === 'provider';
 
   // Extra charges form state
   const [showExtraForm, setShowExtraForm] = useState(false);
@@ -327,71 +333,117 @@ export default function BookingDetailModal({ booking, onClose, onRefresh }: Prop
 
         {/* ── Action Footer ── */}
         {!isCancelledOrRejected && (
-          <div className="shrink-0 border-t border-zinc-800/50 px-6 py-4 flex items-center justify-end gap-3">
-            {/* PENDING → Accept / Decline */}
-            {booking.status.toLowerCase() === 'pending' && (
-              <>
-                <button
-                  disabled={actionLoading}
-                  onClick={() => handleAction('reject')}
-                  className="h-10 px-5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 border border-zinc-700/50 rounded-xl text-xs font-semibold transition-all"
+          <div className="shrink-0 border-t border-zinc-800/50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            {/* Assign Handyman Dropdown */}
+            {isProvider && !booking.handyman_id && booking.status.toLowerCase() !== 'completed' && handymen && handymen.length > 0 ? (
+              <div className="flex items-center gap-2 bg-zinc-950/40 p-1.5 rounded-xl border border-zinc-800/50">
+                <select
+                  value={selectedHandymanId}
+                  onChange={(e) => setSelectedHandymanId(e.target.value)}
+                  className="bg-transparent text-xs text-zinc-300 focus:outline-none px-2 py-1 max-w-[150px] font-semibold"
                 >
-                  Decline
-                </button>
+                  <option value="" className="bg-zinc-900 text-zinc-400">Select Handyman</option>
+                  {handymen.map((h) => (
+                    <option key={h.id} value={h.id} className="bg-zinc-900 text-zinc-350">
+                      {h.display_name} ({h.status})
+                    </option>
+                  ))}
+                </select>
                 <button
-                  disabled={actionLoading}
-                  onClick={() => handleAction('accept')}
-                  className="h-10 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                  type="button"
+                  disabled={actionLoading || !selectedHandymanId}
+                  onClick={async () => {
+                    setActionLoading(true);
+                    setError('');
+                    setSuccessMsg('');
+                    try {
+                      const res = await apiClient.put(`/provider/bookings/${booking.id}/assign`, {
+                        handyman_id: selectedHandymanId
+                      });
+                      if (res.data?.status) {
+                        setSuccessMsg(res.data.message || 'Handyman assigned successfully!');
+                        onRefresh();
+                      }
+                    } catch (err: any) {
+                      setError(err.response?.data?.detail || err.message || 'Assignment failed.');
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  className="h-7 px-3 bg-primary hover:bg-primary/95 text-zinc-950 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  Accept Booking
+                  {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                  Assign
                 </button>
-              </>
-            )}
-
-            {/* ACCEPTED → Start Service */}
-            {booking.status.toLowerCase() === 'accepted' && (
-              <button
-                disabled={actionLoading}
-                onClick={() => handleAction('start')}
-                className="h-10 px-6 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-sky-600/20 transition-all flex items-center gap-2"
-              >
-                {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <Play className="w-3.5 h-3.5" />
-                Start Service
-              </button>
-            )}
-
-            {/* ONGOING → Extra Charges + Request OTP */}
-            {booking.status.toLowerCase() === 'ongoing' && (
-              <>
-                <button
-                  onClick={() => setShowExtraForm(!showExtraForm)}
-                  className="h-10 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Extra Charges
-                </button>
-                <button
-                  disabled={actionLoading}
-                  onClick={() => handleAction('request-otp')}
-                  className="h-10 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2"
-                >
-                  {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <CreditCard className="w-3.5 h-3.5" />
-                  Request Payment / OTP
-                </button>
-              </>
-            )}
-
-            {/* COMPLETED → Read-only confirmation */}
-            {booking.status.toLowerCase() === 'completed' && (
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
-                <ShieldCheck className="w-4 h-4" />
-                Service Completed Successfully
               </div>
-            )}
+            ) : <div />}
+
+            <div className="flex items-center gap-3">
+              {/* PENDING → Accept / Decline */}
+              {booking.status.toLowerCase() === 'pending' && (
+                <>
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => handleAction('reject')}
+                    className="h-10 px-5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 border border-zinc-700/50 rounded-xl text-xs font-semibold transition-all"
+                  >
+                    Decline
+                  </button>
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => handleAction('accept')}
+                    className="h-10 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                  >
+                    {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Accept Booking
+                  </button>
+                </>
+              )}
+
+              {/* ACCEPTED → Start Service */}
+              {booking.status.toLowerCase() === 'accepted' && (
+                <button
+                  disabled={actionLoading}
+                  onClick={() => handleAction('start')}
+                  className="h-10 px-6 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-sky-600/20 transition-all flex items-center gap-2"
+                >
+                  {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <Play className="w-3.5 h-3.5" />
+                  Start Service
+                </button>
+              )}
+
+              {/* ONGOING → Extra Charges + Request OTP */}
+              {booking.status.toLowerCase() === 'ongoing' && (
+                <>
+                  <button
+                    onClick={() => setShowExtraForm(!showExtraForm)}
+                    className="h-10 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Extra Charges
+                  </button>
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => handleAction('request-otp')}
+                    className="h-10 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2"
+                  >
+                    {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Request Payment / OTP
+                  </button>
+                </>
+              )}
+
+              {/* COMPLETED → Read-only confirmation */}
+              {booking.status.toLowerCase() === 'completed' && (
+                <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                  <ShieldCheck className="w-4 h-4" />
+                  Service Completed Successfully
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
