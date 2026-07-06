@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated, getUserData, logout, type UserData } from '../../lib/auth';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -9,10 +9,13 @@ import {
   Megaphone, Settings, LogOut, ChevronLeft, ChevronRight,
   Bell, Search, Menu, X, Shield,
   Hammer, UserCheck, Briefcase, Tag, MessageSquare,
-  MapPin, Clock, User, BadgeCheck
+  MapPin, Clock, User, BadgeCheck,
+  Sun, Moon, Globe
 } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTheme } from '../ThemeProvider';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface NavItem {
   label: string;
@@ -29,7 +32,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Handymen',    icon: Hammer,          href: '/dashboard/handymen',    step: '3' },
   { label: 'Customers',   icon: Users,           href: '/dashboard/customers',   step: '3' },
   { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/bookings',    step: '4' },
-  { label: 'Finance',     icon: DollarSign,      href: '/dashboard/finance',     step: '5' },
+  { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs',       step: '5' },
+  { label: 'Finance',     icon: DollarSign,      href: '/dashboard/finance',     step: '6' },
   { label: 'Coupons',     icon: Tag,             href: '/dashboard/coupons',     step: '6' },
   { label: 'Notifications', icon: Megaphone,     href: '/dashboard/notifications', step: '6' },
   { label: 'Settings',    icon: Settings,        href: '/dashboard/settings',    step: '7' },
@@ -40,6 +44,7 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
   { label: 'Handymen',      icon: Users,           href: '/dashboard/team' },
   { label: 'My Services',   icon: Wrench,          href: '/dashboard/services' },
   { label: 'Bookings',      icon: CalendarCheck,   href: '/dashboard/bookings' },
+  { label: 'Blogs',         icon: MessageSquare,   href: '/dashboard/blogs' },
   { label: 'Finance',       icon: DollarSign,      href: '/dashboard/finance' },
   { label: 'Unified Inbox',  icon: MessageSquare,   href: '/dashboard/inbox' },
   { label: 'Reviews',        icon: UserCheck,       href: '/dashboard/reviews' },
@@ -52,10 +57,10 @@ const USER_NAV_ITEMS: NavItem[] = [
   { label: 'Find Nearby Provider', icon: MapPin,        href: '/dashboard/find-nearby' },
   { label: 'My Booking',           icon: CalendarCheck, href: '/dashboard/my-bookings' },
   { label: 'Booking History',      icon: Clock,         href: '/dashboard/booking-history' },
+  { label: 'Blogs',                icon: MessageSquare, href: '/dashboard/blogs' },
   { label: 'notification',         icon: Bell,          href: '/dashboard/user-notifications' },
   { label: "User's profile page",  icon: User,          href: '/dashboard/profile' },
 ];
-
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -64,9 +69,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
 
   const authUser = useAuthStore(state => state.user);
   const isVerified = useAuthStore(state => state.is_verified);
+  const { resolvedTheme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
     if (authUser) {
@@ -76,7 +85,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const fetchNotifications = useNotificationStore(state => state.fetchNotifications);
   const addNotification = useNotificationStore(state => state.addNotification);
-  const unreadCount = useNotificationStore(state => state.unreadCount);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setLangDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (authChecked && user) {
@@ -152,7 +171,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setAuthChecked(true);
 
     if (userData) {
-      const isAdmin = userData.user_type === 'admin' || userData.user_type === 'demo_admin';
       const isProvider = userData.user_type === 'provider';
       const path = pathname;
 
@@ -162,6 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/find-nearby',
           '/dashboard/my-bookings',
           '/dashboard/booking-history',
+          '/dashboard/blogs',
           '/dashboard/user-notifications',
           '/dashboard/profile'
         ];
@@ -175,6 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/handymen',
           '/dashboard/team',
           '/dashboard/bookings',
+          '/dashboard/blogs',
           '/dashboard/finance',
           '/dashboard/settings',
           '/dashboard/inbox',
@@ -187,18 +207,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           router.replace('/dashboard');
         }
       } else if (userData.user_type === 'handyman') {
-        if (!path.startsWith('/dashboard/bookings')) {
+        if (!path.startsWith('/dashboard/bookings') && !path.startsWith('/dashboard/blogs')) {
           router.replace('/dashboard/bookings');
         }
-      } else {
-        // Admin - allow all
       }
     }
   }, [router, pathname]);
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200">
         <div className="animate-spin-slow w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
@@ -219,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     if (user.user_type === 'handyman') {
       return NAV_ITEMS.filter(item => 
-        ['Bookings'].includes(item.label)
+        ['Bookings', 'Blogs'].includes(item.label)
       );
     }
     if (user.user_type === 'user') {
@@ -228,9 +246,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return NAV_ITEMS;
   };
 
-
   return (
-    <div className="min-h-screen flex bg-zinc-950">
+    <div className="min-h-screen flex bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -241,22 +258,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 z-50 h-screen
-        bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-800/60
+        fixed lg:sticky top-0 bottom-0 z-50 h-screen
+        bg-white dark:bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800/60
         flex flex-col transition-all duration-300 ease-spring
         ${collapsed ? 'w-[72px]' : 'w-64'}
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${mobileOpen ? 'translate-x-0 rtl:translate-x-0' : '-translate-x-full lg:translate-x-0 ltr:-translate-x-full rtl:translate-x-full lg:rtl:translate-x-0'}
       `}>
         {/* Logo area */}
-        <div className={`flex items-center h-16 px-4 border-b border-zinc-800/60 ${collapsed ? 'justify-center' : 'gap-3'}`}>
+        <div className={`flex items-center h-16 px-4 border-b border-zinc-200 dark:border-zinc-800/60 ${collapsed ? 'justify-center' : 'gap-3'}`}>
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0 shadow-md shadow-primary/20">
             <Wrench className="w-4.5 h-4.5 text-white" />
           </div>
           {!collapsed && (
             <div className="animate-fade-in">
-              <h1 className="text-sm font-bold tracking-tight leading-none">Handyman Pro</h1>
+              <h1 className="text-sm font-bold tracking-tight leading-none text-zinc-800 dark:text-zinc-100">Handyman Pro</h1>
               <p className="text-[10px] text-zinc-500 mt-0.5 capitalize">
-                {user?.user_type === 'demo_admin' ? 'Demo Admin' : user?.user_type ? `${user.user_type} Panel` : 'Admin Panel'}
+                {user?.user_type === 'demo_admin' ? t('Demo Admin') : user?.user_type ? t(`${user.user_type} Panel`) : t('Admin Panel')}
               </p>
             </div>
           )}
@@ -264,7 +281,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Mobile close */}
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden ml-auto text-zinc-400 hover:text-white"
+            className="lg:hidden ms-auto text-zinc-450 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -282,40 +299,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   router.push(item.href);
                   setMobileOpen(false);
                 }}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? t(item.label) : undefined}
                 className={`
                   w-full flex items-center gap-3 h-10 rounded-xl text-sm font-medium transition-all duration-200
                   ${collapsed ? 'justify-center px-0' : 'px-3'}
                   ${active
                     ? 'bg-primary/15 text-primary shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                    : 'text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
                   }
                 `}
               >
                 <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-primary' : ''}`} />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{t(item.label)}</span>}
               </button>
             );
           })}
         </nav>
 
         {/* Collapse toggle */}
-        <div className="hidden lg:flex px-3 py-3 border-t border-zinc-800/60">
+        <div className="hidden lg:flex px-3 py-3 border-t border-zinc-200 dark:border-zinc-800/60">
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center justify-center h-9 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
+            className="w-full flex items-center justify-center h-9 rounded-xl text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all"
           >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {collapsed ? (
+              language === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
+            ) : (
+              language === 'ar' ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />
+            )}
           </button>
         </div>
 
         {/* User section */}
-        <div className={`px-3 py-3 border-t border-zinc-800/60 ${collapsed ? 'flex justify-center' : ''}`}>
+        <div className={`px-3 py-3 border-t border-zinc-200 dark:border-zinc-800/60 ${collapsed ? 'flex justify-center' : ''}`}>
           {collapsed ? (
             <button
               onClick={logout}
-              title="Logout"
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+              title={t('Logout')}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -325,16 +346,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <img
                   src={user.profile_image}
                   alt={user.display_name || 'User Profile'}
-                  className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-zinc-850"
+                  className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-zinc-200 dark:border-zinc-800"
                   onError={(e) => {
-                    // Fallback to initials if image fails to load
                     (e.target as HTMLImageElement).style.display = 'none';
                     const fallback = (e.target as HTMLImageElement).nextElementSibling;
                     if (fallback) fallback.classList.remove('hidden');
                   }}
                 />
               ) : null}
-              <div className={`w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0 ${user?.profile_image ? 'hidden' : ''}`}>
+              <div className={`w-9 h-9 rounded-xl bg-zinc-150 dark:bg-zinc-850 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0 ${user?.profile_image ? 'hidden' : ''}`}>
                 {user?.first_name?.charAt(0) || 'A'}{user?.last_name?.charAt(0) || ''}
               </div>
               <div className="flex-1 min-w-0">
@@ -348,8 +368,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
               <button
                 onClick={logout}
-                title="Logout"
-                className="text-zinc-500 hover:text-red-400 transition-colors flex-shrink-0"
+                title={t('Logout')}
+                className="text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -361,11 +381,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/40 flex items-center px-4 lg:px-6 gap-4">
+        <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800/40 flex items-center px-4 lg:px-6 gap-4">
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden text-zinc-400 hover:text-white transition-colors"
+            className="lg:hidden text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -373,11 +393,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Search */}
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
               <input
                 type="text"
-                placeholder="Search..."
-                className="w-full h-9 pl-9 pr-4 bg-zinc-900/60 border border-zinc-800/50 rounded-lg text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                placeholder={t('Search bookings or services...')}
+                className="w-full h-9 pl-9 pr-4 bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/50 rounded-lg text-sm text-zinc-800 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
               />
             </div>
           </div>
@@ -386,7 +406,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Provider Name and BadgeCheck in Top Navbar */}
             {user?.user_type === 'provider' && (
               <div className="hidden md:flex items-center gap-1.5 mr-2">
-                <span className="text-sm font-semibold text-zinc-200">
+                <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
                   {user.display_name || `${user.first_name} ${user.last_name}`.trim() || user.username}
                 </span>
                 {isVerified && (
@@ -398,10 +418,57 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Notification bell dropdown */}
             <NotificationBell />
 
+            {/* i18n Dropdown (Globe Icon) */}
+            <div className="relative" ref={langMenuRef}>
+              <button
+                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800/50 text-zinc-655 transition-all"
+                title="Change Language"
+              >
+                <Globe className="w-4.5 h-4.5 text-zinc-500 dark:text-zinc-400" />
+              </button>
+
+              {langDropdownOpen && (
+                <div className="absolute right-0 rtl:left-0 rtl:right-auto mt-2 w-40 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg py-1 text-sm font-medium z-50">
+                  <button
+                    onClick={() => { setLanguage('en'); setLangDropdownOpen(false); }}
+                    className={`w-full text-left rtl:text-right px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${language === 'en' ? 'text-primary' : 'text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    🇺🇸 English
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('bn'); setLangDropdownOpen(false); }}
+                    className={`w-full text-left rtl:text-right px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${language === 'bn' ? 'text-primary' : 'text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    🇧🇩 বাংলা (Bengali)
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('ar'); setLangDropdownOpen(false); }}
+                    className={`w-full text-left rtl:text-right px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${language === 'ar' ? 'text-primary' : 'text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    🇸🇦 العربية (Arabic)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Theme switcher */}
+            <button
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="w-9 h-9 rounded-xl flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800/50 text-zinc-655 transition-all duration-300"
+              title="Toggle Theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-4.5 h-4.5 text-amber-500 hover:rotate-45 transition-transform duration-300" />
+              ) : (
+                <Moon className="w-4.5 h-4.5 text-indigo-600 hover:-rotate-12 transition-transform duration-300" />
+              )}
+            </button>
+
             {/* Role badge */}
             <div className="hidden sm:flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-lg text-xs font-medium capitalize">
               <Shield className="w-3 h-3" />
-              {user?.user_type === 'demo_admin' ? 'Demo Admin' : user?.user_type || 'Admin'}
+              {user?.user_type === 'demo_admin' ? t('Demo Admin') : t(user?.user_type || 'Admin')}
             </div>
           </div>
         </header>
