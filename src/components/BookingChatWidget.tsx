@@ -105,10 +105,10 @@ export default function BookingChatWidget({
       }
     });
 
-    const channelName = `private-chat-${bookingId}`;
+    const channelName = `booking-${bookingId}`;
     const channel = pusher.subscribe(channelName);
 
-    channel.bind('new_message', (data: ChatMessage) => {
+    channel.bind('new-chat-message', (data: ChatMessage) => {
       if (data.sender_id !== currentUserId) {
         setMessages(prev => {
           // Prevent duplicates

@@ -7,7 +7,7 @@ import {
   Wrench, Folder, Plus, Edit2, Search, Trash2,
   X, AlertTriangle, Layers, Clock,
   Upload, Loader2, IndianRupee, CheckCircle2,
-  Package, Info, Eye, EyeOff
+  Package, Info, Eye, EyeOff, Sparkles
 } from 'lucide-react';
 
 interface Category {
@@ -65,6 +65,7 @@ export default function ServicesPage() {
   const [formIncludedServices, setFormIncludedServices] = useState<string[]>([]);
   const [formIsActive, setFormIsActive] = useState(true);
   const [submittingService, setSubmittingService] = useState(false);
+  const [generatingDesc, setGeneratingDesc] = useState(false);
 
   // Category form states
   const [catName, setCatName] = useState('');
@@ -193,6 +194,32 @@ export default function ServicesPage() {
       setError(err.response?.data?.detail || 'Failed to save service.');
     } finally {
       setSubmittingService(false);
+    }
+  };
+
+  const handleAiGenerateDescription = async () => {
+    if (!formName.trim()) {
+      setError('Please enter a service name before generating a description.');
+      return;
+    }
+    setGeneratingDesc(true);
+    setError('');
+    try {
+      const res = await apiClient.post('/provider/ai-generate-description', {
+        service_name: formName.trim(),
+        category: 'Handyman Service',
+        key_features: formType === 'package' ? 'Bundled package of services with special pricing' : 'Standard individual high-quality service'
+      });
+      if (res.data?.description) {
+        setFormDescription(res.data.description);
+        showSuccess('AI description generated successfully!');
+      } else {
+        setError('Failed to generate description.');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'AI Description generator failed.');
+    } finally {
+      setGeneratingDesc(false);
     }
   };
 
@@ -662,7 +689,27 @@ export default function ServicesPage() {
               )}
 
               <div>
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Description</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Description</label>
+                  <button
+                    type="button"
+                    onClick={handleAiGenerateDescription}
+                    disabled={generatingDesc || !formName.trim()}
+                    className="text-[10px] font-bold text-primary hover:text-primary-light transition-all flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-transparent border-0 outline-none"
+                  >
+                    {generatingDesc ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                        Auto-Write Description
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
