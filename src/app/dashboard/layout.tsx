@@ -41,6 +41,7 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
   { label: 'Finance',       icon: DollarSign,      href: '/dashboard/finance' },
   { label: 'Unified Inbox',  icon: MessageSquare,   href: '/dashboard/inbox' },
   { label: 'Reviews',        icon: UserCheck,       href: '/dashboard/reviews' },
+  { label: 'Verification',   icon: Shield,          href: '/dashboard/verification' },
   { label: 'Settings',      icon: Settings,        href: '/dashboard/settings' },
 ];
 
@@ -159,11 +160,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard',
           '/dashboard/services',
           '/dashboard/handymen',
+          '/dashboard/team',
           '/dashboard/bookings',
           '/dashboard/finance',
           '/dashboard/settings',
           '/dashboard/inbox',
           '/dashboard/reviews',
+          '/dashboard/verification',
           '/dashboard/provider-notifications'
         ];
         const isAllowed = providerAllowed.some(p => path === p || path.startsWith(p + '/'));
