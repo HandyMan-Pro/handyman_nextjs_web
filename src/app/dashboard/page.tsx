@@ -9,6 +9,8 @@ import {
   Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw,
   IndianRupee, Clipboard, AlertTriangle
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 
 interface DashboardStats {
   summary: {
@@ -32,13 +34,26 @@ interface ProviderDashboardData {
   metrics: {
     total_bookings: number;
     total_services: number;
-    total_handymen: number;
-    monthly_earnings: number;
+    remaining_payout: number;
+    total_revenue: number;
   };
-  chart_data: { month: string; revenue: number }[];
-  subscription: {
-    days_left: number;
+  monthly_revenue_chart: { month: string; revenue: number }[];
+  top_handymen: {
+    id: string;
+    display_name: string;
+    profile_image: string | null;
+    joined_date: string;
+  }[];
+  recent_bookings: {
+    id: string;
+    customer_name: string;
+    customer_image: string | null;
+    date: string;
+    status: string;
+  }[];
+  subscription?: {
     is_expiring_soon: boolean;
+    days_left: number;
   };
 }
 
@@ -52,127 +67,71 @@ const STATUS_CONFIG: Record<string, { color: string; bgColor: string; icon: Reac
 };
 
 function ProviderRevenueChart({ data }: { data: { month: string; revenue: number }[] }) {
-  const [activeIdx, setActiveIdx] = useState<number | null>(null);
-  if (!data || data.length === 0) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const maxVal = Math.max(...data.map(d => d.revenue), 100);
-  const yTicksCount = 4;
-  const roundedMax = Math.ceil(maxVal / 100) * 100;
-  const height = 220;
-  const width = 500;
-  const paddingLeft = 50;
-  const paddingRight = 20;
-  const paddingTop = 20;
-  const paddingBottom = 30;
-
-  const chartWidth = width - paddingLeft - paddingRight;
-  const chartHeight = height - paddingTop - paddingBottom;
-
-  const points = data.map((d, index) => {
-    const x = paddingLeft + (index / (data.length - 1)) * chartWidth;
-    const y = paddingTop + chartHeight - (d.revenue / roundedMax) * chartHeight;
-    return { x, y, month: d.month, revenue: d.revenue };
-  });
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaPath = points.length > 0 
-    ? `${linePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`
-    : '';
+  if (!mounted) {
+    return (
+      <div className="w-full h-[320px] bg-zinc-900/60 border border-zinc-800/60 rounded-2xl animate-pulse" />
+    );
+  }
 
   return (
-    <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800/50 rounded-2xl p-6 relative shadow-xl overflow-hidden group">
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-50" />
-      <h3 className="text-sm font-semibold mb-4 text-zinc-300 flex items-center gap-2">
-        <TrendingUp className="w-4 h-4 text-indigo-400" />
-        Monthly Revenue Trend
-      </h3>
-      <div className="w-full overflow-hidden">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-          <defs>
-            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="rgb(99, 102, 241)" stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
-          {/* Grid Lines */}
-          {[...Array(yTicksCount + 1)].map((_, i) => {
-            const yVal = paddingTop + (i / yTicksCount) * chartHeight;
-            const tickValue = Math.round(roundedMax - (i / yTicksCount) * roundedMax);
-            return (
-              <g key={i}>
-                <line
-                  x1={paddingLeft}
-                  y1={yVal}
-                  x2={width - paddingRight}
-                  y2={yVal}
-                  stroke="rgb(39, 39, 42)"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
-                <text
-                  x={paddingLeft - 10}
-                  y={yVal + 4}
-                  fill="rgb(113, 113, 122)"
-                  fontSize="10"
-                  textAnchor="end"
-                >
-                  ₹{tickValue}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Area under the line */}
-          {areaPath && <path d={areaPath} fill="url(#areaGradient)" />}
-
-          {/* Line */}
-          {linePath && (
-            <path
-              d={linePath}
-              fill="none"
-              stroke="rgb(99, 102, 241)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Chart Dots & Hover Interaction */}
-          {points.map((p, i) => (
-            <g key={i}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={activeIdx === i ? 6 : 4}
-                fill="rgb(99, 102, 241)"
-                stroke="rgb(24, 24, 27)"
-                strokeWidth="2"
-                className="transition-all cursor-pointer"
-                onMouseEnter={() => setActiveIdx(i)}
-                onMouseLeave={() => setActiveIdx(null)}
-              />
-              {/* X Axis Labels */}
-              <text
-                x={p.x}
-                y={height - 10}
-                fill="rgb(113, 113, 122)"
-                fontSize="10"
-                textAnchor="middle"
-              >
-                {p.month}
-              </text>
-            </g>
-          ))}
-        </svg>
-      </div>
-
-      {/* Hover Tooltip display */}
-      {activeIdx !== null && points[activeIdx] && (
-        <div className="absolute top-16 right-6 bg-zinc-950/90 border border-zinc-800 px-3.5 py-2 rounded-xl shadow-xl backdrop-blur-md animate-fade-in text-xs">
-          <p className="text-zinc-500 font-medium">{points[activeIdx].month}</p>
-          <p className="text-white font-semibold mt-0.5">Revenue: ₹{points[activeIdx].revenue.toLocaleString('en-IN')}</p>
+    <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-6 relative overflow-hidden backdrop-blur-md">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-white tracking-tight">Monthly Revenue</h3>
+          <p className="text-zinc-500 text-xs mt-0.5">Track your earnings over the past 12 months</p>
         </div>
-      )}
+      </div>
+      <div className="w-full h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <XAxis 
+              dataKey="month" 
+              stroke="#71717a" 
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis 
+              stroke="#71717a" 
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `₹${v}`}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: '#18181b', 
+                borderColor: '#27272a',
+                borderRadius: '12px',
+                color: '#fff',
+                fontSize: '12px'
+              }}
+              formatter={(value) => [`₹${value}`, 'Revenue']}
+              labelStyle={{ color: '#a1a1aa', fontWeight: 'bold' }}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="revenue" 
+              stroke="#6366f1" 
+              strokeWidth={2}
+              fillOpacity={1} 
+              fill="url(#colorRevenue)" 
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -305,7 +264,13 @@ export default function DashboardPage() {
 
   // --- RENDER PROVIDER HOME ---
   if (role === 'provider' && providerData) {
-    const { metrics, chart_data, subscription } = providerData;
+    const {
+      metrics = { total_bookings: 0, total_services: 0, remaining_payout: 0, total_revenue: 0 },
+      monthly_revenue_chart = [],
+      top_handymen = [],
+      recent_bookings = [],
+      subscription = { is_expiring_soon: false, days_left: 0 }
+    } = providerData;
     
     return (
       <div className="space-y-6">
@@ -351,58 +316,144 @@ export default function DashboardPage() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {[
             {
               label: 'Total Bookings',
               value: metrics.total_bookings,
               icon: Clipboard,
-              gradient: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30 text-blue-400',
             },
             {
               label: 'Active Services',
               value: metrics.total_services,
               icon: Wrench,
-              gradient: 'from-violet-500/20 to-purple-500/20 border-violet-500/30 text-purple-400',
             },
             {
-              label: 'Total Handymen',
-              value: metrics.total_handymen,
-              icon: Users,
-              gradient: 'from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-400',
+              label: 'Remaining Payout',
+              value: `₹${(metrics.remaining_payout || 0).toLocaleString('en-IN')}`,
+              icon: DollarSign,
             },
             {
-              label: 'Monthly Earnings',
-              value: `₹${(metrics.monthly_earnings || 0).toLocaleString('en-IN')}`,
-              icon: IndianRupee,
-              gradient: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-400',
+              label: 'Total Revenue',
+              value: `₹${(metrics.total_revenue || 0).toLocaleString('en-IN')}`,
+              icon: TrendingUp,
             },
           ].map((card, idx) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.label}
-                className={`relative bg-zinc-900/60 backdrop-blur-md border border-zinc-800/40 rounded-2xl p-5 hover:border-zinc-700/60 transition-all duration-300 shadow-md group animate-fade-in-up`}
-                style={{ animationDelay: `${idx * 80}ms` }}
+                className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-xl hover:scale-[1.02] transition-all duration-300 group"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-xl bg-zinc-900 border flex items-center justify-center shadow-inner ${card.gradient}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex items-center gap-1 text-emerald-400 text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                    <ArrowUpRight className="w-3 h-3" />
-                    <span>+8%</span>
-                  </div>
+                <div className="absolute right-[-10px] bottom-[-10px] opacity-15 transition-transform duration-300 group-hover:scale-110">
+                  <Icon className="w-24 h-24 stroke-[1.5]" />
                 </div>
-                <p className="text-2xl font-bold tracking-tight text-white">{card.value}</p>
-                <p className="text-zinc-400 text-xs mt-1 font-medium">{card.label}</p>
+                <p className="text-zinc-200 text-xs font-semibold uppercase tracking-wider">{card.label}</p>
+                <p className="text-3xl font-extrabold tracking-tight mt-2">{card.value}</p>
               </div>
             );
           })}
         </div>
 
-        {/* Revenue Line Chart */}
-        <ProviderRevenueChart data={chart_data} />
+        {/* Revenue Area Chart */}
+        <ProviderRevenueChart data={monthly_revenue_chart} />
+
+        {/* Bottom Split Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column: Top Handymen */}
+          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-6 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-bold text-white">Top Handymen</h3>
+              <a href="/dashboard/handymen" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
+                View All
+              </a>
+            </div>
+            <div className="space-y-4">
+              {top_handymen && top_handymen.length > 0 ? (
+                top_handymen.map((hm: any) => (
+                  <div key={hm.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/30 border border-zinc-800/40 hover:border-zinc-800 transition-all">
+                    <div className="flex items-center gap-3">
+                      {hm.profile_image ? (
+                        <img 
+                          src={hm.profile_image} 
+                          alt={hm.display_name} 
+                          className="w-10 h-10 rounded-full object-cover border border-zinc-700" 
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 font-bold text-sm">
+                          {hm.display_name?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="text-sm font-bold text-white">{hm.display_name}</h4>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">Joined: {hm.joined_date}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-sm text-zinc-500">No handymen registered yet.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Recent Bookings */}
+          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-6 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-bold text-white">Recent Bookings</h3>
+              <a href="/dashboard/bookings" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
+                View All
+              </a>
+            </div>
+            <div className="space-y-4">
+              {recent_bookings && recent_bookings.length > 0 ? (
+                recent_bookings.map((booking: any, idx: number) => {
+                  let badgeClass = "bg-zinc-800/80 text-zinc-400 border border-zinc-700/50";
+                  const statusLower = booking.status?.toLowerCase();
+                  if (statusLower === 'completed') {
+                    badgeClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                  } else if (['accept', 'accepted', 'ongoing', 'in progress'].includes(statusLower)) {
+                    badgeClass = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+                  } else if (['cancelled', 'canceled', 'declined', 'reject', 'rejected'].includes(statusLower)) {
+                    badgeClass = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                  }
+
+                  return (
+                    <div key={booking.id || idx} className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/30 border border-zinc-800/40 hover:border-zinc-800 transition-all">
+                      <div className="flex items-center gap-3">
+                        {booking.customer_image ? (
+                          <img 
+                            src={booking.customer_image} 
+                            alt={booking.customer_name} 
+                            className="w-10 h-10 rounded-full object-cover border border-zinc-700" 
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 font-semibold text-xs">
+                            {booking.customer_name?.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{booking.customer_name}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/30 font-semibold">
+                              #{booking.id ? booking.id.slice(-4) : idx + 1}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-zinc-500 mt-0.5">{booking.date}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>
+                        {booking.status}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-sm text-zinc-500">No bookings yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

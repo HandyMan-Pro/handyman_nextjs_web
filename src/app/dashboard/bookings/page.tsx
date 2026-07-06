@@ -44,6 +44,8 @@ export default function BookingsPage() {
   const [providerRequests, setProviderRequests] = useState<Booking[]>([]);
   const [providerUpcoming, setProviderUpcoming] = useState<Booking[]>([]);
   const [providerTab, setProviderTab] = useState<'requests' | 'upcoming'>('requests');
+  const [providerStatusFilter, setProviderStatusFilter] = useState('All');
+  const [updatingStatusIds, setUpdatingStatusIds] = useState<Record<string, boolean>>({});
   const [actioningIds, setActioningIds] = useState<Record<string, boolean>>({});
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +169,21 @@ export default function BookingsPage() {
     }
   };
 
+  const handleProviderStatusChange = async (bookingId: string, nextStatus: string) => {
+    setUpdatingStatusIds((prev) => ({ ...prev, [bookingId]: true }));
+    try {
+      await apiClient.put(`/provider/bookings/${bookingId}/status`, {
+        status: nextStatus
+      });
+      showSuccess(`Booking status successfully updated to ${nextStatus}!`);
+      await fetchBookingsAndPartners();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to update booking status');
+    } finally {
+      setUpdatingStatusIds((prev) => ({ ...prev, [bookingId]: false }));
+    }
+  };
+
 
   const openAssignModal = (booking: Booking, type: 'provider' | 'handyman') => {
     setSelectedBooking(booking);
@@ -261,6 +278,21 @@ export default function BookingsPage() {
       : true;
 
     return matchesSearch && matchesStatus && matchesCalendarDay;
+  });
+
+  const providerAllBookings = [...providerRequests, ...providerUpcoming];
+
+  const filteredProviderBookings = providerAllBookings.filter(b => {
+    const matchesSearch =
+      b.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b.handyman_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      providerStatusFilter === 'All' ||
+      b.status.toLowerCase() === providerStatusFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus;
   });
 
   // Calendar Helper functions
@@ -409,183 +441,228 @@ export default function BookingsPage() {
 
       {currentUser?.user_type === 'provider' ? (
         /* PROVIDER SPECIFIC SCREEN */
-        loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-44 bg-zinc-900/50 border border-zinc-800/30 rounded-2xl" />
-            ))}
+        <div className="space-y-6">
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col xl:flex-row gap-4 border-b border-zinc-800/60 pb-6 items-stretch xl:items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search bookings by customer or service name..."
+                className="w-full h-11 pl-10 pr-4 bg-zinc-900/40 border border-zinc-850 rounded-xl text-sm text-zinc-300 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
+              />
+            </div>
+            
+            {/* Filter Tab Bar */}
+            <div className="flex bg-zinc-950/60 border border-zinc-850 p-1 rounded-xl gap-1 overflow-x-auto w-full xl:w-auto scrollbar-none">
+              {['All', 'Pending', 'Accepted', 'Ongoing', 'Completed', 'Cancelled'].map((status) => {
+                const count = status === 'All'
+                  ? providerAllBookings.length
+                  : providerAllBookings.filter(b => b.status.toLowerCase() === status.toLowerCase()).length;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setProviderStatusFilter(status)}
+                    className={`flex items-center gap-1.5 h-8.5 px-4 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                      providerStatusFilter === status
+                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+                    }`}
+                  >
+                    {status}
+                    {count > 0 && (
+                      <span className={`inline-flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[9px] font-bold rounded-full transition-colors ${
+                        providerStatusFilter === status ? 'bg-white/20 text-white' : 'bg-zinc-805 text-zinc-400 border border-zinc-700/30'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        ) : providerTab === 'requests' ? (
-          /* REQUESTS TAB */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {providerRequests.map((b) => (
-              <div key={b.id} className="bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-5 shadow-xl transition-all flex flex-col justify-between gap-4">
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-bold text-base text-zinc-100 flex items-center gap-1.5">
-                        <Wrench className="w-4 h-4 text-primary" />
-                        {b.service_name}
-                      </h3>
-                      <p className="text-zinc-500 text-xs mt-0.5">Request ID: {b.id}</p>
-                    </div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/20">
-                      Pending Request
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-4 text-xs text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="truncate">Customer: <strong className="text-zinc-200">{b.customer_name}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <IndianRupee className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>Est. Price: <strong className="text-zinc-200">₹{b.total_amount || b.amount}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{b.date || 'ASAP'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>Slot: {b.booking_slot || 'Anytime'}</span>
-                    </div>
-                    <div className="flex items-start gap-2 col-span-2">
-                      <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                      <span className="break-words whitespace-normal">Address: {b.address || 'Not specified'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-800/40">
-                  <button
-                    disabled={actioningIds[b.id]}
-                    onClick={() => handleProviderAction(b.id, 'reject')}
-                    className="h-9 px-4 bg-zinc-800 hover:bg-zinc-750 text-zinc-350 border border-zinc-700/50 hover:text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    Decline
-                  </button>
-                  <button
-                    disabled={actioningIds[b.id]}
-                    onClick={() => handleProviderAction(b.id, 'accept')}
-                    className="h-9 px-5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    {actioningIds[b.id] && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Accept
-                  </button>
-                </div>
+          {loading ? (
+            <div className="w-full overflow-hidden rounded-2xl border border-zinc-800/40 bg-zinc-900/20 backdrop-blur-md p-6 space-y-4">
+              <div className="h-6 w-1/4 bg-zinc-800/50 rounded-md animate-pulse" />
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-14 bg-zinc-800/30 rounded-xl animate-pulse" />
+                ))}
               </div>
-            ))}
-            {providerRequests.length === 0 && (
-              <div className="col-span-2 text-center py-16 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl">
-                <CalendarCheck className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-                <p className="text-sm text-zinc-500">No incoming requests at the moment.</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* UPCOMING SCHEDULE TAB */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {providerUpcoming.map((b) => (
-              <div key={b.id} className="bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-5 shadow-xl transition-all flex flex-col justify-between gap-4">
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-bold text-base text-zinc-100 flex items-center gap-1.5">
-                        <Wrench className="w-4 h-4 text-primary" />
-                        {b.service_name}
-                      </h3>
-                      <p className="text-zinc-500 text-xs mt-0.5">Booking ID: {b.id}</p>
-                    </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusStyle(b.status)}`}>
-                      {b.status_label || b.status}
-                    </span>
-                  </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-zinc-800/40 bg-zinc-900/20 backdrop-blur-md shadow-xl">
+              <table className="w-full text-left border-collapse text-sm min-w-[900px]">
+                <thead>
+                  <tr className="bg-zinc-950/40 border-b border-zinc-800/80">
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[25%]">Customer & Date</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[25%]">Service Name</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[20%]">Assigned Handyman</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[10%]">Amount</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[10%]">Status</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] text-right w-[10%]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/40">
+                  {filteredProviderBookings.map((b) => {
+                    const statusLower = b.status.toLowerCase();
+                    return (
+                      <tr key={b.id} className="hover:bg-zinc-800/25 transition-colors group">
+                        {/* Customer & Date */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <div className="font-bold text-zinc-105 group-hover:text-white transition-colors">{b.customer_name}</div>
+                          <div className="text-zinc-500 text-xs mt-1 flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-zinc-600" />
+                            <span>{b.date || 'ASAP'}</span>
+                            <span className="text-zinc-700">•</span>
+                            <Clock className="w-3.5 h-3.5 text-zinc-600" />
+                            <span>{b.booking_slot || 'Anytime'}</span>
+                          </div>
+                        </td>
 
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-4 text-xs text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="truncate">Customer: <strong className="text-zinc-200">{b.customer_name}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <IndianRupee className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>Total Price: <strong className="text-zinc-200">₹{b.total_amount || b.amount}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{b.date || 'ASAP'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>Slot: {b.booking_slot || 'Anytime'}</span>
-                    </div>
-                    <div className="flex items-start gap-2 col-span-2">
-                      <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                      <span className="break-words whitespace-normal">Address: {b.address || 'Not specified'}</span>
-                    </div>
-                  </div>
-                </div>
+                        {/* Service Name */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <div className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                            <Wrench className="w-3.5 h-3.5 text-primary animate-pulse" />
+                            {b.service_name}
+                          </div>
+                          <div className="text-[10px] text-zinc-500 font-mono mt-1">ID: #{b.id}</div>
+                        </td>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/40">
-                  <button
-                    onClick={() => setActiveChatBooking(b)}
-                    className="h-8 px-3 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 text-primary" />
-                    Chat
-                  </button>
+                        {/* Assigned Handyman */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          {b.handyman_name ? (
+                            <div className="flex flex-col gap-1.5 items-start">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-zinc-300">{b.handyman_name}</span>
+                                <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold tracking-wider font-mono">
+                                  HANDYMAN
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => openAssignModal(b, 'handyman')}
+                                className="text-[10px] text-primary/80 hover:text-primary hover:underline font-semibold transition-colors"
+                              >
+                                Reassign Staff
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => openAssignModal(b, 'handyman')}
+                              className="text-xs text-primary hover:text-primary/90 hover:underline font-semibold flex items-center gap-1 transition-all"
+                            >
+                              + Assign Handyman
+                            </button>
+                          )}
+                        </td>
 
-                  <button
-                    onClick={() => setDetailBooking(b)}
-                    className="h-8 px-3 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-sky-400" />
-                    Details
-                  </button>
+                        {/* Amount */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <span className="font-bold text-zinc-200 text-sm">
+                            ₹{(b.total_amount || b.amount || 0).toLocaleString('en-IN')}
+                          </span>
+                        </td>
 
-                  <button
-                    onClick={() => openAssignModal(b, 'handyman')}
-                    className="h-8 px-3 bg-zinc-850 hover:bg-zinc-750 text-zinc-250 border border-zinc-700/30 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 active:scale-95 mr-auto"
-                  >
-                    {b.handyman_id ? `Assigned: ${b.handyman_name || 'Handyman'}` : '+ Assign'}
-                  </button>
+                        {/* Status Badge */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(b.status)}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5" />
+                            {b.status_label || b.status}
+                          </span>
+                        </td>
 
-                  {b.status.toLowerCase() === 'accepted' && (
-                    <button
-                      onClick={() => handleStatusUpdate(b.id, 'Ongoing')}
-                      className="h-8 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold transition-colors"
-                    >
-                      Start Service
-                    </button>
+                        {/* Actions */}
+                        <td className="px-6 py-4.5 vertical-align-middle text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* Chat Widget Button */}
+                            <button
+                              onClick={() => setActiveChatBooking(b)}
+                              className="p-2 bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 flex items-center justify-center shrink-0"
+                              title="Chat with Customer"
+                            >
+                              <MessageSquare className="w-4 h-4 text-primary" />
+                            </button>
+
+                            {/* Detail View Button */}
+                            <button
+                              onClick={() => setDetailBooking(b)}
+                              className="p-2 bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 flex items-center justify-center shrink-0"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4 text-sky-400" />
+                            </button>
+
+                            {/* Main Action Button based on status */}
+                            {statusLower === 'pending' ? (
+                              <div className="flex gap-1.5 shrink-0">
+                                <button
+                                  disabled={updatingStatusIds[b.id]}
+                                  onClick={() => handleProviderStatusChange(b.id, 'Cancelled')}
+                                  className="h-8.5 px-3 bg-red-950/40 hover:bg-red-900/30 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                >
+                                  Decline
+                                </button>
+                                <button
+                                  disabled={updatingStatusIds[b.id]}
+                                  onClick={() => handleProviderStatusChange(b.id, 'Accepted')}
+                                  className="h-8.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-md shadow-emerald-950/20 flex items-center gap-1.5"
+                                >
+                                  {updatingStatusIds[b.id] && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                  Accept
+                                </button>
+                              </div>
+                            ) : statusLower === 'accepted' ? (
+                              <button
+                                disabled={updatingStatusIds[b.id]}
+                                onClick={() => handleProviderStatusChange(b.id, 'Ongoing')}
+                                className="h-8.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-md shadow-blue-950/20 flex items-center gap-1.5 shrink-0"
+                              >
+                                {updatingStatusIds[b.id] && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                Start Service
+                              </button>
+                            ) : statusLower === 'ongoing' ? (
+                              <button
+                                disabled={updatingStatusIds[b.id]}
+                                onClick={() => handleProviderStatusChange(b.id, 'Completed')}
+                                className="h-8.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-md shadow-emerald-950/20 flex items-center gap-1.5 shrink-0"
+                              >
+                                {updatingStatusIds[b.id] && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                Complete Service
+                              </button>
+                            ) : statusLower === 'completed' ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg shrink-0">
+                                <Check className="w-3.5 h-3.5" />
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-400 bg-red-950/20 border border-red-500/10 px-2.5 py-1 rounded-lg shrink-0">
+                                <XCircle className="w-3.5 h-3.5" />
+                                Cancelled
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {filteredProviderBookings.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-20 text-zinc-500">
+                        <CalendarCheck className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+                        <p className="text-sm font-medium">No bookings found matching filters.</p>
+                      </td>
+                    </tr>
                   )}
-                  {b.status.toLowerCase() === 'ongoing' && (
-                    <button
-                      onClick={() => handleStatusUpdate(b.id, 'Completed')}
-                      className="h-8 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors"
-                    >
-                      Complete Service
-                    </button>
-                  )}
-                  {b.status.toLowerCase() !== 'completed' && b.status.toLowerCase() !== 'cancelled' && (
-                    <button
-                      onClick={() => handleStatusUpdate(b.id, 'Cancelled')}
-                      className="h-8 px-3 bg-red-950/40 hover:bg-red-900/30 text-red-400 border border-red-500/10 rounded-lg text-xs font-semibold transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {providerUpcoming.length === 0 && (
-              <div className="col-span-2 text-center py-16 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl">
-                <CalendarCheck className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-                <p className="text-sm text-zinc-500">No scheduled upcoming bookings.</p>
-              </div>
-            )}
-          </div>
-        )
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       ) : (
         /* CALENDAR / LIST VIEW FOR ADMIN / OTHERS */
         viewMode === 'calendar' ? (
