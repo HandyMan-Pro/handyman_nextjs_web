@@ -11,6 +11,8 @@ export interface UserData {
   profile_image?: string;
   address?: string;
   contact_number?: string;
+  commission_value?: number;
+  commission_type?: string;
 }
 
 

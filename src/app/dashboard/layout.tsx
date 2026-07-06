@@ -10,17 +10,22 @@ import {
   Bell, Search, Menu, X, Shield,
   Hammer, UserCheck, Briefcase, Tag, MessageSquare,
   MapPin, Clock, User, BadgeCheck,
-  Sun, Moon, Globe
+  Sun, Moon, Globe, Store, List, Package, Blocks,
+  ClipboardList, ClipboardCheck, UserMinus, Percent,
+  CreditCard, Banknote, CircleDollarSign, BadgeDollarSign,
+  MonitorPlay, Star, Headset, ChevronDown
 } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTheme } from '../ThemeProvider';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-interface NavItem {
+export interface NavItem {
   label: string;
-  icon: React.ElementType;
-  href: string;
+  icon: any;
+  href?: string;
+  category?: string;
+  children?: NavItem[];
   badge?: number;
   step?: string;
 }
@@ -40,16 +45,94 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const PROVIDER_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard' },
-  { label: 'Handymen',      icon: Users,           href: '/dashboard/team' },
-  { label: 'My Services',   icon: Wrench,          href: '/dashboard/services' },
-  { label: 'Bookings',      icon: CalendarCheck,   href: '/dashboard/bookings' },
-  { label: 'Blogs',         icon: MessageSquare,   href: '/dashboard/blogs' },
-  { label: 'Finance',       icon: DollarSign,      href: '/dashboard/finance' },
-  { label: 'Unified Inbox',  icon: MessageSquare,   href: '/dashboard/inbox' },
-  { label: 'Reviews',        icon: UserCheck,       href: '/dashboard/reviews' },
-  { label: 'Verification',   icon: Shield,          href: '/dashboard/verification' },
-  { label: 'Settings',      icon: Settings,        href: '/dashboard/settings' },
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: '/dashboard',
+    category: 'MAIN'
+  },
+  {
+    label: 'Bookings',
+    icon: CalendarCheck,
+    href: '/dashboard/bookings',
+    category: 'MAIN'
+  },
+  {
+    label: 'Shops',
+    icon: Store,
+    href: '/dashboard/shops',
+    category: 'SHOP'
+  },
+  {
+    label: 'Services',
+    icon: Wrench,
+    category: 'SERVICE',
+    children: [
+      { label: 'All Services', icon: List, href: '/dashboard/services' },
+      { label: 'Packages', icon: Package, href: '/dashboard/packages' },
+      { label: 'Addons', icon: Blocks, href: '/dashboard/addons' },
+      { label: 'Service Request List', icon: ClipboardList, href: '/dashboard/service-requests' }
+    ]
+  },
+  {
+    label: 'Job Request List',
+    icon: Briefcase,
+    href: '/dashboard/job-requests',
+    category: 'CUSTOM JOB'
+  },
+  {
+    label: 'Handyman',
+    icon: UserCheck,
+    category: 'USER',
+    children: [
+      { label: 'Handyman List', icon: Users, href: '/dashboard/handymen' },
+      { label: 'Handyman Request List', icon: ClipboardCheck, href: '/dashboard/handyman-requests' },
+      { label: 'Unassigned Handyman', icon: UserMinus, href: '/dashboard/unassigned-handymen' },
+      { label: 'Handyman Commission List', icon: Percent, href: '/dashboard/handyman-commissions' }
+    ]
+  },
+  {
+    label: 'Payments',
+    icon: CreditCard,
+    href: '/dashboard/payments',
+    category: 'TRANSACTIONS'
+  },
+  {
+    label: 'Cash Payments',
+    icon: Banknote,
+    href: '/dashboard/cash-payments',
+    category: 'TRANSACTIONS'
+  },
+  {
+    label: 'Provider Withdrawal Requests',
+    icon: CircleDollarSign,
+    href: '/dashboard/withdrawals',
+    category: 'TRANSACTIONS'
+  },
+  {
+    label: 'Handyman Earning List',
+    icon: BadgeDollarSign,
+    href: '/dashboard/handyman-earnings',
+    category: 'TRANSACTIONS'
+  },
+  {
+    label: 'Provider Promotional Banner',
+    icon: MonitorPlay,
+    href: '/dashboard/promotions',
+    category: 'PROMOTION'
+  },
+  {
+    label: 'Handyman Ratings List',
+    icon: Star,
+    href: '/dashboard/ratings',
+    category: 'RATINGS'
+  },
+  {
+    label: 'Help Desk',
+    icon: Headset,
+    href: '/dashboard/helpdesk',
+    category: 'RATINGS'
+  }
 ];
 
 const USER_NAV_ITEMS: NavItem[] = [
@@ -71,11 +154,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [authChecked, setAuthChecked] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement>(null);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const authUser = useAuthStore(state => state.user);
   const isVerified = useAuthStore(state => state.is_verified);
   const { resolvedTheme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard';
+    return pathname.startsWith(href);
+  };
+
+  const getFilteredNavItems = () => {
+    if (!user) return [];
+    if (user.user_type === 'admin' || user.user_type === 'demo_admin') {
+      return NAV_ITEMS;
+    }
+    if (user.user_type === 'provider') {
+      return PROVIDER_NAV_ITEMS;
+    }
+    if (user.user_type === 'handyman') {
+      return [
+        { label: 'Dashboard',   icon: LayoutDashboard, href: '/dashboard' },
+        { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/bookings' },
+        { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs' },
+      ];
+    }
+    if (user.user_type === 'user') {
+      return USER_NAV_ITEMS;
+    }
+    return NAV_ITEMS;
+  };
+
+  useEffect(() => {
+    if (user) {
+      const items = getFilteredNavItems();
+      const newOpenMenus: Record<string, boolean> = { ...openMenus };
+      let changed = false;
+      items.forEach(item => {
+        if (item.children) {
+          const hasActiveChild = item.children.some(child => child.href && pathname.startsWith(child.href));
+          if (hasActiveChild && !openMenus[item.label]) {
+            newOpenMenus[item.label] = true;
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        setOpenMenus(newOpenMenus);
+      }
+    }
+  }, [pathname, user]);
 
   useEffect(() => {
     if (authUser) {
@@ -228,32 +358,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const isActive = (href: string) => {
-    if (href === '/dashboard') return pathname === '/dashboard';
-    return pathname.startsWith(href);
-  };
-
-  const getFilteredNavItems = () => {
-    if (!user) return [];
-    if (user.user_type === 'admin' || user.user_type === 'demo_admin') {
-      return NAV_ITEMS;
-    }
-    if (user.user_type === 'provider') {
-      return PROVIDER_NAV_ITEMS;
-    }
-    if (user.user_type === 'handyman') {
-      return [
-        { label: 'Dashboard',   icon: LayoutDashboard, href: '/dashboard' },
-        { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/bookings' },
-        { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs' },
-      ];
-    }
-    if (user.user_type === 'user') {
-      return USER_NAV_ITEMS;
-    }
-    return NAV_ITEMS;
-  };
-
   return (
     <div className="min-h-screen flex bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
       {/* Mobile overlay */}
@@ -297,31 +401,114 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          {getFilteredNavItems().map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.href}
-                onClick={() => {
-                  router.push(item.href);
-                  setMobileOpen(false);
-                }}
-                title={collapsed ? t(item.label) : undefined}
-                className={`
-                  w-full flex items-center gap-3 h-10 rounded-xl text-sm font-medium transition-all duration-200
-                  ${collapsed ? 'justify-center px-0' : 'px-3'}
-                  ${active
-                    ? 'bg-primary/15 text-primary shadow-sm'
-                    : 'text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
-                  }
-                `}
-              >
-                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-primary' : ''}`} />
-                {!collapsed && <span>{t(item.label)}</span>}
-              </button>
-            );
-          })}
+          {(() => {
+            const items = getFilteredNavItems();
+            const categories: { name: string | null; items: NavItem[] }[] = [];
+            items.forEach(item => {
+              const catName = item.category || null;
+              let cat = categories.find(c => c.name === catName);
+              if (!cat) {
+                cat = { name: catName, items: [] };
+                categories.push(cat);
+              }
+              cat.items.push(item);
+            });
+
+            return categories.map((cat, catIdx) => (
+              <div key={cat.name || `cat-${catIdx}`} className="space-y-1">
+                {!collapsed && cat.name && (
+                  <div className="text-[10px] tracking-wider text-zinc-500 font-bold mt-5 mb-1.5 uppercase px-3">
+                    {t(cat.name)}
+                  </div>
+                )}
+                {cat.items.map((item) => {
+                  const hasChildren = !!item.children && item.children.length > 0;
+                  const isOpen = !!openMenus[item.label];
+                  const active = item.href ? isActive(item.href) : (item.children?.some(c => c.href && isActive(c.href)) || false);
+                  const Icon = item.icon;
+
+                  return (
+                    <div key={item.label} className="w-full space-y-1">
+                      {hasChildren ? (
+                        <button
+                          onClick={() => setOpenMenus(prev => ({ ...prev, [item.label]: !prev[item.label] }))}
+                          title={collapsed ? t(item.label) : undefined}
+                          className={`
+                            w-full flex items-center gap-3 h-10 rounded-xl text-sm font-medium transition-all duration-200
+                            ${collapsed ? 'justify-center px-0' : 'px-3'}
+                            ${active
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
+                            }
+                          `}
+                        >
+                          <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                          {!collapsed && (
+                            <>
+                              <span className="flex-1 text-left rtl:text-right">{t(item.label)}</span>
+                              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (item.href) {
+                              router.push(item.href);
+                              setMobileOpen(false);
+                            }
+                          }}
+                          title={collapsed ? t(item.label) : undefined}
+                          className={`
+                            w-full flex items-center gap-3 h-10 rounded-xl text-sm font-medium transition-all duration-200
+                            ${collapsed ? 'justify-center px-0' : 'px-3'}
+                            ${active
+                              ? 'bg-primary/15 text-primary shadow-sm'
+                              : 'text-zinc-655 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
+                            }
+                          `}
+                        >
+                          <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                          {!collapsed && <span>{t(item.label)}</span>}
+                        </button>
+                      )}
+
+                      {/* Nested dropdown items */}
+                      {hasChildren && isOpen && !collapsed && (
+                        <div className="border-l border-zinc-200 dark:border-zinc-800 ml-5 pl-3 space-y-1">
+                          {item.children?.map((child) => {
+                            const childActive = child.href ? isActive(child.href) : false;
+                            const ChildIcon = child.icon;
+                            return (
+                              <button
+                                key={child.href}
+                                onClick={() => {
+                                  if (child.href) {
+                                    router.push(child.href);
+                                    setMobileOpen(false);
+                                  }
+                                }}
+                                className={`
+                                  w-full flex items-center gap-2.5 h-8 rounded-lg text-[13px] font-medium transition-all duration-200 px-2.5
+                                  ${childActive
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/40'
+                                  }
+                                `}
+                              >
+                                <ChildIcon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-primary' : ''}`} />
+                                <span className="text-left rtl:text-right">{t(child.label)}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ));
+          })()}
         </nav>
 
         {/* Collapse toggle */}
@@ -349,38 +536,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <LogOut className="w-4 h-4" />
             </button>
           ) : (
-            <div className="flex items-center gap-3">
-              {user?.profile_image ? (
-                <img
-                  src={user.profile_image}
-                  alt={user.display_name || 'User Profile'}
-                  className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-zinc-200 dark:border-zinc-800"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                    if (fallback) fallback.classList.remove('hidden');
-                  }}
-                />
-              ) : null}
-              <div className={`w-9 h-9 rounded-xl bg-zinc-150 dark:bg-zinc-850 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0 ${user?.profile_image ? 'hidden' : ''}`}>
-                {user?.first_name?.charAt(0) || 'A'}{user?.last_name?.charAt(0) || ''}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <p className="text-sm font-medium truncate">{user?.display_name || user?.first_name || 'Admin'}</p>
-                  {isVerified && (
-                    <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/20 shrink-0" />
-                  )}
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex items-center gap-3">
+                {user?.profile_image ? (
+                  <img
+                    src={user.profile_image}
+                    alt={user.display_name || 'User Profile'}
+                    className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-zinc-200 dark:border-zinc-800"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-9 h-9 rounded-xl bg-zinc-150 dark:bg-zinc-850 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0 ${user?.profile_image ? 'hidden' : ''}`}>
+                  {user?.first_name?.charAt(0) || 'A'}{user?.last_name?.charAt(0) || ''}
                 </div>
-                <p className="text-[11px] text-zinc-500 truncate">{user?.email || 'admin@handyman.com'}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm font-medium truncate">{user?.display_name || user?.first_name || 'Admin'}</p>
+                    {isVerified && (
+                      <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/20 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-zinc-500 truncate">{user?.email || 'admin@handyman.com'}</p>
+                </div>
+                <button
+                  onClick={logout}
+                  title={t('Logout')}
+                  className="text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={logout}
-                title={t('Logout')}
-                className="text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+
+              {/* Commission Info */}
+              {user?.user_type === 'provider' && (
+                <div className="mt-1 pt-1.5 border-t border-zinc-200 dark:border-zinc-800/60 text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                  <div>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">Commission Value: </span>
+                    <span className="text-zinc-600 dark:text-zinc-350">{user?.commission_value ?? 70}%</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">Commission Type: </span>
+                    <span className="text-zinc-600 dark:text-zinc-350">{user?.commission_type || 'Percent'}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
