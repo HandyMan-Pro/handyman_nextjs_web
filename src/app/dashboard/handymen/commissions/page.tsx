@@ -1,31 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../lib/apiClient';
-import { getUserData } from '../../../lib/auth';
-import { HandymenTabs } from './HandymenTabs';
-import { Plus, Search, Edit3, Trash2, X, Loader2 } from 'lucide-react';
+import { apiClient } from '../../../../lib/apiClient';
+import { HandymenTabs } from '../HandymenTabs';
+import {
+  Search, Loader2, Plus, X, Trash2
+} from 'lucide-react';
 
-interface Handyman {
+interface CommissionRule {
   id: string;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  display_name: string;
-  contact_number: string;
-  address: string;
-  wallet_amount: number;
+  name: string;
+  commission_value: number;
+  commission_type: string; // 'Percent' or 'Fixed'
   status: number;
-  created_at: string;
 }
 
-export default function HandymenListPage() {
-  const [handymen, setHandymen] = useState<Handyman[]>([]);
+export default function CommissionsPage() {
+  const [commissions, setCommissions] = useState<CommissionRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,66 +32,65 @@ export default function HandymenListPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Modals
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    username: '',
-    email: '',
-    first_name: '',
-    last_name: '',
-    contact_number: '',
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    commission_value: 0,
+    commission_type: 'Percent',
   });
 
   useEffect(() => {
-    setCurrentUser(getUserData());
-    fetchHandymen();
+    fetchCommissions();
   }, []);
 
-  const fetchHandymen = async () => {
+  const fetchCommissions = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/provider/handymen/list');
-      setHandymen(res.data || []);
+      const res = await apiClient.get('/provider/handymen/commissions');
+      setCommissions(res.data || []);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to fetch handymen');
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch commissions');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInviteSubmit = async (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setInviteLoading(true);
+    if (!form.name.trim() || form.commission_value <= 0) {
+      alert('Please fill out all fields correctly.');
+      return;
+    }
+    setModalLoading(true);
     setError('');
     try {
-      await apiClient.post('/provider/handymen/invite', inviteForm);
-      setSuccess('Handyman invited successfully!');
-      setIsInviteOpen(false);
-      setInviteForm({
-        username: '',
-        email: '',
-        first_name: '',
-        last_name: '',
-        contact_number: '',
+      await apiClient.post('/provider/handymen/commissions', {
+        name: form.name.trim(),
+        commission_value: Number(form.commission_value),
+        commission_type: form.commission_type,
       });
-      fetchHandymen();
+      setSuccess('Commission rule created successfully!');
+      setIsModalOpen(false);
+      setForm({ name: '', commission_value: 0, commission_type: 'Percent' });
+      fetchCommissions();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to invite handyman');
+      setError(err.response?.data?.detail || 'Failed to create commission rule');
     } finally {
-      setInviteLoading(false);
+      setModalLoading(false);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete handyman ${name}?`)) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this commission rule?')) return;
     try {
-      await apiClient.delete(`/providers/${id}`);
-      setSuccess('Handyman deleted successfully!');
-      fetchHandymen();
+      await apiClient.delete(`/provider/handymen/commissions/${id}`);
+      setSuccess('Commission rule deleted successfully!');
+      fetchCommissions();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to delete handyman');
+      setError(err.response?.data?.detail || 'Failed to delete commission rule');
     }
   };
 
@@ -108,12 +101,12 @@ export default function HandymenListPage() {
       return;
     }
     if (selectedAction === 'Delete Selected') {
-      if (confirm(`Delete ${selectedIds.length} selected handymen?`)) {
-        Promise.all(selectedIds.map(id => apiClient.delete(`/providers/${id}`)))
+      if (confirm(`Delete ${selectedIds.length} selected commission rules?`)) {
+        Promise.all(selectedIds.map(id => apiClient.delete(`/provider/handymen/commissions/${id}`)))
           .then(() => {
-            setSuccess('Selected handymen deleted successfully.');
+            setSuccess('Selected rules deleted successfully.');
             setSelectedIds([]);
-            fetchHandymen();
+            fetchCommissions();
           })
           .catch(err => setError(err.message));
       }
@@ -123,11 +116,8 @@ export default function HandymenListPage() {
   };
 
   // Search logic
-  const filtered = handymen.filter(h =>
-    h.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.contact_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.address.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = commissions.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Pagination logic
@@ -141,7 +131,7 @@ export default function HandymenListPage() {
     if (selectedIds.length === currentEntries.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(currentEntries.map(h => h.id));
+      setSelectedIds(currentEntries.map(c => c.id));
     }
   };
 
@@ -158,14 +148,14 @@ export default function HandymenListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Agency Team Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Handyman Commission Rules</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Onboard, review status, and view details for all handymen in your agency team.
+            Configure default and custom job commission rates for your handyman team.
           </p>
         </div>
         <div>
           <button
-            onClick={() => setIsInviteOpen(true)}
+            onClick={() => setIsModalOpen(true)}
             className="flex items-center justify-center gap-2 h-10 px-5 bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20 text-sm"
           >
             <Plus className="w-4 h-4" />
@@ -225,7 +215,7 @@ export default function HandymenListPage() {
       {/* Table Container */}
       <div className="bg-[#18181b] border border-zinc-800/60 rounded-xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] border-collapse">
+          <table className="w-full min-w-[700px] border-collapse">
             <thead>
               <tr className="bg-[#5E5CE6]/90 border-b border-zinc-800/60 text-left">
                 <th className="px-6 py-4 w-12 text-center">
@@ -237,101 +227,63 @@ export default function HandymenListPage() {
                   />
                 </th>
                 <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4">Name</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Joining Date</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4">Provider</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Contact Number</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4">Address</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Wallet Amount</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Status</th>
+                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4">Commission</th>
+                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4">Status</th>
                 <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/50">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-20 text-sm text-zinc-500">
+                  <td colSpan={5} className="text-center py-20 text-sm text-zinc-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5E5CE6]" />
-                    Loading team members...
+                    Loading commission settings...
                   </td>
                 </tr>
               ) : currentEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-16 text-sm text-zinc-500">
+                  <td colSpan={5} className="text-center py-16 text-sm text-zinc-500">
                     No data available in table
                   </td>
                 </tr>
               ) : (
-                currentEntries.map((h) => (
-                  <tr key={h.id} className="hover:bg-zinc-800/25 transition-colors">
+                currentEntries.map((c) => (
+                  <tr key={c.id} className="hover:bg-zinc-800/25 transition-colors">
                     <td className="px-6 py-4 text-center">
                       <input
                         type="checkbox"
-                        checked={selectedIds.includes(h.id)}
-                        onChange={() => toggleSelectOne(h.id)}
+                        checked={selectedIds.includes(c.id)}
+                        onChange={() => toggleSelectOne(c.id)}
                         className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-[#5E5CE6] focus:ring-0 focus:ring-offset-0"
                       />
                     </td>
-                    {/* Name column */}
+                    <td className="px-6 py-4 text-sm font-semibold text-white">
+                      {c.name || '—'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-zinc-300 font-medium">
+                      {c.commission_type === 'Percent' ? `${c.commission_value}%` : `$${c.commission_value.toFixed(2)}`}
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-bold text-white text-sm">
-                          {h.display_name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-white">{h.display_name}</p>
-                          <p className="text-xs text-zinc-400">{h.email}</p>
-                        </div>
-                      </div>
+                      {c.status !== undefined ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800/50">
+                          Active
+                        </span>
+                      ) : (
+                        '—'
+                      )}
                     </td>
-                    {/* Joining date */}
-                    <td className="px-4 py-4 text-sm text-zinc-300">
-                      {h.created_at ? new Date(h.created_at).toLocaleDateString() : '—'}
-                    </td>
-                    {/* Provider column */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#5E5CE6]/10 flex items-center justify-center text-[10px] font-bold text-[#5E5CE6]">
-                          {currentUser?.display_name?.charAt(0) || 'P'}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-white">{currentUser?.display_name || 'Owner'}</p>
-                          <p className="text-[10px] text-zinc-500">{currentUser?.email || ''}</p>
-                        </div>
-                      </div>
-                    </td>
-                    {/* Contact Number */}
-                    <td className="px-4 py-4 text-sm text-zinc-300">{h.contact_number || '—'}</td>
-                    {/* Address */}
-                    <td className="px-6 py-4 text-sm text-zinc-400 max-w-[200px] truncate" title={h.address}>
-                      {h.address || '—'}
-                    </td>
-                    {/* Wallet Amount */}
-                    <td className="px-4 py-4 text-sm font-semibold text-[#5E5CE6]">
-                      ${h.wallet_amount.toFixed(2)}
-                    </td>
-                    {/* Status */}
-                    <td className="px-4 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800/50">
-                        Active
-                      </span>
-                    </td>
-                    {/* Action */}
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2.5">
+                      {c.id ? (
                         <button
-                          title="Edit Handyman"
-                          className="w-7 h-7 rounded-lg bg-blue-950/40 hover:bg-blue-900/60 text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center justify-center border border-blue-900/20"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(h.id, h.display_name)}
-                          title="Delete Handyman"
+                          onClick={() => handleDelete(c.id)}
+                          title="Delete Rule"
                           className="w-7 h-7 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-300 transition-colors inline-flex items-center justify-center border border-red-900/20"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      </div>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                   </tr>
                 ))
@@ -379,94 +331,72 @@ export default function HandymenListPage() {
         </div>
       </div>
 
-      {/* Invite Modal */}
-      {isInviteOpen && (
+      {/* Create Commission Modal */}
+      {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsInviteOpen(false)} />
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
           <div className="relative z-10 w-full max-w-md bg-zinc-900 border border-zinc-800/80 rounded-2xl p-6 shadow-2xl animate-scale-in">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-white">Onboard New Handyman</h3>
-              <button onClick={() => setIsInviteOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+              <h3 className="text-base font-bold text-white">Create Commission Rule</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleInviteSubmit} className="space-y-4">
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Rule Name</label>
+                <input
+                  type="text"
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Freelance Team Rate"
+                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">First Name</label>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Value</label>
                   <input
-                    type="text"
+                    type="number"
+                    step="0.01"
                     required
-                    value={inviteForm.first_name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, first_name: e.target.value })}
-                    placeholder="John"
+                    value={form.commission_value || ''}
+                    onChange={(e) => setForm({ ...form, commission_value: Number(e.target.value) })}
+                    placeholder="10"
                     className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Last Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={inviteForm.last_name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, last_name: e.target.value })}
-                    placeholder="Doe"
+                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Type</label>
+                  <select
+                    value={form.commission_type}
+                    onChange={(e) => setForm({ ...form, commission_type: e.target.value })}
                     className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                  />
+                  >
+                    <option value="Percent">Percent (%)</option>
+                    <option value="Fixed">Fixed ($)</option>
+                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Username</label>
-                <input
-                  type="text"
-                  required
-                  value={inviteForm.username}
-                  onChange={(e) => setInviteForm({ ...inviteForm, username: e.target.value })}
-                  placeholder="johndoe123"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={inviteForm.email}
-                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  placeholder="john.doe@example.com"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Phone Number</label>
-                <input
-                  type="text"
-                  value={inviteForm.contact_number}
-                  onChange={(e) => setInviteForm({ ...inviteForm, contact_number: e.target.value })}
-                  placeholder="+91 9876543210"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
               </div>
 
               <div className="pt-2 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsInviteOpen(false)}
+                  onClick={() => setIsModalOpen(false)}
                   className="flex-1 h-10 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-semibold rounded-xl transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={inviteLoading}
+                  disabled={modalLoading}
                   className="flex-1 h-10 bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
                 >
-                  {inviteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Invite
+                  {modalLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Create Rule
                 </button>
               </div>
             </form>

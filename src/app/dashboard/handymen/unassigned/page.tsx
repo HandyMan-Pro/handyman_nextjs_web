@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../lib/apiClient';
-import { getUserData } from '../../../lib/auth';
-import { HandymenTabs } from './HandymenTabs';
-import { Plus, Search, Edit3, Trash2, X, Loader2 } from 'lucide-react';
+import { apiClient } from '../../../../lib/apiClient';
+import { getUserData } from '../../../../lib/auth';
+import { HandymenTabs } from '../HandymenTabs';
+import {
+  Search, Loader2, Edit3, Trash2
+} from 'lucide-react';
 
 interface Handyman {
   id: string;
@@ -20,7 +22,7 @@ interface Handyman {
   created_at: string;
 }
 
-export default function HandymenListPage() {
+export default function UnassignedHandymenPage() {
   const [handymen, setHandymen] = useState<Handyman[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,55 +40,21 @@ export default function HandymenListPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Modals
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    username: '',
-    email: '',
-    first_name: '',
-    last_name: '',
-    contact_number: '',
-  });
-
   useEffect(() => {
     setCurrentUser(getUserData());
-    fetchHandymen();
+    fetchUnassigned();
   }, []);
 
-  const fetchHandymen = async () => {
+  const fetchUnassigned = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/provider/handymen/list');
+      const res = await apiClient.get('/provider/handymen/unassigned');
       setHandymen(res.data || []);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to fetch handymen');
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch unassigned handymen');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleInviteSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInviteLoading(true);
-    setError('');
-    try {
-      await apiClient.post('/provider/handymen/invite', inviteForm);
-      setSuccess('Handyman invited successfully!');
-      setIsInviteOpen(false);
-      setInviteForm({
-        username: '',
-        email: '',
-        first_name: '',
-        last_name: '',
-        contact_number: '',
-      });
-      fetchHandymen();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to invite handyman');
-    } finally {
-      setInviteLoading(false);
     }
   };
 
@@ -95,7 +63,7 @@ export default function HandymenListPage() {
     try {
       await apiClient.delete(`/providers/${id}`);
       setSuccess('Handyman deleted successfully!');
-      fetchHandymen();
+      fetchUnassigned();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to delete handyman');
     }
@@ -113,7 +81,7 @@ export default function HandymenListPage() {
           .then(() => {
             setSuccess('Selected handymen deleted successfully.');
             setSelectedIds([]);
-            fetchHandymen();
+            fetchUnassigned();
           })
           .catch(err => setError(err.message));
       }
@@ -158,19 +126,10 @@ export default function HandymenListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Agency Team Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Unassigned Handymen</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Onboard, review status, and view details for all handymen in your agency team.
+            View handymen who are currently offline or have no active tasks or bookings assigned to them.
           </p>
-        </div>
-        <div>
-          <button
-            onClick={() => setIsInviteOpen(true)}
-            className="flex items-center justify-center gap-2 h-10 px-5 bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20 text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            + New
-          </button>
         </div>
       </div>
 
@@ -251,7 +210,7 @@ export default function HandymenListPage() {
                 <tr>
                   <td colSpan={9} className="text-center py-20 text-sm text-zinc-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5E5CE6]" />
-                    Loading team members...
+                    Loading unassigned handymen...
                   </td>
                 </tr>
               ) : currentEntries.length === 0 ? (
@@ -378,101 +337,6 @@ export default function HandymenListPage() {
           </div>
         </div>
       </div>
-
-      {/* Invite Modal */}
-      {isInviteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsInviteOpen(false)} />
-          <div className="relative z-10 w-full max-w-md bg-zinc-900 border border-zinc-800/80 rounded-2xl p-6 shadow-2xl animate-scale-in">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-white">Onboard New Handyman</h3>
-              <button onClick={() => setIsInviteOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleInviteSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">First Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={inviteForm.first_name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, first_name: e.target.value })}
-                    placeholder="John"
-                    className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Last Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={inviteForm.last_name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, last_name: e.target.value })}
-                    placeholder="Doe"
-                    className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Username</label>
-                <input
-                  type="text"
-                  required
-                  value={inviteForm.username}
-                  onChange={(e) => setInviteForm({ ...inviteForm, username: e.target.value })}
-                  placeholder="johndoe123"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={inviteForm.email}
-                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  placeholder="john.doe@example.com"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Phone Number</label>
-                <input
-                  type="text"
-                  value={inviteForm.contact_number}
-                  onChange={(e) => setInviteForm({ ...inviteForm, contact_number: e.target.value })}
-                  placeholder="+91 9876543210"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsInviteOpen(false)}
-                  className="flex-1 h-10 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-semibold rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={inviteLoading}
-                  className="flex-1 h-10 bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  {inviteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Invite
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

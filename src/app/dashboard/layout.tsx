@@ -86,9 +86,9 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
     category: 'USER',
     children: [
       { label: 'Handyman List', icon: Users, href: '/dashboard/handymen' },
-      { label: 'Handyman Request List', icon: ClipboardCheck, href: '/dashboard/handyman-requests' },
-      { label: 'Unassigned Handyman', icon: UserMinus, href: '/dashboard/unassigned-handymen' },
-      { label: 'Handyman Commission List', icon: Percent, href: '/dashboard/handyman-commissions' }
+      { label: 'Handyman Request List', icon: ClipboardCheck, href: '/dashboard/handymen/requests' },
+      { label: 'Unassigned Handyman', icon: UserMinus, href: '/dashboard/handymen/unassigned' },
+      { label: 'Handyman Commission List', icon: Percent, href: '/dashboard/handymen/commissions' }
     ]
   },
   {

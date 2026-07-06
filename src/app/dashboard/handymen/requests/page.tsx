@@ -1,27 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../lib/apiClient';
-import { getUserData } from '../../../lib/auth';
-import { HandymenTabs } from './HandymenTabs';
-import { Plus, Search, Edit3, Trash2, X, Loader2 } from 'lucide-react';
+import { apiClient } from '../../../../lib/apiClient';
+import { getUserData } from '../../../../lib/auth';
+import { HandymenTabs } from '../HandymenTabs';
+import {
+  Search, Loader2, Check
+} from 'lucide-react';
 
-interface Handyman {
+interface RequestItem {
   id: string;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
+  handyman_id: string;
   display_name: string;
+  email: string;
   contact_number: string;
   address: string;
   wallet_amount: number;
-  status: number;
+  status: string;
   created_at: string;
 }
 
-export default function HandymenListPage() {
-  const [handymen, setHandymen] = useState<Handyman[]>([]);
+export default function HandymanRequestsPage() {
+  const [requests, setRequests] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -38,66 +38,39 @@ export default function HandymenListPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Modals
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    username: '',
-    email: '',
-    first_name: '',
-    last_name: '',
-    contact_number: '',
-  });
+  // Action Loading states
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentUser(getUserData());
-    fetchHandymen();
+    fetchRequests();
   }, []);
 
-  const fetchHandymen = async () => {
+  const fetchRequests = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/provider/handymen/list');
-      setHandymen(res.data || []);
+      const res = await apiClient.get('/provider/handymen/requests');
+      setRequests(res.data || []);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to fetch handymen');
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch requests');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInviteSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInviteLoading(true);
+  const handleAccept = async (id: string) => {
+    setAcceptingId(id);
     setError('');
+    setSuccess('');
     try {
-      await apiClient.post('/provider/handymen/invite', inviteForm);
-      setSuccess('Handyman invited successfully!');
-      setIsInviteOpen(false);
-      setInviteForm({
-        username: '',
-        email: '',
-        first_name: '',
-        last_name: '',
-        contact_number: '',
-      });
-      fetchHandymen();
+      await apiClient.post(`/provider/handymen/requests/${id}/accept`);
+      setSuccess('Handyman request accepted successfully!');
+      fetchRequests();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to invite handyman');
+      setError(err.response?.data?.detail || 'Failed to accept handyman request');
     } finally {
-      setInviteLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete handyman ${name}?`)) return;
-    try {
-      await apiClient.delete(`/providers/${id}`);
-      setSuccess('Handyman deleted successfully!');
-      fetchHandymen();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to delete handyman');
+      setAcceptingId(null);
     }
   };
 
@@ -107,13 +80,13 @@ export default function HandymenListPage() {
       alert('Please select entries to apply action.');
       return;
     }
-    if (selectedAction === 'Delete Selected') {
-      if (confirm(`Delete ${selectedIds.length} selected handymen?`)) {
-        Promise.all(selectedIds.map(id => apiClient.delete(`/providers/${id}`)))
+    if (selectedAction === 'Accept Selected') {
+      if (confirm(`Accept all ${selectedIds.length} selected join requests?`)) {
+        Promise.all(selectedIds.map(id => apiClient.post(`/provider/handymen/requests/${id}/accept`)))
           .then(() => {
-            setSuccess('Selected handymen deleted successfully.');
+            setSuccess('Selected join requests accepted successfully.');
             setSelectedIds([]);
-            fetchHandymen();
+            fetchRequests();
           })
           .catch(err => setError(err.message));
       }
@@ -123,11 +96,11 @@ export default function HandymenListPage() {
   };
 
   // Search logic
-  const filtered = handymen.filter(h =>
-    h.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.contact_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.address.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = requests.filter(r =>
+    r.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.contact_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Pagination logic
@@ -141,7 +114,7 @@ export default function HandymenListPage() {
     if (selectedIds.length === currentEntries.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(currentEntries.map(h => h.id));
+      setSelectedIds(currentEntries.map(r => r.id));
     }
   };
 
@@ -158,19 +131,10 @@ export default function HandymenListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Agency Team Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Handyman Requests</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Onboard, review status, and view details for all handymen in your agency team.
+            Review and accept pending connection requests from independent handymen.
           </p>
-        </div>
-        <div>
-          <button
-            onClick={() => setIsInviteOpen(true)}
-            className="flex items-center justify-center gap-2 h-10 px-5 bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#5E5CE6]/20 text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            + New
-          </button>
         </div>
       </div>
 
@@ -200,7 +164,7 @@ export default function HandymenListPage() {
             className="h-10 px-3 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
           >
             <option>No Action</option>
-            <option>Delete Selected</option>
+            <option>Accept Selected</option>
           </select>
           <button
             onClick={handleApplyAction}
@@ -242,7 +206,7 @@ export default function HandymenListPage() {
                 <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Contact Number</th>
                 <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4">Address</th>
                 <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Wallet Amount</th>
-                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4">Status</th>
+                <th className="text-[11px] font-bold text-white uppercase tracking-wider px-4 py-4 text-center">Status</th>
                 <th className="text-[11px] font-bold text-white uppercase tracking-wider px-6 py-4 text-center">Action</th>
               </tr>
             </thead>
@@ -251,7 +215,7 @@ export default function HandymenListPage() {
                 <tr>
                   <td colSpan={9} className="text-center py-20 text-sm text-zinc-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#5E5CE6]" />
-                    Loading team members...
+                    Loading requests...
                   </td>
                 </tr>
               ) : currentEntries.length === 0 ? (
@@ -261,13 +225,13 @@ export default function HandymenListPage() {
                   </td>
                 </tr>
               ) : (
-                currentEntries.map((h) => (
-                  <tr key={h.id} className="hover:bg-zinc-800/25 transition-colors">
+                currentEntries.map((r) => (
+                  <tr key={r.id} className="hover:bg-zinc-800/25 transition-colors">
                     <td className="px-6 py-4 text-center">
                       <input
                         type="checkbox"
-                        checked={selectedIds.includes(h.id)}
-                        onChange={() => toggleSelectOne(h.id)}
+                        checked={selectedIds.includes(r.id)}
+                        onChange={() => toggleSelectOne(r.id)}
                         className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-[#5E5CE6] focus:ring-0 focus:ring-offset-0"
                       />
                     </td>
@@ -275,17 +239,17 @@ export default function HandymenListPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-bold text-white text-sm">
-                          {h.display_name.charAt(0)}
+                          {r.display_name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">{h.display_name}</p>
-                          <p className="text-xs text-zinc-400">{h.email}</p>
+                          <p className="text-sm font-semibold text-white">{r.display_name}</p>
+                          <p className="text-xs text-zinc-400">{r.email}</p>
                         </div>
                       </div>
                     </td>
                     {/* Joining date */}
                     <td className="px-4 py-4 text-sm text-zinc-300">
-                      {h.created_at ? new Date(h.created_at).toLocaleDateString() : '—'}
+                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}
                     </td>
                     {/* Provider column */}
                     <td className="px-6 py-4">
@@ -300,39 +264,31 @@ export default function HandymenListPage() {
                       </div>
                     </td>
                     {/* Contact Number */}
-                    <td className="px-4 py-4 text-sm text-zinc-300">{h.contact_number || '—'}</td>
+                    <td className="px-4 py-4 text-sm text-zinc-300">{r.contact_number || '—'}</td>
                     {/* Address */}
-                    <td className="px-6 py-4 text-sm text-zinc-400 max-w-[200px] truncate" title={h.address}>
-                      {h.address || '—'}
+                    <td className="px-6 py-4 text-sm text-zinc-400 max-w-[200px] truncate" title={r.address}>
+                      {r.address || '—'}
                     </td>
                     {/* Wallet Amount */}
                     <td className="px-4 py-4 text-sm font-semibold text-[#5E5CE6]">
-                      ${h.wallet_amount.toFixed(2)}
+                      ${r.wallet_amount.toFixed(2)}
                     </td>
-                    {/* Status */}
-                    <td className="px-4 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800/50">
-                        Active
-                      </span>
+                    {/* Status Button Accept */}
+                    <td className="px-4 py-4 text-center">
+                      <button
+                        onClick={() => handleAccept(r.id)}
+                        disabled={acceptingId !== null}
+                        className="inline-flex items-center justify-center px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition-all shadow-md shadow-emerald-950/20"
+                      >
+                        {acceptingId === r.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          'Accept'
+                        )}
+                      </button>
                     </td>
                     {/* Action */}
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2.5">
-                        <button
-                          title="Edit Handyman"
-                          className="w-7 h-7 rounded-lg bg-blue-950/40 hover:bg-blue-900/60 text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center justify-center border border-blue-900/20"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(h.id, h.display_name)}
-                          title="Delete Handyman"
-                          className="w-7 h-7 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-300 transition-colors inline-flex items-center justify-center border border-red-900/20"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
+                    <td className="px-6 py-4 text-center text-zinc-500">—</td>
                   </tr>
                 ))
               )}
@@ -378,101 +334,6 @@ export default function HandymenListPage() {
           </div>
         </div>
       </div>
-
-      {/* Invite Modal */}
-      {isInviteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsInviteOpen(false)} />
-          <div className="relative z-10 w-full max-w-md bg-zinc-900 border border-zinc-800/80 rounded-2xl p-6 shadow-2xl animate-scale-in">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-white">Onboard New Handyman</h3>
-              <button onClick={() => setIsInviteOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleInviteSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">First Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={inviteForm.first_name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, first_name: e.target.value })}
-                    placeholder="John"
-                    className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Last Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={inviteForm.last_name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, last_name: e.target.value })}
-                    placeholder="Doe"
-                    className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Username</label>
-                <input
-                  type="text"
-                  required
-                  value={inviteForm.username}
-                  onChange={(e) => setInviteForm({ ...inviteForm, username: e.target.value })}
-                  placeholder="johndoe123"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={inviteForm.email}
-                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  placeholder="john.doe@example.com"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase mb-1 block">Phone Number</label>
-                <input
-                  type="text"
-                  value={inviteForm.contact_number}
-                  onChange={(e) => setInviteForm({ ...inviteForm, contact_number: e.target.value })}
-                  placeholder="+91 9876543210"
-                  className="w-full h-10 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[#5E5CE6]"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsInviteOpen(false)}
-                  className="flex-1 h-10 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-semibold rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={inviteLoading}
-                  className="flex-1 h-10 bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  {inviteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Invite
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

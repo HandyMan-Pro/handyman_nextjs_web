@@ -5,7 +5,7 @@ import { apiClient } from '../../../lib/apiClient';
 import { useAuthStore } from '../../../store/useAuthStore';
 import {
   ClipboardList, Search, Eye, Trash2, X, Loader2,
-  AlertCircle, CheckCircle, HelpCircle, DollarSign, BookOpen
+  AlertCircle, CheckCircle, HelpCircle, DollarSign, BookOpen, User
 } from 'lucide-react';
 
 interface Bid {
