@@ -573,14 +573,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               {/* Commission Info */}
               {user?.user_type === 'provider' && (
-                <div className="mt-1 pt-1.5 border-t border-zinc-200 dark:border-zinc-800/60 text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
-                  <div>
-                    <span className="font-bold text-zinc-700 dark:text-zinc-300">Commission Value: </span>
-                    <span className="text-zinc-600 dark:text-zinc-350">{user?.commission_value ?? 70}%</span>
+                <div className="mt-6 mb-2 space-y-3 px-1 border-t border-zinc-200 dark:border-zinc-800/60 pt-5">
+                  <div className="text-[13px] text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                    <span className="font-bold text-zinc-800 dark:text-zinc-100">Commission Value:</span> 
+                    <span>{user.commission_value || 70}%</span>
                   </div>
-                  <div>
-                    <span className="font-bold text-zinc-700 dark:text-zinc-300">Commission Type: </span>
-                    <span className="text-zinc-600 dark:text-zinc-350">{user?.commission_type || 'Percent'}</span>
+                  <div className="text-[13px] text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                    <span className="font-bold text-zinc-800 dark:text-zinc-100">Commission Type:</span> 
+                    <span>{user.commission_type || 'Percent'}</span>
                   </div>
                 </div>
               )}
