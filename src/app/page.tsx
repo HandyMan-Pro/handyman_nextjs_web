@@ -200,7 +200,7 @@ export default function DashboardPage() {
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   // New multi-role signup and profile image states
-  const [signupRole, setSignupRole] = useState<'user' | 'provider'>('user');
+  const [signupRole, setSignupRole] = useState<'user' | 'provider' | 'handyman'>('user');
   const [signupProviderType, setSignupProviderType] = useState('');
   const [signupProfileImage, setSignupProfileImage] = useState('');
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -4319,30 +4319,81 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <>
-                  {/* Account Type Tabs */}
-                  <div className="flex gap-2 p-1 bg-[#121214] border border-zinc-800 rounded-2xl mb-5">
-                    <button
-                      type="button"
-                      onClick={() => { setSignupRole('user'); setSignupError(''); }}
-                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        signupRole === 'user'
-                          ? 'bg-[#5E5CE6] text-white shadow-lg shadow-[#5E5CE6]/20'
-                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800/40'
-                      }`}
-                    >
-                      Handyman User
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setSignupRole('provider'); setSignupError(''); }}
-                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        signupRole === 'provider'
-                          ? 'bg-[#5E5CE6] text-white shadow-lg shadow-[#5E5CE6]/20'
-                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800/40'
-                      }`}
-                    >
-                      Handyman Provider
-                    </button>
+                  {/* Account Type Selection Cards */}
+                  <div className="mb-6 animate-fade-in">
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2.5 text-center">
+                      Select Your Role
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {/* Customer Card */}
+                      <button
+                        type="button"
+                        onClick={() => { setSignupRole('user'); setSignupError(''); }}
+                        className={`group relative flex flex-col items-center text-center p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                          signupRole === 'user'
+                            ? 'bg-[#5E5CE6]/10 border-[#5E5CE6] shadow-lg shadow-[#5E5CE6]/10 scale-[1.01]'
+                            : 'bg-[#121214] border-zinc-850 hover:border-zinc-700 hover:bg-[#18181b]'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 transition-all ${
+                          signupRole === 'user'
+                            ? 'bg-[#5E5CE6] text-white'
+                            : 'bg-zinc-900 text-zinc-400 group-hover:text-white group-hover:bg-[#5E5CE6]/20'
+                        }`}>
+                          <UserIcon className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-xs font-bold text-white mb-0.5">Customer</h4>
+                        <p className="text-[10px] text-zinc-500 leading-tight">
+                          Hire experts & book services
+                        </p>
+                      </button>
+
+                      {/* Provider Card */}
+                      <button
+                        type="button"
+                        onClick={() => { setSignupRole('provider'); setSignupError(''); }}
+                        className={`group relative flex flex-col items-center text-center p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                          signupRole === 'provider'
+                            ? 'bg-[#5E5CE6]/10 border-[#5E5CE6] shadow-lg shadow-[#5E5CE6]/10 scale-[1.01]'
+                            : 'bg-[#121214] border-zinc-850 hover:border-zinc-700 hover:bg-[#18181b]'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 transition-all ${
+                          signupRole === 'provider'
+                            ? 'bg-[#5E5CE6] text-white'
+                            : 'bg-zinc-900 text-zinc-400 group-hover:text-white group-hover:bg-[#5E5CE6]/20'
+                        }`}>
+                          <Briefcase className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-xs font-bold text-white mb-0.5">Provider / Agency</h4>
+                        <p className="text-[10px] text-zinc-500 leading-tight">
+                          Manage agency & dispatch workers
+                        </p>
+                      </button>
+
+                      {/* Handyman Card */}
+                      <button
+                        type="button"
+                        onClick={() => { setSignupRole('handyman'); setSignupError(''); }}
+                        className={`group relative flex flex-col items-center text-center p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                          signupRole === 'handyman'
+                            ? 'bg-[#5E5CE6]/10 border-[#5E5CE6] shadow-lg shadow-[#5E5CE6]/10 scale-[1.01]'
+                            : 'bg-[#121214] border-zinc-850 hover:border-zinc-700 hover:bg-[#18181b]'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 transition-all ${
+                          signupRole === 'handyman'
+                            ? 'bg-[#5E5CE6] text-white'
+                            : 'bg-zinc-900 text-zinc-400 group-hover:text-white group-hover:bg-[#5E5CE6]/20'
+                        }`}>
+                          <Wrench className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-xs font-bold text-white mb-0.5">Handyman</h4>
+                        <p className="text-[10px] text-zinc-500 leading-tight">
+                          Join teams & fulfill works
+                        </p>
+                      </button>
+                    </div>
                   </div>
 
                   {signupError && (

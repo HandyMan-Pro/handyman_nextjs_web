@@ -207,8 +207,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           router.replace('/dashboard');
         }
       } else if (userData.user_type === 'handyman') {
-        if (!path.startsWith('/dashboard/bookings') && !path.startsWith('/dashboard/blogs')) {
-          router.replace('/dashboard/bookings');
+        const handymanAllowed = [
+          '/dashboard',
+          '/dashboard/bookings',
+          '/dashboard/blogs'
+        ];
+        const isAllowed = handymanAllowed.some(p => path === p || path.startsWith(p + '/'));
+        if (!isAllowed) {
+          router.replace('/dashboard');
         }
       }
     }
@@ -236,9 +242,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return PROVIDER_NAV_ITEMS;
     }
     if (user.user_type === 'handyman') {
-      return NAV_ITEMS.filter(item => 
-        ['Bookings', 'Blogs'].includes(item.label)
-      );
+      return [
+        { label: 'Dashboard',   icon: LayoutDashboard, href: '/dashboard' },
+        { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/bookings' },
+        { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs' },
+      ];
     }
     if (user.user_type === 'user') {
       return USER_NAV_ITEMS;

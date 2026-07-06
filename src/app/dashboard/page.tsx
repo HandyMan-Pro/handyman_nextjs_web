@@ -185,6 +185,14 @@ export default function DashboardPage() {
   const [role, setRole] = useState<'admin' | 'provider' | 'handyman' | 'user' | null>(null);
   const [user, setUser] = useState<any>(null);
 
+  // Handyman States
+  const [handymanInvites, setHandymanInvites] = useState<any[]>([]);
+  const [handymanJobs, setHandymanJobs] = useState<any[]>([]);
+  const [handymanUpcomingJobs, setHandymanUpcomingJobs] = useState<any[]>([]);
+  const [handymanProfile, setHandymanProfile] = useState<any>(null);
+  const [handymanActiveTab, setHandymanActiveTab] = useState<'invites' | 'jobs' | 'upcoming'>('invites');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -196,6 +204,17 @@ export default function DashboardPage() {
       if (userRole === 'provider') {
         const response = await apiClient.get('/provider/dashboard/summary');
         setProviderData(response.data.data);
+      } else if (userRole === 'handyman') {
+        const [profileRes, invitesRes, jobsRes, upcomingRes] = await Promise.all([
+          apiClient.get(`/user-detail?id=${currentUser.id}`),
+          apiClient.get('/handyman/team/requests'),
+          apiClient.get('/provider/bookings/requests'),
+          apiClient.get('/provider/bookings/upcoming')
+        ]);
+        setHandymanProfile(profileRes.data.data || profileRes.data);
+        setHandymanInvites(invitesRes.data);
+        setHandymanJobs(jobsRes.data.data || jobsRes.data);
+        setHandymanUpcomingJobs(upcomingRes.data.data || upcomingRes.data);
       } else {
         const response = await apiClient.get('/admin/stats');
         setStats(response.data);
@@ -206,6 +225,37 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTeamAction = async (requestId: string, action: 'accept' | 'reject') => {
+    try {
+      setActionLoading(requestId);
+      await apiClient.post(`/handyman/team/requests/${requestId}/action`, { action });
+      await fetchStats();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || `Failed to ${action} invitation`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBookingAction = async (bookingId: string, action: 'accept' | 'decline') => {
+    try {
+      setActionLoading(bookingId);
+      await apiClient.post(`/handyman/bookings/${bookingId}/action`, { action });
+      await fetchStats();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || `Failed to ${action} booking`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const [copied, setCopied] = useState(false);
+  const handleCopyWorkerId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   useEffect(() => {
@@ -353,6 +403,285 @@ export default function DashboardPage() {
 
         {/* Revenue Line Chart */}
         <ProviderRevenueChart data={chart_data} />
+      </div>
+    );
+  }
+
+  // --- RENDER HANDYMAN HOME ---
+  if (role === 'handyman') {
+    return (
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Hello, {user?.display_name || 'Handyman'} - Welcome back!
+            </h1>
+            <p className="text-zinc-500 text-sm mt-0.5">Manage your agency links, invitations, and active assignments.</p>
+          </div>
+          <button
+            onClick={fetchStats}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900/80 border border-zinc-800/60 rounded-xl text-sm text-zinc-400 hover:text-white hover:border-zinc-700 transition-all self-start sm:self-auto"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Worker ID & Status Card */}
+          <div className="lg:col-span-1 bg-gradient-to-br from-zinc-900 via-zinc-955 to-zinc-900 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden shadow-xl animate-fade-in-up">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#5E5CE6]/5 rounded-full blur-2xl" />
+            <h3 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider">Worker Profile</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">Your Unique Worker ID</p>
+                <div className="flex items-center gap-2 bg-[#121214] border border-zinc-800/80 rounded-2xl p-3.5 justify-between">
+                  <span className="font-mono text-lg font-bold text-white tracking-wider">
+                    {handymanProfile?.unique_worker_id || 'HM-PENDING'}
+                  </span>
+                  {handymanProfile?.unique_worker_id && (
+                    <button
+                      onClick={() => handleCopyWorkerId(handymanProfile.unique_worker_id)}
+                      className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-xl text-zinc-400 hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">Agency Affiliation</p>
+                <div className="p-3.5 rounded-2xl bg-[#121214] border border-zinc-800/80 flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${handymanProfile?.parent_provider_id ? 'bg-emerald-500 shadow-lg shadow-emerald-500/25' : 'bg-amber-500 animate-pulse'}`} />
+                  <span className="text-sm font-medium text-white truncate">
+                    {handymanProfile?.parent_provider_id
+                      ? `Linked to: ${handymanProfile.parent_provider_name || 'Agency'}`
+                      : 'Freelancer / Independent'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                label: 'Agency Invites',
+                value: handymanInvites.length,
+                color: 'text-blue-400',
+                bgColor: 'bg-blue-500/10 border-blue-500/20',
+              },
+              {
+                label: 'Job Requests',
+                value: handymanJobs.length,
+                color: 'text-amber-400',
+                bgColor: 'bg-amber-500/10 border-amber-500/20',
+              },
+              {
+                label: 'Scheduled Jobs',
+                value: handymanUpcomingJobs.length,
+                color: 'text-emerald-400',
+                bgColor: 'bg-emerald-500/10 border-emerald-500/20',
+              },
+            ].map((metric, idx) => (
+              <div
+                key={idx}
+                className="bg-zinc-900/60 border border-zinc-800/40 rounded-2xl p-5 flex flex-col justify-between shadow-md animate-fade-in-up"
+                style={{ animationDelay: `${idx * 80}ms` }}
+              >
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{metric.label}</span>
+                <span className={`text-4xl font-bold tracking-tight ${metric.color} mt-4`}>{metric.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabs Control */}
+        <div className="flex border-b border-zinc-850 gap-6">
+          {[
+            { id: 'invites', label: 'Agency Invites', count: handymanInvites.length },
+            { id: 'jobs', label: 'Job Requests', count: handymanJobs.length },
+            { id: 'upcoming', label: 'Scheduled Jobs', count: handymanUpcomingJobs.length },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setHandymanActiveTab(tab.id as any)}
+              className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer ${
+                handymanActiveTab === tab.id
+                  ? 'text-[#5E5CE6]'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                    handymanActiveTab === tab.id
+                      ? 'bg-[#5E5CE6] text-white'
+                      : 'bg-zinc-800 text-zinc-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </span>
+              {handymanActiveTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#5E5CE6] rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Panels */}
+        <div className="space-y-4">
+          {handymanActiveTab === 'invites' && (
+            <div className="space-y-4">
+              {handymanInvites.length === 0 ? (
+                <div className="text-center py-12 bg-zinc-900/20 border border-dashed border-zinc-800 rounded-3xl animate-fade-in">
+                  <p className="text-zinc-500 text-sm">No pending invitations from agencies.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {handymanInvites.map((invite) => (
+                    <div key={invite.id} className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg animate-fade-in">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-semibold px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md">
+                            Pending Invite
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {invite.created_at ? new Date(invite.created_at).toLocaleDateString() : ''}
+                          </span>
+                        </div>
+                        <h4 className="text-base font-bold text-white mb-1">{invite.provider_name}</h4>
+                        <p className="text-xs text-zinc-400">Invited you to join their agency team. Joining allows the provider to assign you job requests directly.</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 mt-6">
+                        <button
+                          onClick={() => handleTeamAction(invite.id, 'accept')}
+                          disabled={!!actionLoading}
+                          className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50 cursor-pointer shadow-md hover:shadow-emerald-600/10"
+                        >
+                          {actionLoading === invite.id ? 'Processing...' : 'Accept Invite'}
+                        </button>
+                        <button
+                          onClick={() => handleTeamAction(invite.id, 'reject')}
+                          disabled={!!actionLoading}
+                          className="flex-1 py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold border border-zinc-700 rounded-xl text-xs transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {handymanActiveTab === 'jobs' && (
+            <div className="space-y-4">
+              {handymanJobs.length === 0 ? (
+                <div className="text-center py-12 bg-zinc-900/20 border border-dashed border-zinc-800 rounded-3xl animate-fade-in">
+                  <p className="text-zinc-500 text-sm">No pending job requests assigned to you.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {handymanJobs.map((job) => (
+                    <div key={job.id} className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg animate-fade-in">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md">
+                            Acceptance Pending
+                          </span>
+                          <span className="text-sm font-bold text-white">₹{(job.amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-base font-bold text-white">{job.service_name}</h4>
+                          <p className="text-xs text-zinc-400 mt-1">Customer: <span className="text-zinc-300 font-medium">{job.customer_name}</span></p>
+                          <p className="text-xs text-zinc-400">Date: <span className="text-zinc-300 font-medium">{job.date}</span></p>
+                          {job.address && (
+                            <p className="text-xs text-zinc-400">Location: <span className="text-zinc-300 font-medium">{job.address}</span></p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 mt-6">
+                        <button
+                          onClick={() => handleBookingAction(job.id, 'accept')}
+                          disabled={!!actionLoading}
+                          className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50 cursor-pointer shadow-md hover:shadow-emerald-600/10"
+                        >
+                          {actionLoading === job.id ? 'Processing...' : 'Accept Job'}
+                        </button>
+                        <button
+                          onClick={() => handleBookingAction(job.id, 'decline')}
+                          disabled={!!actionLoading}
+                          className="flex-1 py-2.5 px-4 bg-red-950/40 hover:bg-red-900/20 border border-red-900/30 text-red-400 font-bold rounded-xl text-xs transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {handymanActiveTab === 'upcoming' && (
+            <div className="space-y-4 animate-fade-in">
+              {handymanUpcomingJobs.length === 0 ? (
+                <div className="text-center py-12 bg-zinc-900/20 border border-dashed border-zinc-800 rounded-3xl">
+                  <p className="text-zinc-500 text-sm">No scheduled jobs at the moment.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto bg-zinc-900/60 border border-zinc-800/60 rounded-2xl shadow-lg">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="border-b border-zinc-850 bg-zinc-950/20">
+                        <th className="text-left text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-5 py-3.5">Service</th>
+                        <th className="text-left text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-3 py-3.5">Customer</th>
+                        <th className="text-left text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-3 py-3.5">Scheduled Date</th>
+                        <th className="text-right text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-3 py-3.5">Amount</th>
+                        <th className="text-center text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-5 py-3.5">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-850">
+                      {handymanUpcomingJobs.map((job) => {
+                        const statusConfig = STATUS_CONFIG[job.status] || { color: 'text-zinc-400', bgColor: 'bg-zinc-800/40', icon: AlertCircle };
+                        const StatusIcon = statusConfig.icon;
+                        
+                        return (
+                          <tr key={job.id} className="hover:bg-zinc-800/25 transition-colors">
+                            <td className="px-5 py-4">
+                              <span className="font-semibold text-white text-sm">{job.service_name}</span>
+                            </td>
+                            <td className="px-3 py-4 text-sm text-zinc-300">{job.customer_name}</td>
+                            <td className="px-3 py-4 text-sm text-zinc-400">{job.date}</td>
+                            <td className="px-3 py-4 text-right text-sm font-semibold text-white">₹{(job.amount || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-5 py-4 text-center">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${statusConfig.bgColor} ${statusConfig.color}`}>
+                                <StatusIcon className="w-3.5 h-3.5" />
+                                {job.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
