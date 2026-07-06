@@ -94,25 +94,25 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
   {
     label: 'Payments',
     icon: CreditCard,
-    href: '/dashboard/payments',
+    href: '/dashboard/transactions/payments',
     category: 'TRANSACTIONS'
   },
   {
     label: 'Cash Payments',
     icon: Banknote,
-    href: '/dashboard/cash-payments',
+    href: '/dashboard/transactions/cash-payments',
     category: 'TRANSACTIONS'
   },
   {
     label: 'Provider Withdrawal Requests',
     icon: CircleDollarSign,
-    href: '/dashboard/withdrawals',
+    href: '/dashboard/transactions/withdrawals',
     category: 'TRANSACTIONS'
   },
   {
     label: 'Handyman Earning List',
     icon: BadgeDollarSign,
-    href: '/dashboard/handyman-earnings',
+    href: '/dashboard/transactions/handyman-earnings',
     category: 'TRANSACTIONS'
   },
   {
