@@ -330,7 +330,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/inbox',
           '/dashboard/reviews',
           '/dashboard/verification',
-          '/dashboard/provider-notifications'
+          '/dashboard/provider-notifications',
+          '/dashboard/shops'
         ];
         const isAllowed = providerAllowed.some(p => path === p || path.startsWith(p + '/'));
         if (!isAllowed) {
