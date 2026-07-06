@@ -11,6 +11,7 @@ import {
   Hammer, UserCheck, Briefcase, Tag, MessageSquare,
   MapPin, Clock, User
 } from 'lucide-react';
+import NotificationBell from '../../components/NotificationBell';
 
 interface NavItem {
   label: string;
@@ -365,24 +366,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notification bell */}
-            <button 
-              onClick={() => {
-                if (user?.user_type === 'provider') {
-                  router.push('/dashboard/provider-notifications');
-                } else {
-                  router.push('/dashboard/user-notifications');
-                }
-              }}
-              className="relative w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-all"
-            >
-              <Bell className="w-[18px] h-[18px]" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white ring-2 ring-zinc-950">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+            {/* Notification bell dropdown */}
+            <NotificationBell />
 
             {/* Role badge */}
             <div className="hidden sm:flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-lg text-xs font-medium capitalize">

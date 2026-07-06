@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getUserData, UserData } from '../../../lib/auth';
 import BookingChatWidget from '../../../components/BookingChatWidget';
+import BookingDetailModal from '../../../components/BookingDetailModal';
 import { useNotificationStore } from '../../../store/useNotificationStore';
 
 interface Booking {
@@ -68,6 +69,7 @@ export default function BookingsPage() {
   const [assigning, setAssigning] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [activeChatBooking, setActiveChatBooking] = useState<Booking | null>(null);
+  const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [providerHandymen, setProviderHandymen] = useState<any[]>([]);
 
   const notifications = useNotificationStore(state => state.notifications);
@@ -535,6 +537,14 @@ export default function BookingsPage() {
                   </button>
 
                   <button
+                    onClick={() => setDetailBooking(b)}
+                    className="h-8 px-3 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-sky-400" />
+                    Details
+                  </button>
+
+                  <button
                     onClick={() => openAssignModal(b, 'handyman')}
                     className="h-8 px-3 bg-zinc-850 hover:bg-zinc-750 text-zinc-250 border border-zinc-700/30 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 active:scale-95 mr-auto"
                   >
@@ -839,10 +849,17 @@ export default function BookingsPage() {
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800/40 justify-end">
                       <button
                         onClick={() => setActiveChatBooking(b)}
-                        className="h-8 px-3 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 mr-auto active:scale-95"
+                        className="h-8 px-3 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-primary" />
                         Chat
+                      </button>
+                      <button
+                        onClick={() => setDetailBooking(b)}
+                        className="h-8 px-3 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700/50 hover:text-white text-zinc-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-sky-400" />
+                        Details
                       </button>
                       {b.status.toLowerCase() === 'pending' && (
                         <button
@@ -968,6 +985,18 @@ export default function BookingsPage() {
             />
           </div>
         </div>
+      )}
+      {/* Booking Detail Modal */}
+      {detailBooking && (
+        <BookingDetailModal
+          booking={detailBooking}
+          onClose={() => setDetailBooking(null)}
+          onRefresh={() => {
+            fetchBookingsAndPartners();
+            // Re-fetch the detail booking after changes
+            setDetailBooking(null);
+          }}
+        />
       )}
     </div>
   );
