@@ -244,6 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { label: 'Reviews',     icon: Star,            href: '/dashboard/handyman/reviews' },
         { label: 'Chat',        icon: MessageSquare,   href: '/dashboard/handyman/chat' },
         { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs' },
+        { label: 'Profile',     icon: User,            href: '/dashboard/handyman/profile' },
       ];
     }
     if (user.user_type === 'user') {
@@ -409,6 +410,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/handyman/bookings',
           '/dashboard/handyman/reviews',
           '/dashboard/handyman/chat',
+          '/dashboard/handyman/profile',
           '/dashboard/bookings',
           '/dashboard/blogs',
           '/dashboard/profile'
