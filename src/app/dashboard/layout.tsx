@@ -75,6 +75,15 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     ]
   },
   {
+    label: 'Custom Jobs',
+    icon: ClipboardList,
+    category: 'SERVICE',
+    children: [
+      { label: 'Job Requests', icon: List, href: '/dashboard/admin/custom-jobs/requests' },
+      { label: 'Job Services', icon: Blocks, href: '/dashboard/admin/custom-jobs/services' }
+    ]
+  },
+  {
     label: 'Coverage Zones',
     icon: MapPin,
     href: '/dashboard/admin/zones',
