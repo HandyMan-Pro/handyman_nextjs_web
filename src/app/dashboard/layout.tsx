@@ -89,6 +89,12 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     href: '/dashboard/admin/zones',
     category: 'SERVICE'
   },
+  {
+    label: 'All Shops',
+    icon: Store,
+    href: '/dashboard/admin/shops',
+    category: 'SHOP'
+  },
   { label: 'Providers',   icon: Briefcase,       href: '/dashboard/providers',   category: 'USER' },
   { label: 'Handymen',    icon: Hammer,          href: '/dashboard/handymen',    category: 'USER' },
   { label: 'Customers',   icon: Users,           href: '/dashboard/customers',   category: 'USER' },
