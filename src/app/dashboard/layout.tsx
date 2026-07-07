@@ -239,7 +239,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     if (user.user_type === 'handyman') {
       return [
-        { label: 'Dashboard',   icon: LayoutDashboard, href: '/dashboard' },
+        { label: 'Dashboard',   icon: LayoutDashboard, href: '/dashboard/handyman' },
         { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/bookings' },
         { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs' },
       ];
@@ -403,12 +403,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } else if (userData.user_type === 'handyman') {
         const handymanAllowed = [
           '/dashboard',
+          '/dashboard/handyman',
           '/dashboard/bookings',
-          '/dashboard/blogs'
+          '/dashboard/blogs',
+          '/dashboard/profile'
         ];
         const isAllowed = handymanAllowed.some(p => path === p || path.startsWith(p + '/'));
         if (!isAllowed) {
-          router.replace('/dashboard');
+          router.replace('/dashboard/handyman');
         }
       }
     }

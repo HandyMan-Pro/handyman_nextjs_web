@@ -200,16 +200,8 @@ export default function DashboardPage() {
         const response = await apiClient.get('/provider/dashboard/summary');
         setProviderData(response.data.data);
       } else if (userRole === 'handyman') {
-        const [profileRes, invitesRes, jobsRes, upcomingRes] = await Promise.all([
-          apiClient.get(`/user-detail?id=${currentUser.id}`),
-          apiClient.get('/handyman/team/requests'),
-          apiClient.get('/provider/bookings/requests'),
-          apiClient.get('/provider/bookings/upcoming')
-        ]);
-        setHandymanProfile(profileRes.data.data || profileRes.data);
-        setHandymanInvites(invitesRes.data);
-        setHandymanJobs(jobsRes.data.data || jobsRes.data);
-        setHandymanUpcomingJobs(upcomingRes.data.data || upcomingRes.data);
+        window.location.href = '/dashboard/handyman';
+        return;
       } else {
         const response = await apiClient.get('/admin/dashboard/summary');
         setAdminData(response.data);
