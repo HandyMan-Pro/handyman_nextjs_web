@@ -20,7 +20,11 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "react-hot-toast": ["./src/lib/react-hot-toast"]
+    }
   },
   "include": [
     "next-env.d.ts",
