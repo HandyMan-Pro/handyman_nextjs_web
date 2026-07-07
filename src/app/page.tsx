@@ -1470,74 +1470,13 @@ export default function DashboardPage() {
     setLoginError('');
     setLoginLoading(true);
     try {
-      let access_token = 'local-mock-token';
-      let user_data = null;
-
-      // Local mock login credentials for testing/evaluation purposes
-      // Maps: { identifiers: [username, email], password, user_data }
-      const mockUsers = [
-        {
-          ids: ['admin', 'admin@handyman.com'],
-          pwd: 'admin123',
-          data: { id: 'admin-id', username: 'admin', display_name: 'System Admin', email: 'admin@handyman.com', user_type: 'admin' }
-        },
-        {
-          ids: ['demo_admin', 'demo@admin.com'],
-          pwd: 'admin123',
-          data: { id: 'demo-admin-id', username: 'demo_admin', display_name: 'Demo Admin', email: 'demo@admin.com', user_type: 'demo_admin' }
-        },
-        {
-          ids: ['demo', 'demo@handyman.com'],
-          pwd: 'demo123',
-          data: { id: 'demo-user-id', username: 'demo', display_name: 'Jane Doe', email: 'demo@handyman.com', user_type: 'user' }
-        },
-        {
-          ids: ['david', 'david@handyman.com'],
-          pwd: 'password123',
-          data: { id: 'david-id', username: 'david', display_name: 'David Miller', email: 'david@handyman.com', user_type: 'handyman' }
-        },
-        {
-          ids: ['alex', 'alex@handyman.com'],
-          pwd: 'password123',
-          data: { id: 'alex-id', username: 'alex', display_name: 'Alex Hunt', email: 'alex@handyman.com', user_type: 'handyman' }
-        },
-        {
-          ids: ['sarah', 'sarah@provider.com'],
-          pwd: 'password123',
-          data: { id: 'sarah-id', username: 'sarah', display_name: 'Sarah Connor Services', email: 'sarah@provider.com', user_type: 'provider' }
-        },
-        {
-          ids: ['tester_handyman', 'handyman@test.com'],
-          pwd: 'password123',
-          data: { id: 'tester-handyman-id', username: 'tester_handyman', display_name: 'Felix Harris', email: 'handyman@test.com', user_type: 'handyman' }
-        },
-        {
-          ids: ['tester_customer', 'customer@test.com'],
-          pwd: 'password123',
-          data: { id: 'tester-customer-id', username: 'tester_customer', display_name: 'Alex Hood', email: 'customer@test.com', user_type: 'user' }
-        },
-      ];
-
-      const matchedMock = mockUsers.find(
-        (m) => m.ids.includes(username.toLowerCase().trim()) && m.pwd === password
-      );
-      if (matchedMock) {
-        user_data = matchedMock.data;
-      }
-
-      if (!user_data) {
-        // If not matched by mock, attempt to hit the backend API
-        try {
-          const response = await apiClient.post('/login', {
-            username,
-            password
-          });
-          access_token = response.data.access_token;
-          user_data = response.data.user_data;
-        } catch (apiErr: any) {
-          throw new Error(apiErr.response?.data?.detail || apiErr.message || 'Invalid username or password');
-        }
-      }
+      // Always authenticate through the backend API to get a real JWT token
+      const response = await apiClient.post('/login', {
+        username: username.trim(),
+        password
+      });
+      const access_token = response.data.access_token;
+      const user_data = response.data.user_data;
 
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user_data));
@@ -1549,7 +1488,7 @@ export default function DashboardPage() {
       router.push('/dashboard');
       showToast('Sign in successful!');
     } catch (error: any) {
-      const msg = error.message || 'Login failed. Please check credentials.';
+      const msg = error.response?.data?.detail || error.message || 'Login failed. Please check credentials.';
       setLoginError(msg);
     } finally {
       setLoginLoading(false);
