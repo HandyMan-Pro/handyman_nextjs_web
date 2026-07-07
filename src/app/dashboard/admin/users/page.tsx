@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { apiClient } from '../../../../lib/apiClient';
 import {
   Search, Check, ShieldAlert, ShieldCheck, Ban, UserCheck, Users,
@@ -116,7 +117,20 @@ function useDebounce<T>(value: T, delay: number = 500): T {
 }
 
 export default function AdminUsersPage() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'providers' | 'handymen' | 'customers'>('providers');
+
+  useEffect(() => {
+    if (pathname.includes('/providers')) {
+      setActiveTab('providers');
+    } else if (pathname.includes('/handymen')) {
+      setActiveTab('handymen');
+    } else if (pathname.includes('/customers')) {
+      setActiveTab('customers');
+    }
+  }, [pathname]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
 
@@ -465,7 +479,7 @@ export default function AdminUsersPage() {
       {/* Tabs Selection */}
       <div className="flex border-b border-zinc-800/85">
         <button
-          onClick={() => { setActiveTab('providers'); setSearchQuery(''); setStatusFilter('all'); setVerifyFilter('all'); }}
+          onClick={() => { router.push('/dashboard/admin/users/providers'); setSearchQuery(''); setStatusFilter('all'); setVerifyFilter('all'); }}
           className={`px-5 py-3 text-xs font-bold transition-all relative border-b-2 ${
             activeTab === 'providers' ? 'text-white border-[#5E5CE6]' : 'text-zinc-500 border-transparent hover:text-zinc-300'
           }`}
@@ -473,7 +487,7 @@ export default function AdminUsersPage() {
           Partner Providers
         </button>
         <button
-          onClick={() => { setActiveTab('handymen'); setSearchQuery(''); setStatusFilter('all'); setVerifyFilter('all'); }}
+          onClick={() => { router.push('/dashboard/admin/users/handymen'); setSearchQuery(''); setStatusFilter('all'); setVerifyFilter('all'); }}
           className={`px-5 py-3 text-xs font-bold transition-all relative border-b-2 ${
             activeTab === 'handymen' ? 'text-white border-[#5E5CE6]' : 'text-zinc-500 border-transparent hover:text-zinc-300'
           }`}
@@ -481,7 +495,7 @@ export default function AdminUsersPage() {
           Independent Handymen
         </button>
         <button
-          onClick={() => { setActiveTab('customers'); setSearchQuery(''); setStatusFilter('all'); }}
+          onClick={() => { router.push('/dashboard/admin/users/customers'); setSearchQuery(''); setStatusFilter('all'); }}
           className={`px-5 py-3 text-xs font-bold transition-all relative border-b-2 ${
             activeTab === 'customers' ? 'text-white border-[#5E5CE6]' : 'text-zinc-500 border-transparent hover:text-zinc-300'
           }`}
