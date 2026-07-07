@@ -17,11 +17,35 @@ export default function HandymanDashboard() {
   const [mounted, setMounted] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'bookings' | 'blogs' | 'profile'>('home');
+  const [isAvailable, setIsAvailable] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setCurrentUser(getUserData());
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      apiClient.get('/handyman/availability')
+        .then(res => {
+          if (res.data && res.data.status) {
+            setIsAvailable(res.data.is_available);
+          }
+        })
+        .catch(err => console.error("Error fetching availability:", err));
+    }
+  }, [mounted]);
+
+  const handleToggleAvailability = async () => {
+    const previous = isAvailable;
+    setIsAvailable(!previous);
+    try {
+      await apiClient.put('/handyman/availability/toggle', { is_available: !previous });
+    } catch (err) {
+      console.error("Error toggling availability:", err);
+      setIsAvailable(previous);
+    }
+  };
 
   const { data, error, isLoading, mutate } = useSWR('/handyman/dashboard/summary', fetcher, {
     revalidateOnFocus: true,
@@ -57,7 +81,9 @@ export default function HandymanDashboard() {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md border border-indigo-400/20 text-lg">
                 {currentUser?.display_name?.charAt(0).toUpperCase() || 'H'}
               </div>
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-zinc-950 rounded-full shadow-lg shadow-emerald-500/20" />
+              <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-zinc-950 rounded-full shadow-lg ${
+                isAvailable ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-zinc-500 shadow-zinc-500/20'
+              }`} />
             </div>
             <div>
               <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Welcome back</p>
@@ -68,6 +94,25 @@ export default function HandymanDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Work Status Toggle Switch */}
+            <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800/80 px-4 py-2 rounded-full mr-2">
+              <span className="text-xs font-semibold text-zinc-400">
+                Work Status: <span className={isAvailable ? "text-emerald-400 font-bold" : "text-zinc-500"}>{isAvailable ? "Online" : "Offline"}</span>
+              </span>
+              <button
+                onClick={handleToggleAvailability}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  isAvailable ? 'bg-emerald-500' : 'bg-zinc-850 border-zinc-700/60'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isAvailable ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
             <button 
               onClick={handleRefresh}
               className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95"
@@ -201,14 +246,18 @@ export default function HandymanDashboard() {
 
                 <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-5 flex flex-col justify-between hover:border-zinc-700/60 transition-all duration-300 group h-full w-full">
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      isAvailable ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-zinc-800/40 border border-zinc-800/60 text-zinc-500'
+                    }`}>
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className={`w-2.5 h-2.5 rounded-full ${isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-600'}`} />
                   </div>
                   <div className="mt-6">
                     <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">Work Status</p>
-                    <p className="text-base font-bold text-emerald-400 mt-2">Available</p>
+                    <p className={`text-base font-bold mt-2 ${isAvailable ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                      {isAvailable ? 'Online' : 'Offline'}
+                    </p>
                   </div>
                 </div>
               </section>
