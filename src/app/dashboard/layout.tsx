@@ -13,7 +13,7 @@ import {
   Sun, Moon, Globe, Store, List, Package, Blocks,
   ClipboardList, ClipboardCheck, UserMinus, Percent,
   CreditCard, Banknote, CircleDollarSign, BadgeDollarSign,
-  MonitorPlay, Star, Headset, ChevronDown
+  MonitorPlay, Star, Headset, ChevronDown, FolderOpen, FolderTree
 } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -42,6 +42,53 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Coupons',     icon: Tag,             href: '/dashboard/coupons',     step: '6' },
   { label: 'Notifications', icon: Megaphone,     href: '/dashboard/notifications', step: '6' },
   { label: 'Settings',    icon: Settings,        href: '/dashboard/settings',    step: '7' },
+];
+
+const ADMIN_NAV_ITEMS: NavItem[] = [
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: '/dashboard',
+    category: 'MAIN'
+  },
+  {
+    label: 'Categories',
+    icon: FolderOpen,
+    href: '/dashboard/admin/category',
+    category: 'SERVICE'
+  },
+  {
+    label: 'Subcategories',
+    icon: FolderTree,
+    href: '/dashboard/admin/subcategory',
+    category: 'SERVICE'
+  },
+  {
+    label: 'Services',
+    icon: Wrench,
+    category: 'SERVICE',
+    children: [
+      { label: 'Single Services', icon: List, href: '/dashboard/admin/services' },
+      { label: 'Packages', icon: Package, href: '/dashboard/admin/services/packages' },
+      { label: 'Addons', icon: Blocks, href: '/dashboard/admin/services/addons' },
+      { label: 'Service Requests', icon: ClipboardList, href: '/dashboard/admin/services/requests' }
+    ]
+  },
+  {
+    label: 'Coverage Zones',
+    icon: MapPin,
+    href: '/dashboard/admin/zones',
+    category: 'SERVICE'
+  },
+  { label: 'Providers',   icon: Briefcase,       href: '/dashboard/providers',   category: 'USER' },
+  { label: 'Handymen',    icon: Hammer,          href: '/dashboard/handymen',    category: 'USER' },
+  { label: 'Customers',   icon: Users,           href: '/dashboard/customers',   category: 'USER' },
+  { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/bookings',    category: 'MAIN' },
+  { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs',       category: 'MAIN' },
+  { label: 'Finance',     icon: DollarSign,      href: '/dashboard/finance',     category: 'TRANSACTIONS' },
+  { label: 'Coupons',     icon: Tag,             href: '/dashboard/coupons',     category: 'TRANSACTIONS' },
+  { label: 'Notifications', icon: Megaphone,     href: '/dashboard/notifications', category: 'MAIN' },
+  { label: 'Settings',    icon: Settings,        href: '/dashboard/settings',    category: 'SETTINGS' },
 ];
 
 const PROVIDER_NAV_ITEMS: NavItem[] = [
@@ -169,7 +216,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const getFilteredNavItems = () => {
     if (!user) return [];
     if (user.user_type === 'admin' || user.user_type === 'demo_admin') {
-      return NAV_ITEMS;
+      return ADMIN_NAV_ITEMS;
     }
     if (user.user_type === 'provider') {
       return PROVIDER_NAV_ITEMS;
