@@ -13,34 +13,19 @@ import { useLanguage } from '../../../../contexts/LanguageContext';
 import { apiClient } from '../../../../lib/apiClient';
 
 // ─── VALIDATION SCHEMAS ──────────────────────────────────────────────────────
-const personalSchema = z.zodObject ? z.zodObject({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().min(5, 'Phone number must be at least 5 characters'),
-  address: z.string().min(5, 'Address must be at least 5 characters'),
-}) : z.object({
+const personalSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().min(5, 'Phone number must be at least 5 characters'),
   address: z.string().min(5, 'Address must be at least 5 characters'),
 });
 
-const bankSchema = z.zodObject ? z.zodObject({
-  bank_name: z.string().min(2, 'Bank name must be at least 2 characters'),
-  account_number: z.string().min(5, 'Account number must be at least 5 characters'),
-  routing_code: z.string().min(2, 'Routing/IFSC code must be at least 2 characters'),
-}) : z.object({
+const bankSchema = z.object({
   bank_name: z.string().min(2, 'Bank name must be at least 2 characters'),
   account_number: z.string().min(5, 'Account number must be at least 5 characters'),
   routing_code: z.string().min(2, 'Routing/IFSC code must be at least 2 characters'),
 });
 
-const securitySchema = z.zodObject ? z.zodObject({
-  current_password: z.string().min(4, 'Current password must be at least 4 characters'),
-  new_password: z.string().min(6, 'New password must be at least 6 characters'),
-  confirm_password: z.string().min(6, 'Confirm password must be at least 6 characters'),
-}).refine((data) => data.new_password === data.confirm_password, {
-  message: "Passwords don't match",
-  path: ["confirm_password"],
-}) : z.object({
+const securitySchema = z.object({
   current_password: z.string().min(4, 'Current password must be at least 4 characters'),
   new_password: z.string().min(6, 'New password must be at least 6 characters'),
   confirm_password: z.string().min(6, 'Confirm password must be at least 6 characters'),

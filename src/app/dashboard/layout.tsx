@@ -20,6 +20,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useTheme } from '../ThemeProvider';
 import { useLanguage } from '../../contexts/LanguageContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
+import HandymanSidebar from '../../components/layout/HandymanSidebar';
 
 export interface NavItem {
   label: string;
@@ -411,6 +412,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard/handyman/reviews',
           '/dashboard/handyman/chat',
           '/dashboard/handyman/profile',
+          '/dashboard/handyman/payments',
+          '/dashboard/handyman/cash-payments',
+          '/dashboard/handyman/helpdesk',
           '/dashboard/bookings',
           '/dashboard/blogs',
           '/dashboard/profile'
@@ -446,6 +450,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       {isAdmin ? (
         <AdminSidebar
+          user={user}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          mobileOpen={mobileOpen}
+          setMobileOpen={setMobileOpen}
+        />
+      ) : user?.user_type === 'handyman' ? (
+        <HandymanSidebar
           user={user}
           collapsed={collapsed}
           setCollapsed={setCollapsed}
