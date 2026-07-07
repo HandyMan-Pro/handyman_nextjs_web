@@ -13,7 +13,8 @@ import {
   Sun, Moon, Globe, Store, List, Package, Blocks,
   ClipboardList, ClipboardCheck, UserMinus, Percent,
   CreditCard, Banknote, CircleDollarSign, BadgeDollarSign,
-  MonitorPlay, Star, Headset, ChevronDown, FolderOpen, FolderTree
+  MonitorPlay, Star, Headset, ChevronDown, FolderOpen, FolderTree,
+  Map
 } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -92,6 +93,12 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     category: 'SERVICE'
   },
   {
+    label: 'Maps Enterprise',
+    icon: Map,
+    href: '/dashboard/maps-engine',
+    category: 'SERVICE'
+  },
+  {
     label: 'All Shops',
     icon: Store,
     href: '/dashboard/admin/shops',
@@ -113,6 +120,12 @@ const PROVIDER_NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     icon: LayoutDashboard,
     href: '/dashboard',
+    category: 'MAIN'
+  },
+  {
+    label: 'Maps Enterprise',
+    icon: Map,
+    href: '/dashboard/maps-engine',
     category: 'MAIN'
   },
   {

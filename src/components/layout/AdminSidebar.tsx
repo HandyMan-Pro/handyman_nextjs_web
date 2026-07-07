@@ -30,7 +30,8 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronLeft,
-  X
+  X,
+  Map
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -332,6 +333,14 @@ export default function AdminSidebar({
             >
               <MapPin className="w-[18px] h-[18px] flex-shrink-0" />
               {!collapsed && <span>{t('Coverage Zones')}</span>}
+            </button>
+            <button
+              onClick={() => handleNavigation('/dashboard/maps-engine')}
+              className={navItemClass(isActive('/dashboard/maps-engine'))}
+              title={collapsed ? t('Maps Enterprise') : undefined}
+            >
+              <Map className="w-[18px] h-[18px] flex-shrink-0" />
+              {!collapsed && <span>{t('Maps Enterprise')}</span>}
             </button>
           </div>
 
