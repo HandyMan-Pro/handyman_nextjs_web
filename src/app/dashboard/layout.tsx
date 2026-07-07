@@ -241,6 +241,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return [
         { label: 'Dashboard',   icon: LayoutDashboard, href: '/dashboard/handyman' },
         { label: 'Bookings',    icon: CalendarCheck,   href: '/dashboard/handyman/bookings' },
+        { label: 'Reviews',     icon: Star,            href: '/dashboard/handyman/reviews' },
+        { label: 'Chat',        icon: MessageSquare,   href: '/dashboard/handyman/chat' },
         { label: 'Blogs',       icon: MessageSquare,   href: '/dashboard/blogs' },
       ];
     }
@@ -405,6 +407,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           '/dashboard',
           '/dashboard/handyman',
           '/dashboard/handyman/bookings',
+          '/dashboard/handyman/reviews',
+          '/dashboard/handyman/chat',
           '/dashboard/bookings',
           '/dashboard/blogs',
           '/dashboard/profile'
