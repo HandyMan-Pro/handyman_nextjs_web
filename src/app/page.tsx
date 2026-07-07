@@ -1474,22 +1474,55 @@ export default function DashboardPage() {
       let user_data = null;
 
       // Local mock login credentials for testing/evaluation purposes
-      if (username === 'admin' && password === 'admin123') {
-        user_data = {
-          id: 'admin-id',
-          username: 'admin',
-          display_name: 'System Admin',
-          email: 'admin@handyman.com',
-          user_type: 'admin'
-        };
-      } else if ((username === 'demo@admin.com' || username === 'demo_admin') && password === 'admin123') {
-        user_data = {
-          id: 'demo-admin-id',
-          username: 'demo_admin',
-          display_name: 'Demo Admin',
-          email: 'demo@admin.com',
-          user_type: 'demo_admin'
-        };
+      // Maps: { identifiers: [username, email], password, user_data }
+      const mockUsers = [
+        {
+          ids: ['admin', 'admin@handyman.com'],
+          pwd: 'admin123',
+          data: { id: 'admin-id', username: 'admin', display_name: 'System Admin', email: 'admin@handyman.com', user_type: 'admin' }
+        },
+        {
+          ids: ['demo_admin', 'demo@admin.com'],
+          pwd: 'admin123',
+          data: { id: 'demo-admin-id', username: 'demo_admin', display_name: 'Demo Admin', email: 'demo@admin.com', user_type: 'demo_admin' }
+        },
+        {
+          ids: ['demo', 'demo@handyman.com'],
+          pwd: 'demo123',
+          data: { id: 'demo-user-id', username: 'demo', display_name: 'Jane Doe', email: 'demo@handyman.com', user_type: 'user' }
+        },
+        {
+          ids: ['david', 'david@handyman.com'],
+          pwd: 'password123',
+          data: { id: 'david-id', username: 'david', display_name: 'David Miller', email: 'david@handyman.com', user_type: 'handyman' }
+        },
+        {
+          ids: ['alex', 'alex@handyman.com'],
+          pwd: 'password123',
+          data: { id: 'alex-id', username: 'alex', display_name: 'Alex Hunt', email: 'alex@handyman.com', user_type: 'handyman' }
+        },
+        {
+          ids: ['sarah', 'sarah@provider.com'],
+          pwd: 'password123',
+          data: { id: 'sarah-id', username: 'sarah', display_name: 'Sarah Connor Services', email: 'sarah@provider.com', user_type: 'provider' }
+        },
+        {
+          ids: ['tester_handyman', 'handyman@test.com'],
+          pwd: 'password123',
+          data: { id: 'tester-handyman-id', username: 'tester_handyman', display_name: 'Felix Harris', email: 'handyman@test.com', user_type: 'handyman' }
+        },
+        {
+          ids: ['tester_customer', 'customer@test.com'],
+          pwd: 'password123',
+          data: { id: 'tester-customer-id', username: 'tester_customer', display_name: 'Alex Hood', email: 'customer@test.com', user_type: 'user' }
+        },
+      ];
+
+      const matchedMock = mockUsers.find(
+        (m) => m.ids.includes(username.toLowerCase().trim()) && m.pwd === password
+      );
+      if (matchedMock) {
+        user_data = matchedMock.data;
       }
 
       if (!user_data) {
