@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiClient } from '../../../../lib/apiClient';
 import toast, { Toaster } from 'react-hot-toast';
-import { 
-  ArrowLeft, Phone, MapPin, Mail, Calendar, Clock, 
-  DollarSign, CheckCircle2, AlertCircle, Loader2, ExternalLink 
+import {
+  ArrowLeft, Phone, MapPin, Mail, Calendar, Clock,
+  DollarSign, CheckCircle2, AlertCircle, Loader2, ExternalLink
 } from 'lucide-react';
 
 interface HandymanInfo {
@@ -20,6 +20,7 @@ interface HandymanInfo {
   experience_years?: number;
   designation?: string;
   rating: number;
+  address?: string;
 }
 
 interface BookingDetails {
@@ -147,7 +148,7 @@ export default function CustomerBookingDetailPage() {
 
       {/* Top Navigation */}
       <header className="bg-[#5E5CE6] text-white p-4 flex items-center gap-3 sticky top-0 z-55 shadow-md">
-        <button 
+        <button
           onClick={() => router.back()}
           className="hover:bg-white/10 p-1.5 rounded-full transition-all"
           aria-label="Back"
@@ -204,7 +205,7 @@ export default function CustomerBookingDetailPage() {
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <div className="flex items-center justify-between border-b border-gray-50 pb-3 mb-3.5">
             <h3 className="text-sm font-bold text-gray-800">About Provider (As Handyman)</h3>
-            <button 
+            <button
               onClick={() => booking.handyman && router.push(`/customer/handyman/${booking.handyman.id}`)}
               className="text-xs font-bold text-[#5E5CE6] hover:underline flex items-center gap-0.5"
             >
@@ -219,9 +220,9 @@ export default function CustomerBookingDetailPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {booking.handyman.profile_image ? (
-                    <img 
-                      src={booking.handyman.profile_image} 
-                      alt={booking.handyman.name} 
+                    <img
+                      src={booking.handyman.profile_image}
+                      alt={booking.handyman.name}
                       className="w-12 h-12 rounded-full object-cover border border-gray-100 bg-gray-55"
                     />
                   ) : (
@@ -255,14 +256,14 @@ export default function CustomerBookingDetailPage() {
                 </div>
 
                 {/* WhatsApp Chat Button */}
-                <button 
+                <button
                   onClick={handleWhatsAppChat}
                   className="w-10 h-10 bg-emerald-50 hover:bg-emerald-100 rounded-full flex items-center justify-center border border-emerald-100 transition-colors shadow-sm"
                   title="Chat on WhatsApp"
                   aria-label="Chat on WhatsApp"
                 >
                   <svg className="w-5.5 h-5.5 text-[#25D366] fill-current" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.456L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.97C16.389 1.97 13.91 .943 11.278.943c-5.44 0-9.866 4.372-9.87 9.802 0 1.63.45 3.224 1.302 4.666L1.714 21l5.933-1.846zm10.107-5.709c-.163-.268-.6-.427-1.251-.752-.652-.326-3.857-1.902-4.453-2.119-.597-.217-1.031-.326-1.466.326-.433.652-1.681 2.119-2.06 2.553-.379.433-.759.488-1.41.163-.652-.326-2.75-1.013-5.239-3.217-1.936-1.719-3.243-3.84-3.623-4.493-.379-.652-.041-1.004.285-1.328.293-.293.652-.76.977-1.14.325-.38.433-.651.651-1.085.217-.434.108-.814-.054-1.14-.162-.326-1.466-3.53-2.008-4.833-.529-1.28-1.066-1.107-1.466-1.127-.38-.02-.814-.02-1.25-.02-.433 0-1.139.163-1.736.814-.597.652-2.279 2.224-2.279 5.422 0 3.197 2.331 6.29 2.656 6.724.326.434 4.588 6.977 11.11 9.775 1.551.666 2.763 1.064 3.71 1.363 1.558.492 2.977.422 4.097.255 1.25-.187 3.857-1.574 4.4-3.094.543-1.52.543-2.822.379-3.094z"/>
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.456L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.97C16.389 1.97 13.91 .943 11.278.943c-5.44 0-9.866 4.372-9.87 9.802 0 1.63.45 3.224 1.302 4.666L1.714 21l5.933-1.846zm10.107-5.709c-.163-.268-.6-.427-1.251-.752-.652-.326-3.857-1.902-4.453-2.119-.597-.217-1.031-.326-1.466.326-.433.652-1.681 2.119-2.06 2.553-.379.433-.759.488-1.41.163-.652-.326-2.75-1.013-5.239-3.217-1.936-1.719-3.243-3.84-3.623-4.493-.379-.652-.041-1.004.285-1.328.293-.293.652-.76.977-1.14.325-.38.433-.651.651-1.085.217-.434.108-.814-.054-1.14-.162-.326-1.466-3.53-2.008-4.833-.529-1.28-1.066-1.107-1.466-1.127-.38-.02-.814-.02-1.25-.02-.433 0-1.139.163-1.736.814-.597.652-2.279 2.224-2.279 5.422 0 3.197 2.331 6.29 2.656 6.724.326.434 4.588 6.977 11.11 9.775 1.551.666 2.763 1.064 3.71 1.363 1.558.492 2.977.422 4.097.255 1.25-.187 3.857-1.574 4.4-3.094.543-1.52.543-2.822.379-3.094z" />
                   </svg>
                 </button>
               </div>
@@ -318,7 +319,7 @@ export default function CustomerBookingDetailPage() {
               <span>Service Cost</span>
               <span className="font-semibold text-gray-800">${booking.amount.toFixed(2)}</span>
             </div>
-            
+
             {booking.total_amount > booking.amount && (
               <div className="flex justify-between">
                 <span>Tax & Platform fee</span>
