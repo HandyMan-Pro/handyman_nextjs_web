@@ -7,7 +7,7 @@ import {
   Users, Briefcase, Hammer, CalendarCheck, DollarSign,
   TrendingUp, ArrowUpRight, ArrowDownRight, Wrench,
   Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw,
-  IndianRupee, Clipboard, AlertTriangle
+  IndianRupee, Clipboard, AlertTriangle, Star, Percent, Shield
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -55,6 +55,41 @@ interface ProviderDashboardData {
     is_expiring_soon: boolean;
     days_left: number;
   };
+}
+
+interface AdminDashboardData {
+  metrics: {
+    total_services: number;
+    total_tax: number;
+    admin_earning: number;
+    total_revenue: number;
+  };
+  monthly_revenue_chart: { month: string; revenue: number }[];
+  recent_providers: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+    rating: number;
+  }[];
+  total_providers_count: number;
+  recent_customers: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+    created_at: string;
+  }[];
+  total_customers_count: number;
+  recent_bookings: {
+    booking_id: string;
+    customer_name: string;
+    customer_avatar: string | null;
+    date: string;
+    status: string;
+    amount: number;
+  }[];
+  total_bookings_count: number;
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bgColor: string; icon: React.ElementType }> = {
@@ -139,6 +174,7 @@ function ProviderRevenueChart({ data }: { data: { month: string; revenue: number
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [providerData, setProviderData] = useState<ProviderDashboardData | null>(null);
+  const [adminData, setAdminData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [role, setRole] = useState<'admin' | 'provider' | 'handyman' | 'user' | null>(null);
@@ -175,8 +211,8 @@ export default function DashboardPage() {
         setHandymanJobs(jobsRes.data.data || jobsRes.data);
         setHandymanUpcomingJobs(upcomingRes.data.data || upcomingRes.data);
       } else {
-        const response = await apiClient.get('/admin/stats');
-        setStats(response.data);
+        const response = await apiClient.get('/admin/dashboard/summary');
+        setAdminData(response.data);
       }
       setError('');
     } catch (err: any) {
@@ -737,39 +773,48 @@ export default function DashboardPage() {
     );
   }
 
-  // --- RENDER ADMIN HOME (Default Fallback) ---
-  if (!stats) return null;
-  const { summary } = stats;
+  // --- RENDER ADMIN HOME (Super Admin) ---
+  if (!adminData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-zinc-400 text-sm">Loading admin dashboard analytics...</p>
+      </div>
+    );
+  }
 
   const statCards = [
     {
-      label: 'Total Customers',
-      value: summary.total_customers,
-      icon: Users,
-      gradient: 'from-blue-500 to-cyan-500',
+      label: 'Total Services',
+      value: adminData.metrics.total_services,
+      icon: Wrench,
+      gradient: 'from-blue-500 to-indigo-500',
       shadowColor: 'shadow-blue-500/10',
+      subtext: 'Active catalog items',
     },
     {
-      label: 'Service Providers',
-      value: summary.total_providers,
-      icon: Briefcase,
+      label: 'Total Tax Collected',
+      value: `₹${adminData.metrics.total_tax.toLocaleString('en-IN')}`,
+      icon: Percent,
       gradient: 'from-violet-500 to-purple-500',
       shadowColor: 'shadow-violet-500/10',
+      subtext: '5% fallback or actual calculations',
     },
     {
-      label: 'Active Handymen',
-      value: summary.active_handymen,
-      icon: Hammer,
-      gradient: 'from-amber-500 to-orange-500',
-      shadowColor: 'shadow-amber-500/10',
-    },
-    {
-      label: 'Platform Earnings',
-      value: `₹${summary.platform_earnings.toLocaleString('en-IN')}`,
-      subtext: `${summary.commission_rate}% of ₹${summary.total_revenue.toLocaleString('en-IN')}`,
-      icon: IndianRupee,
+      label: 'My Earning (Admin)',
+      value: `₹${adminData.metrics.admin_earning.toLocaleString('en-IN')}`,
+      icon: Shield,
       gradient: 'from-emerald-500 to-teal-500',
       shadowColor: 'shadow-emerald-500/10',
+      subtext: 'Commission share from transactions',
+    },
+    {
+      label: 'Total Revenue',
+      value: `₹${adminData.metrics.total_revenue.toLocaleString('en-IN')}`,
+      icon: IndianRupee,
+      gradient: 'from-amber-500 to-orange-500',
+      shadowColor: 'shadow-amber-500/10',
+      subtext: 'Gross platform booking volume',
     },
   ];
 
@@ -778,14 +823,14 @@ export default function DashboardPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Dashboard</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Welcome back! Here&apos;s what&apos;s happening today.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Super Admin Overview</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">Welcome back, Super Admin! Real-time financial calculations and metrics.</p>
         </div>
         <button
           onClick={fetchStats}
-          className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900/80 border border-zinc-800/60 rounded-xl text-sm text-zinc-400 hover:text-white hover:border-zinc-700 transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900/80 border border-zinc-800/60 rounded-xl text-sm text-zinc-400 hover:text-white hover:border-zinc-700 transition-all shadow-md"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3.5 h-3.5 animate-spin-hover" />
           Refresh
         </button>
       </div>
@@ -810,7 +855,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <p className="text-2xl font-bold tracking-tight text-white">{card.value}</p>
-              <p className="text-zinc-500 text-xs mt-1">{card.label}</p>
+              <p className="text-zinc-400 text-xs font-medium mt-1">{card.label}</p>
               {card.subtext && (
                 <p className="text-zinc-600 text-[10px] mt-0.5">{card.subtext}</p>
               )}
@@ -819,175 +864,218 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Secondary Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total Bookings', value: summary.total_bookings, icon: CalendarCheck },
-          { label: 'Total Revenue', value: `₹${summary.total_revenue.toLocaleString('en-IN')}`, icon: DollarSign },
-          { label: 'Active Services', value: summary.total_services, icon: Wrench },
-          { label: 'Total Partners', value: summary.total_partners, icon: Users },
-        ].map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.label}
-              className="bg-zinc-900/50 border border-zinc-800/40 rounded-xl p-4 animate-fade-in-up"
-              style={{ animationDelay: `${(idx + 4) * 60}ms` }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-[11px] text-zinc-500">{item.label}</span>
-              </div>
-              <p className="text-lg font-semibold text-white">{item.value}</p>
+      {/* Area Chart + Platform Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Revenue Area Chart */}
+        <div className="lg:col-span-2 bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-6 relative overflow-hidden backdrop-blur-md">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-white tracking-tight">Revenue Analytics</h3>
+              <p className="text-zinc-500 text-xs mt-0.5">Gross platform revenue over the past 12 months</p>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" />
+              <span className="text-[10px] text-indigo-400 font-medium">Completed Bookings</span>
+            </div>
+          </div>
+          <div className="w-full h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={adminData.monthly_revenue_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="adminRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <XAxis dataKey="month" stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '12px' }}
+                  labelStyle={{ color: '#a1a1aa', fontWeight: 'bold' }}
+                  itemStyle={{ color: '#ffffff' }}
+                  formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Revenue']}
+                />
+                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#adminRevenue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Platform Status Panel */}
+        <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-white tracking-tight mb-1">Platform Summary</h3>
+            <p className="text-zinc-500 text-xs mb-6">Overview of registered entities and total activity.</p>
+            
+            <div className="space-y-4">
+              {[
+                { label: 'Total Bookings placed', value: adminData.total_bookings_count, icon: CalendarCheck, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
+                { label: 'Registered Providers', value: adminData.total_providers_count, icon: Briefcase, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                { label: 'Registered Customers', value: adminData.total_customers_count, icon: Users, color: 'text-pink-400', bg: 'bg-pink-500/10 border-pink-500/20' },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.label} className="flex items-center justify-between p-3.5 bg-zinc-900/40 border border-zinc-800/40 rounded-xl hover:border-zinc-800 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg ${item.bg} border flex items-center justify-center`}>
+                        <Icon className={`w-4.5 h-4.5 ${item.color}`} />
+                      </div>
+                      <span className="text-xs text-zinc-400">{item.label}</span>
+                    </div>
+                    <span className="text-base font-bold text-white">{item.value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-zinc-800/60 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+              <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-white">Platform Health Normal</p>
+              <p className="text-[9px] text-zinc-500">All services operational</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Booking Status Distribution + Recent Bookings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Booking Status Distribution */}
-        <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-          <h3 className="text-sm font-semibold mb-4 text-white flex items-center gap-2">
-            <CalendarCheck className="w-4 h-4 text-indigo-400" />
-            Booking Status
-          </h3>
-          <div className="space-y-3">
-            {Object.entries(stats.status_distribution).map(([statusName, count]) => {
-              const config = STATUS_CONFIG[statusName] || STATUS_CONFIG['Pending'];
-              const Icon = config.icon;
-              const total = summary.total_bookings || 1;
-              const percentage = Math.round((count / total) * 100);
-              return (
-                <div key={statusName} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-3.5 h-3.5 ${config.color}`} />
-                      <span className="text-xs text-zinc-400">{statusName}</span>
-                    </div>
-                    <span className="text-xs font-medium text-white">{count}</span>
+      {/* 3-Column Recent Activity List */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Recent Providers */}
+        <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-800/60">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Recent Providers</h3>
+              <p className="text-[10px] text-zinc-500">Latest provider registrations</p>
+            </div>
+            <span className="text-[10px] font-semibold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Newest 5</span>
+          </div>
+
+          <div className="space-y-3.5">
+            {adminData.recent_providers.map((provider) => (
+              <div key={provider.id} className="flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-sm font-bold text-white overflow-hidden shadow-inner">
+                    {provider.avatar ? (
+                      <img src={provider.avatar} alt={provider.name} className="w-full h-full object-cover" />
+                    ) : (
+                      provider.name.charAt(0).toUpperCase()
+                    )}
                   </div>
-                  <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        statusName === 'Completed' ? 'bg-emerald-500' :
-                        statusName === 'Ongoing' ? 'bg-blue-500' :
-                        statusName === 'Pending' ? 'bg-amber-500' :
-                        statusName === 'Cancelled' ? 'bg-red-500' : 'bg-zinc-600'
-                      }`}
-                      style={{ width: `${percentage}%` }}
-                    />
+                  <div>
+                    <p className="text-xs font-semibold text-white group-hover:text-indigo-400 transition-colors">{provider.name}</p>
+                    <p className="text-[10px] text-zinc-500 truncate max-w-[140px]">{provider.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <span className="text-[10px] font-bold text-amber-400">{provider.rating.toFixed(1)}</span>
+                </div>
+              </div>
+            ))}
+            {adminData.recent_providers.length === 0 && (
+              <p className="text-xs text-zinc-500 text-center py-6">No providers registered yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Customers */}
+        <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-800/60">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Recent Customers</h3>
+              <p className="text-[10px] text-zinc-500">Latest user registrations</p>
+            </div>
+            <span className="text-[10px] font-semibold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Newest 5</span>
+          </div>
+
+          <div className="space-y-3.5">
+            {adminData.recent_customers.map((customer) => {
+              const joinedDate = customer.created_at ? new Date(customer.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              }) : 'N/A';
+              return (
+                <div key={customer.id} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-sm font-bold text-white overflow-hidden shadow-inner">
+                      {customer.avatar ? (
+                        <img src={customer.avatar} alt={customer.name} className="w-full h-full object-cover" />
+                      ) : (
+                        customer.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-white group-hover:text-pink-400 transition-colors">{customer.name}</p>
+                      <p className="text-[10px] text-zinc-500 truncate max-w-[140px]">{customer.email}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-zinc-500 bg-zinc-900/50 border border-zinc-800/40 px-2.5 py-1 rounded-lg font-medium">{joinedDate}</span>
+                </div>
+              );
+            })}
+            {adminData.recent_customers.length === 0 && (
+              <p className="text-xs text-zinc-500 text-center py-6">No customers registered yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Bookings */}
+        <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-800/60">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Recent Bookings</h3>
+              <p className="text-[10px] text-zinc-500">Latest platform transactions</p>
+            </div>
+            <span className="text-[10px] font-semibold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Newest 5</span>
+          </div>
+
+          <div className="space-y-3.5">
+            {adminData.recent_bookings.map((booking) => {
+              const statusColors = booking.status === 'Completed' || booking.status === 'completed'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : booking.status === 'Pending' || booking.status === 'pending'
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                : booking.status === 'Cancelled' || booking.status === 'cancelled'
+                ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+
+              const bookingDate = booking.date ? new Date(booking.date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              }) : 'Date';
+
+              return (
+                <div key={booking.booking_id} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-sm font-bold text-white overflow-hidden shadow-inner">
+                      {booking.customer_avatar ? (
+                        <img src={booking.customer_avatar} alt={booking.customer_name} className="w-full h-full object-cover" />
+                      ) : (
+                        booking.customer_name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-white group-hover:text-emerald-400 transition-colors truncate max-w-[120px]">{booking.customer_name}</p>
+                      <p className="text-[10px] text-zinc-500">{bookingDate}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-white">₹{booking.amount.toLocaleString('en-IN')}</p>
+                    <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${statusColors}`}>
+                      {booking.status}
+                    </span>
                   </div>
                 </div>
               );
             })}
+            {adminData.recent_bookings.length === 0 && (
+              <p className="text-xs text-zinc-500 text-center py-6">No bookings created yet.</p>
+            )}
           </div>
-        </div>
-
-        {/* Recent Bookings Table */}
-        <div className="lg:col-span-2 bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4 text-indigo-400" />
-              Recent Bookings
-            </h3>
-            <span className="text-[11px] text-zinc-500">Last {stats.recent_bookings.length} bookings</span>
-          </div>
-
-          <div className="overflow-x-auto -mx-5">
-            <table className="w-full min-w-[580px]">
-              <thead>
-                <tr className="border-b border-zinc-800/60">
-                  <th className="text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-5 pb-3">Customer</th>
-                  <th className="text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-3 pb-3">Service</th>
-                  <th className="text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-3 pb-3">Provider</th>
-                  <th className="text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-3 pb-3">Amount</th>
-                  <th className="text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-5 pb-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/40">
-                {stats.recent_bookings.map((booking, idx) => {
-                  const config = STATUS_CONFIG[booking.status] || STATUS_CONFIG['Pending'];
-                  return (
-                    <tr key={booking.id || idx} className="hover:bg-zinc-800/30 transition-colors">
-                      <td className="px-5 py-3">
-                        <p className="text-sm font-medium text-white">{booking.customer_name || '—'}</p>
-                        <p className="text-[11px] text-zinc-500">{booking.date || ''}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="text-sm text-zinc-300">{booking.service_name || '—'}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="text-sm text-zinc-400">{booking.handyman_name || '—'}</p>
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <p className="text-sm font-medium text-white">₹{(booking.amount || 0).toLocaleString('en-IN')}</p>
-                      </td>
-                      <td className="px-5 py-3 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${config.bgColor} ${config.color}`}>
-                          {booking.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {stats.recent_bookings.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="text-center text-sm text-zinc-500 py-10">
-                      No bookings yet
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
-        <h3 className="text-sm font-semibold mb-4 text-white flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-indigo-400" />
-          Recent Transactions
-        </h3>
-        <div className="overflow-x-auto -mx-5">
-          <table className="w-full min-w-[520px]">
-            <thead>
-              <tr className="border-b border-zinc-800/60">
-                <th className="text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-5 pb-3">Customer</th>
-                <th className="text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-3 pb-3">Type</th>
-                <th className="text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-3 pb-3">Method</th>
-                <th className="text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-3 pb-3">Amount</th>
-                <th className="text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-5 pb-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/40">
-              {stats.recent_transactions.map((tx, idx) => (
-                <tr key={tx.id || idx} className="hover:bg-zinc-800/30 transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-white">{tx.customer_name || '—'}</td>
-                  <td className="px-3 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${tx.type === 'Payment' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                      {tx.type}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-sm text-zinc-400">{tx.payment_method || 'UPI'}</td>
-                  <td className="px-3 py-3 text-right text-sm font-medium text-white">₹{(tx.amount || 0).toLocaleString('en-IN')}</td>
-                  <td className="px-5 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {tx.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {stats.recent_transactions.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center text-sm text-zinc-500 py-10">
-                    No transactions yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

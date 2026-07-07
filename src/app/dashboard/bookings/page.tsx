@@ -74,6 +74,11 @@ export default function BookingsPage() {
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [providerHandymen, setProviderHandymen] = useState<any[]>([]);
 
+  // Super Admin specific states
+  const [adminBookings, setAdminBookings] = useState<any[]>([]);
+  const [adminTotalCount, setAdminTotalCount] = useState<number>(0);
+  const [adminPage, setAdminPage] = useState<number>(1);
+
   const notifications = useNotificationStore(state => state.notifications);
 
   useEffect(() => {
@@ -81,9 +86,38 @@ export default function BookingsPage() {
     setCurrentUser(user);
   }, []);
 
+  // Reset page when search or status filters change for admin
+  useEffect(() => {
+    if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'demo_admin') {
+      setAdminPage(1);
+    }
+  }, [searchQuery, statusFilter]);
+
   useEffect(() => {
     fetchBookingsAndPartners();
-  }, [currentUser, notifications]);
+  }, [currentUser, notifications, adminPage, statusFilter, searchQuery]);
+
+  const mapAdminBookingToBooking = (b: any): Booking => {
+    return {
+      id: b.id,
+      service_name: b.service?.name || 'N/A',
+      provider_name: b.provider?.name || 'N/A',
+      provider_id: b.provider?.id || '',
+      handyman_name: b.handyman?.name || '',
+      handyman_id: b.handyman?.id || '',
+      customer_name: b.user?.name || 'N/A',
+      customer_id: b.user?.id || '',
+      status: b.status,
+      status_label: b.status,
+      date: b.date || '',
+      booking_slot: b.time || '',
+      amount: b.total_amount || 0,
+      total_amount: b.total_amount || 0,
+      address: b.address || 'N/A',
+      payment_method: b.payment_method || 'N/A',
+      created_at: b.created_at || ''
+    };
+  };
 
   const fetchBookingsAndPartners = async () => {
     setLoading(true);
@@ -97,6 +131,17 @@ export default function BookingsPage() {
         setProviderRequests(reqsRes.data?.data || []);
         setProviderUpcoming(upcomingRes.data?.data || []);
         setProviderHandymen(handymenRes.data?.data || []);
+      } else if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'demo_admin') {
+        const params: any = {
+          page: adminPage,
+          limit: 10,
+        };
+        if (searchQuery) params.search = searchQuery;
+        if (statusFilter !== 'All') params.status = statusFilter;
+
+        const bookingsRes = await apiClient.get('/admin/bookings', { params });
+        setAdminBookings(bookingsRes.data?.bookings || []);
+        setAdminTotalCount(bookingsRes.data?.total_count || 0);
       } else {
         const [bookingsRes, partnersRes] = await Promise.all([
           apiClient.get('/booking-list'),
@@ -113,10 +158,24 @@ export default function BookingsPage() {
     }
   };
 
-
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(''), 4000);
+  };
+
+  const handleAdminStatusOverride = async (bookingId: string, nextStatus: string) => {
+    setUpdatingStatusIds((prev) => ({ ...prev, [bookingId]: true }));
+    try {
+      await apiClient.put(`/admin/bookings/${bookingId}/status`, {
+        status: nextStatus
+      });
+      showSuccess(`Booking status successfully overridden to ${nextStatus}!`);
+      fetchBookingsAndPartners();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to override status');
+    } finally {
+      setUpdatingStatusIds((prev) => ({ ...prev, [bookingId]: false }));
+    }
   };
 
   const handleStatusUpdate = async (bookingId: string, status: string) => {
@@ -660,6 +719,212 @@ export default function BookingsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      ) : currentUser?.user_type === 'admin' || currentUser?.user_type === 'demo_admin' ? (
+        /* SUPER ADMIN SPECIFIC MASTER BOOKINGS SCREEN */
+        <div className="space-y-6">
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col xl:flex-row gap-4 border-b border-zinc-800/60 pb-6 items-stretch xl:items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search bookings by customer, service or handyman..."
+                className="w-full h-11 pl-10 pr-4 bg-zinc-900/40 border border-zinc-850 rounded-xl text-sm text-zinc-300 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
+              />
+            </div>
+            
+            {/* Filter Tab Bar */}
+            <div className="flex bg-zinc-950/60 border border-zinc-850 p-1 rounded-xl gap-1 overflow-x-auto w-full xl:w-auto scrollbar-none">
+              {['All', 'Pending', 'Accepted', 'Ongoing', 'Completed', 'Cancelled'].map((status) => {
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`flex items-center gap-1.5 h-8.5 px-4 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                      statusFilter === status
+                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="w-full overflow-hidden rounded-2xl border border-zinc-800/40 bg-zinc-900/20 backdrop-blur-md p-6 space-y-4">
+              <div className="h-6 w-1/4 bg-zinc-800/50 rounded-md animate-pulse" />
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-14 bg-zinc-800/30 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-zinc-800/40 bg-zinc-900/20 backdrop-blur-md shadow-xl">
+              <table className="w-full text-left border-collapse text-sm min-w-[900px]">
+                <thead>
+                  <tr className="bg-zinc-950/40 border-b border-zinc-800/80">
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[15%]">Booking ID</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[25%]">Customer & Date</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[20%]">Service Name</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[20%]">Provider & Shop</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[10%]">Amount</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[15%]">Status Override</th>
+                    <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] text-right w-[10%]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/40">
+                  {adminBookings.map((b) => {
+                    const mappedBooking = mapAdminBookingToBooking(b);
+                    return (
+                      <tr key={b.id} className="hover:bg-zinc-800/25 transition-colors group">
+                        {/* Booking ID */}
+                        <td className="px-6 py-4.5 vertical-align-middle font-mono text-xs text-zinc-500">
+                          #{b.id.substring(Math.max(0, b.id.length - 8))}
+                        </td>
+
+                        {/* Customer & Date */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <div className="flex items-center gap-2">
+                            {b.user?.avatar ? (
+                              <img src={b.user.avatar} className="w-7 h-7 rounded-full object-cover border border-zinc-800" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-primary font-bold text-[10px]">
+                                {b.user?.name?.charAt(0) || 'C'}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold text-zinc-105 group-hover:text-white transition-colors">{b.user?.name}</div>
+                              <div className="text-zinc-500 text-[10px] mt-0.5">{b.user?.email}</div>
+                              <div className="text-zinc-600 text-[9px] mt-0.5 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-zinc-650" />
+                                <span>{b.date} at {b.time}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Service Name */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <div className="flex items-center gap-2">
+                            {b.service?.image ? (
+                              <img src={b.service.image} className="w-8 h-8 rounded-lg object-cover border border-zinc-800" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                                <Wrench className="w-4 h-4 text-zinc-600" />
+                              </div>
+                            )}
+                            <span className="font-bold text-zinc-200">{b.service?.name}</span>
+                          </div>
+                        </td>
+
+                        {/* Provider & Shop */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <div className="font-semibold text-zinc-200">{b.provider?.name || 'Direct'}</div>
+                          {b.shop && (
+                            <div className="text-[10px] text-primary/80 mt-0.5">Shop: {b.shop.name}</div>
+                          )}
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-6 py-4.5 vertical-align-middle font-bold text-zinc-100">
+                          ₹{b.total_amount}
+                        </td>
+
+                        {/* Status Override */}
+                        <td className="px-6 py-4.5 vertical-align-middle">
+                          <div className="relative inline-block">
+                            <select
+                              value={b.status}
+                              disabled={updatingStatusIds[b.id]}
+                              onChange={(e) => handleAdminStatusOverride(b.id, e.target.value)}
+                              className={`h-8 px-2 bg-zinc-950/60 border rounded-lg text-xs font-semibold focus:outline-none transition-colors cursor-pointer ${getStatusStyle(b.status)}`}
+                            >
+                              {['Pending', 'Accepted', 'Ongoing', 'Completed', 'Cancelled'].map((st) => (
+                                <option key={st} value={st} className="bg-zinc-900 text-zinc-350">{st}</option>
+                              ))}
+                            </select>
+                            {updatingStatusIds[b.id] && (
+                              <span className="absolute -right-6 top-1/2 -translate-y-1/2">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4.5 vertical-align-middle text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Chat Button */}
+                            <button
+                              onClick={() => setActiveChatBooking(mappedBooking)}
+                              className="p-2 bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 flex items-center justify-center shrink-0"
+                              title="Chat with Customer"
+                            >
+                              <MessageSquare className="w-4 h-4 text-primary" />
+                            </button>
+
+                            {/* Detail View Button */}
+                            <button
+                              onClick={() => setDetailBooking(mappedBooking)}
+                              className="p-2 bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 flex items-center justify-center shrink-0"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4 text-sky-400" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {adminBookings.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-20 text-zinc-500">
+                        <CalendarCheck className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+                        <p className="text-sm font-medium">No bookings found matching filters.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls */}
+              {adminTotalCount > 10 && (
+                <div className="px-6 py-4 bg-zinc-950/40 border-t border-zinc-800/80 flex items-center justify-between gap-4 text-xs text-zinc-400">
+                  <div>
+                    Showing <strong className="text-zinc-200">{(adminPage - 1) * 10 + 1}</strong> to{' '}
+                    <strong className="text-zinc-200">{Math.min(adminPage * 10, adminTotalCount)}</strong> of{' '}
+                    <strong className="text-zinc-200">{adminTotalCount}</strong> entries
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={adminPage === 1}
+                      onClick={() => setAdminPage((p) => Math.max(1, p - 1))}
+                      className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:text-white rounded-lg transition-all disabled:opacity-40 disabled:hover:text-zinc-400 flex items-center gap-1 font-semibold"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      Prev
+                    </button>
+                    <button
+                      disabled={adminPage * 10 >= adminTotalCount}
+                      onClick={() => setAdminPage((p) => p + 1)}
+                      className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:text-white rounded-lg transition-all disabled:opacity-40 disabled:hover:text-zinc-400 flex items-center gap-1 font-semibold"
+                    >
+                      Next
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
