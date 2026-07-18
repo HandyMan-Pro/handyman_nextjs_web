@@ -413,7 +413,7 @@ export default function AvailabilityPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full sm:w-auto h-11 px-6 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto h-11 px-6 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

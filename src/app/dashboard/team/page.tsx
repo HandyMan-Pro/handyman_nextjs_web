@@ -126,7 +126,7 @@ export default function TeamPage() {
         </div>
         <button
           onClick={handleOpenInviteModal}
-          className="flex items-center justify-center gap-2 h-10 px-4 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl transition-all shadow-md shadow-primary/20 cursor-pointer"
+          className="flex items-center justify-center gap-2 h-10 px-4 bg-primary hover:bg-primary/90 text-zinc-950 font-semibold rounded-xl transition-all shadow-md shadow-primary/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           Invite via Worker ID
@@ -163,7 +163,7 @@ export default function TeamPage() {
           <span className="flex items-center gap-2">
             Active Team
             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-              activeTab === 'active' ? 'bg-primary text-white' : 'bg-zinc-800 text-zinc-400'
+              activeTab === 'active' ? 'bg-primary text-zinc-950' : 'bg-zinc-800 text-zinc-400'
             }`}>
               {team.length}
             </span>
@@ -182,7 +182,7 @@ export default function TeamPage() {
           <span className="flex items-center gap-2">
             Pending Invites
             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-              activeTab === 'pending' ? 'bg-primary text-white' : 'bg-zinc-800 text-zinc-400'
+              activeTab === 'pending' ? 'bg-primary text-zinc-950' : 'bg-zinc-800 text-zinc-400'
             }`}>
               {pendingInvites.length}
             </span>
@@ -395,7 +395,7 @@ export default function TeamPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 h-11 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 h-11 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Send Invitation

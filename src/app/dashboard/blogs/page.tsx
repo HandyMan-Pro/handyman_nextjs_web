@@ -197,12 +197,15 @@ export default function BlogsPage() {
   const canCreate = currentUser?.user_type === 'provider' || currentUser?.user_type === 'admin' || currentUser?.user_type === 'demo_admin';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 relative">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-primary" />
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 flex items-center gap-2">
+            <MessageSquare className="w-8 h-8 text-primary" />
             {t('Blogs')}
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5 font-medium">
@@ -214,7 +217,7 @@ export default function BlogsPage() {
           <button
             onClick={handleOpenCreateModal}
             id="btn-create-blog"
-            className="h-11 px-5 bg-primary hover:bg-primary/95 text-zinc-950 dark:text-zinc-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-primary/10 hover:shadow-primary/20 shrink-0"
+            className="group h-11 px-5 bg-primary hover:bg-primary/90 text-zinc-950 font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(228,253,151,0.3)] hover:shadow-[0_0_25px_rgba(228,253,151,0.5)] hover:-translate-y-0.5 active:scale-95 shrink-0"
           >
             <Plus className="w-4 h-4" />
             {t('Create Post')}
@@ -244,26 +247,25 @@ export default function BlogsPage() {
       {/* Filters bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         {/* Search */}
-        <div className="relative w-full md:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-450 dark:text-zinc-500" />
+        <div className="relative w-full md:max-w-xs group z-10">
+          <div className="absolute inset-0 bg-primary/20 blur-md rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-primary transition-colors z-10" />
           <input
             type="text"
             placeholder={t('Search Blogs')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-9 pr-4 bg-white dark:bg-zinc-900/60 border border-zinc-250 dark:border-zinc-800/60 rounded-xl text-sm text-zinc-800 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+            className="relative z-10 w-full h-12 pl-11 pr-4 bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 transition-all shadow-lg"
           />
         </div>
 
         {/* Tags quick filter */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-thin">
-          <span className="text-xs text-zinc-500 shrink-0 font-semibold uppercase tracking-wider">{t('Tags')}:</span>
+        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-thin z-10">
+          <span className="text-xs text-zinc-500 shrink-0 font-bold uppercase tracking-widest">{t('Tags')}:</span>
           <button
             onClick={() => setSelectedTag(null)}
-            className={`h-8 px-3 rounded-full text-xs font-semibold transition-all shrink-0 ${
-              selectedTag === null
-                ? 'bg-primary text-zinc-950'
-                : 'bg-zinc-200 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-800'
+            className={`h-9 px-4 rounded-full text-xs font-bold transition-all shrink-0 border ${
+              selectedTag === null ? 'bg-primary/10 text-primary border-primary/30 shadow-[0_0_15px_rgba(228,253,151,0.2)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
             }`}
           >
             All
@@ -272,10 +274,8 @@ export default function BlogsPage() {
             <button
               key={tag}
               onClick={() => setSelectedTag(tag)}
-              className={`h-8 px-3 rounded-full text-xs font-semibold transition-all shrink-0 ${
-                selectedTag === tag
-                  ? 'bg-primary text-zinc-950'
-                  : 'bg-zinc-200 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-800'
+              className={`h-9 px-4 rounded-full text-xs font-bold transition-all shrink-0 border ${
+                selectedTag === tag ? 'bg-primary/10 text-primary border-primary/30 shadow-[0_0_15px_rgba(228,253,151,0.2)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
               }`}
             >
               #{tag}
@@ -303,9 +303,9 @@ export default function BlogsPage() {
           ))}
         </div>
       ) : filteredBlogs.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-zinc-900/20 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-6">
-          <MessageSquare className="w-12 h-12 text-zinc-400 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-zinc-850 dark:text-zinc-300">No Posts Found</h3>
+        <div className="text-center py-16 bg-[#0a0a0c]/60 backdrop-blur-2xl border border-white/5 rounded-[28px] p-6 shadow-2xl relative z-10">
+          <MessageSquare className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white tracking-tight">No Posts Found</h3>
           <p className="text-zinc-500 text-sm mt-1 max-w-xs mx-auto">
             Try matching a different search term, selecting a different tag, or check back later.
           </p>
@@ -322,7 +322,7 @@ export default function BlogsPage() {
               <article
                 key={blog.id}
                 onClick={() => setSelectedPost(blog)}
-                className="group cursor-pointer bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 hover:border-primary/40 dark:hover:border-primary/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col"
+                className="group cursor-pointer bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 hover:border-white/15 rounded-[24px] overflow-hidden shadow-xl hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.8)] hover:-translate-y-1 transition-all duration-500 flex flex-col relative z-10"
               >
                 {/* Cover Image */}
                 <div className="relative w-full h-48 bg-zinc-100 dark:bg-zinc-850 overflow-hidden flex-shrink-0">
@@ -370,7 +370,7 @@ export default function BlogsPage() {
                         {blog.author_name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">{blog.author_name}</p>
+                        <p className="text-xs font-semibold text-zinc-200 group-hover:text-primary transition-colors truncate">{blog.author_name}</p>
                         <p className="text-[10px] text-zinc-500 truncate capitalize">{blog.author_role}</p>
                       </div>
                     </div>
@@ -506,7 +506,7 @@ export default function BlogsPage() {
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. 5 Maintenance Tips for AC"
-                  className="w-full h-11 px-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                  className="w-full h-11 px-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-200 group-hover:text-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                 />
               </div>
 
@@ -521,7 +521,7 @@ export default function BlogsPage() {
                     value={formImageUrl}
                     onChange={(e) => setFormImageUrl(e.target.value)}
                     placeholder="e.g. https://images.unsplash.com/..."
-                    className="w-full h-11 pl-10 pr-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                    className="w-full h-11 pl-10 pr-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-200 group-hover:text-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                   />
                 </div>
               </div>
@@ -537,7 +537,7 @@ export default function BlogsPage() {
                     value={formTagsString}
                     onChange={(e) => setFormTagsString(e.target.value)}
                     placeholder="e.g. ac, cooling, tutorial"
-                    className="w-full h-11 pl-10 pr-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                    className="w-full h-11 pl-10 pr-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-200 group-hover:text-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60"
                   />
                 </div>
               </div>
@@ -552,7 +552,7 @@ export default function BlogsPage() {
                   value={formContent}
                   onChange={(e) => setFormContent(e.target.value)}
                   placeholder="Type the blog body content here..."
-                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60 resize-none"
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-200 group-hover:text-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/60 resize-none"
                 />
               </div>
 

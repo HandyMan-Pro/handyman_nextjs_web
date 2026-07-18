@@ -262,7 +262,7 @@ export default function BookingChatWidget({
                 <div
                   className={`max-w-[75%] rounded-2xl p-3 shadow-md border ${
                     isMe
-                      ? 'bg-primary text-white border-primary/20 rounded-tr-none'
+                      ? 'bg-primary text-zinc-950 border-primary/20 rounded-tr-none'
                       : 'bg-zinc-855 text-zinc-200 border-zinc-800 rounded-tl-none'
                   } ${m.isOptimistic ? 'opacity-70' : ''}`}
                 >
@@ -308,7 +308,7 @@ export default function BookingChatWidget({
         <button
           type="submit"
           disabled={!inputText.trim() || isSending || loading}
-          className="w-10 h-10 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-40 shadow-md shadow-primary/10 active:scale-95 flex-shrink-0"
+          className="w-10 h-10 bg-primary hover:bg-primary/95 text-zinc-950 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 shadow-md shadow-primary/10 active:scale-95 flex-shrink-0"
         >
           {isSending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

@@ -358,7 +358,7 @@ export default function ReviewsPage() {
                       <button
                         onClick={() => handleReplySubmit(r.id)}
                         disabled={submittingReply || !replyText.trim()}
-                        className="h-8 px-4 bg-primary hover:bg-primary/95 text-white rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5"
+                        className="h-8 px-4 bg-primary hover:bg-primary/95 text-zinc-950 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5"
                       >
                         {submittingReply && <Loader2 className="w-3 h-3 animate-spin" />}
                         Submit Reply

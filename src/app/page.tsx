@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 import {
   Wrench,
   Users,
@@ -590,9 +592,16 @@ export default function DashboardPage() {
     } else {
       setIsDarkMode(true);
     }
+    
+    apiClient.get('/categories').then(res => {
+      if (Array.isArray(res.data) && res.data.length > 0) setCategories(res.data);
+    }).catch(e => console.error("Error fetching categories", e));
+    apiClient.get('/services').then(res => {
+      if (Array.isArray(res.data) && res.data.length > 0) setServices(res.data);
+    }).catch(e => console.error("Error fetching services", e));
     setAuthLoading(false);
+
     fetchProviders();
-    fetchServicesAndCategories();
   }, []);
 
   // Sync dark mode class on html tag
@@ -2618,7 +2627,7 @@ export default function DashboardPage() {
         )}
 
         {/* 2nd Bar: Purple info */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-zinc-350 text-xs py-2 px-4 md:px-12 flex justify-between items-center select-none font-medium relative z-30 border-b border-slate-800/80">
+        <div className="bg-slate-100 dark:bg-gradient-to-r dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 text-slate-600 dark:text-zinc-400 text-xs py-2 px-4 md:px-12 flex justify-between items-center select-none font-medium relative z-30 border-b border-slate-200 dark:border-slate-800/80">
           <div className="flex items-center gap-2">
             <Phone className="w-3.5 h-3.5 text-indigo-400" />
             <span>+15265897485</span>
@@ -2651,8 +2660,8 @@ export default function DashboardPage() {
             {/* Menu Links */}
             <nav className="hidden md:flex items-center gap-1 text-sm font-semibold text-zinc-650 dark:text-zinc-300">
               <a href="#home" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Home</a>
-              <a href="#categories" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Categories</a>
-              <a href="#services" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Services</a>
+              <Link href="/categories" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Categories</Link>
+              <Link href="/services" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Services</Link>
               <a href="#shops" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">Shops</a>
               <a href="#download" className="px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">App</a>
             </nav>
@@ -2665,7 +2674,7 @@ export default function DashboardPage() {
                 className="p-2.5 rounded-xl border border-slate-100 dark:border-zinc-800/60 text-zinc-500 hover:text-indigo-600 dark:text-zinc-450 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-all duration-200 hover:scale-105"
                 title="Toggle Dark Mode"
               >
-                {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400 fill-amber-400/20" /> : <Moon className="w-4 h-4 text-slate-700 fill-slate-700/20" />}
               </button>
 
               {/* Login/Profile Button */}
@@ -2796,25 +2805,26 @@ export default function DashboardPage() {
         </header>
 
         {/* Hero Section */}
-        <section id="home" className="relative py-12 md:py-20 px-4 md:px-12 overflow-hidden bg-slate-100/50 dark:bg-zinc-950 transition-colors duration-300">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <motion.section initial={{ opacity: 0, y: 40, scale: 0.98, filter: "blur(10px)" }} animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }} id="home" className="relative py-12 md:py-24 px-4 md:px-12 overflow-hidden bg-slate-50 dark:bg-[#0a0a0c] transition-colors duration-300">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#5E5CE615,transparent_50%)] pointer-events-none"></div>
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[150px] pointer-events-none mix-blend-screen"></div>
           
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
             {/* Left Column */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 dark:text-white leading-[1.1] tracking-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight drop-shadow-2xl">
                 Your Instant Link To The <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-500 dark:from-indigo-400 dark:to-purple-400">Perfect Handyman</span> Service
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-[#5E5CE6] to-purple-400 relative inline-block"><span className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 blur-2xl opacity-20 -z-10"></span>Perfect Handyman</span> Service
               </h1>
               
-              <p className="text-base md:text-lg text-slate-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 font-medium">
+              <p className="text-lg md:text-xl text-slate-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
                 Experience the Ease: Trust Our Handyman Service. From Fixes to Installs, Count on Us to Have You Covered. Your Ultimate Household Helper!
               </p>
 
               {/* Search Inputs */}
-              <div className="bg-white/85 dark:bg-zinc-900/85 backdrop-blur-xl border border-slate-200/80 dark:border-zinc-850 rounded-[28px] p-2 md:p-2.5 shadow-2xl shadow-indigo-500/5 dark:shadow-black/60 flex flex-col md:flex-row gap-2 max-w-2xl mx-auto lg:mx-0 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/40">
-                <div className="flex flex-col justify-center gap-1.5 px-2.5 py-1.5 flex-1 border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-zinc-800/60 group/loc relative min-w-0">
+              <div className="bg-white/80 dark:bg-[#121217]/80 backdrop-blur-3xl border border-slate-200/80 dark:border-white/10 rounded-[32px] p-3 shadow-2xl dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] flex flex-col md:flex-row gap-3 max-w-2xl mx-auto lg:mx-0 transition-all duration-500 hover:shadow-indigo-500/10 dark:hover:shadow-[0_25px_50px_-12px_rgba(94,92,230,0.25)] focus-within:ring-2 focus-within:ring-indigo-500/20 dark:focus-within:ring-[#5E5CE6]/30 focus-within:border-indigo-500/40 dark:focus-within:border-white/20 relative z-20 group">
+                <div className="flex flex-col justify-center gap-1.5 px-4 py-2 flex-1 border-b md:border-b-0 md:border-r border-slate-200/80 dark:border-white/10 group/loc relative min-w-0 bg-slate-100/50 dark:bg-white/5 rounded-2xl md:rounded-r-none md:bg-transparent dark:md:bg-transparent">
                   <div className="flex items-center gap-2 w-full">
                     <button 
                       onClick={handleDetectLocation}
@@ -2833,7 +2843,7 @@ export default function DashboardPage() {
                       value={landingLocationQuery}
                       onChange={(e) => setLandingLocationQuery(e.target.value)}
                       title={landingLocationQuery}
-                      className="bg-transparent text-xs sm:text-sm text-slate-800 dark:text-zinc-100 outline-none w-full font-bold placeholder-slate-400 dark:placeholder-zinc-600 pr-2"
+                      className="bg-transparent text-sm sm:text-base text-slate-800 dark:text-white outline-none w-full font-bold placeholder-slate-400 dark:placeholder-zinc-500 pr-2"
                       placeholder="Enter location"
                     />
                   </div>
@@ -2865,7 +2875,7 @@ export default function DashboardPage() {
                     type="text" 
                     value={landingSearchQuery}
                     onChange={(e) => setLandingSearchQuery(e.target.value)}
-                    className="bg-transparent text-sm text-slate-800 dark:text-zinc-100 outline-none w-full font-bold placeholder-slate-400 dark:placeholder-zinc-650"
+                    className="bg-transparent text-sm sm:text-base text-slate-800 dark:text-white outline-none w-full font-bold placeholder-slate-400 dark:placeholder-zinc-500"
                     placeholder="Search Service..."
                   />
                 </div>
@@ -2875,7 +2885,7 @@ export default function DashboardPage() {
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                     showToast(`Searching for "${landingSearchQuery || 'All'}" in ${landingLocationQuery}`);
                   }}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-650 hover:from-indigo-500 hover:to-purple-550 text-white font-extrabold text-sm px-7 py-3.5 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-indigo-600/15 cursor-pointer shrink-0"
+                  className="bg-gradient-to-r from-[#5E5CE6] to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-base px-8 py-4 rounded-[20px] hover:-translate-y-1 active:scale-95 transition-all shadow-[0_0_20px_rgba(94,92,230,0.4)] hover:shadow-[0_10px_30px_rgba(94,92,230,0.6)] cursor-pointer shrink-0"
                 >
                   Search
                 </button>
@@ -2893,7 +2903,7 @@ export default function DashboardPage() {
                       if (el) el.scrollIntoView({ behavior: 'smooth' });
                       showToast(`Filtered by tag "${tag}"`);
                     }}
-                    className="px-3.5 py-1.5 bg-slate-200/50 dark:bg-zinc-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all border border-slate-300/30 dark:border-zinc-700/50"
+                    className="px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 hover:bg-indigo-50 dark:hover:bg-[#5E5CE6]/20 hover:text-indigo-600 dark:hover:text-indigo-300 text-slate-600 dark:text-zinc-300 rounded-full transition-all border border-slate-200/50 dark:border-white/10 hover:border-indigo-300 dark:hover:border-[#5E5CE6]/50 shadow-sm backdrop-blur-md"
                   >
                     {tag}
                   </button>
@@ -2904,11 +2914,11 @@ export default function DashboardPage() {
             {/* Right Column Handymen cards */}
             <div className="lg:col-span-5 relative mt-8 lg:mt-0 h-[480px] flex items-center justify-center">
               {/* Jennifer Davis card (Left) */}
-              <div className="absolute left-[2%] bottom-[12%] w-[150px] md:w-[170px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[28px] overflow-hidden shadow-2xl z-10 transition-transform duration-500 hover:scale-[1.05] hover:z-20">
+              <div className="absolute left-[2%] bottom-[12%] w-[150px] md:w-[170px] bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-[32px] overflow-hidden shadow-2xl dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] z-10 transition-all duration-500 hover:scale-[1.08] hover:shadow-indigo-500/20 dark:hover:shadow-[0_30px_60px_-15px_rgba(94,92,230,0.3)] hover:z-20 hover:border-indigo-500/30 dark:hover:border-white/20">
                 <div className="relative h-[210px] bg-sky-200/90 dark:bg-sky-950/40">
                   <img src={defaultHandymen[0].image} alt="Jennifer Davis" className="w-full h-full object-cover object-top" />
                 </div>
-                <div className="p-3 text-center bg-zinc-950 dark:bg-zinc-900 text-white border-t border-zinc-900">
+                <div className="p-4 text-center bg-white dark:bg-gradient-to-t dark:from-[#0a0a0c] dark:to-[#0a0a0c]/80 text-slate-900 dark:text-white border-t border-slate-100 dark:border-white/5">
                   <h4 className="font-extrabold text-[12px] tracking-tight">{defaultHandymen[0].name}</h4>
                   <div className="flex items-center justify-center gap-0.5 mt-1 text-amber-400">
                     <Star className="w-3 h-3 fill-current" />
@@ -2922,11 +2932,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Ricahard Gross card (Center) */}
-              <div className="absolute left-[34%] top-[8%] w-[150px] md:w-[170px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[28px] overflow-hidden shadow-2xl z-10 transition-transform duration-500 hover:scale-[1.05] hover:z-20">
+              <div className="absolute left-[34%] top-[8%] w-[150px] md:w-[170px] bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-[32px] overflow-hidden shadow-2xl dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] z-10 transition-all duration-500 hover:scale-[1.08] hover:shadow-indigo-500/20 dark:hover:shadow-[0_30px_60px_-15px_rgba(94,92,230,0.3)] hover:z-20 hover:border-indigo-500/30 dark:hover:border-white/20">
                 <div className="relative h-[210px] bg-zinc-300 dark:bg-zinc-800/80">
                   <img src={defaultHandymen[1].image} alt="Ricahard Gross" className="w-full h-full object-cover object-top" />
                 </div>
-                <div className="p-3 text-center bg-zinc-950 dark:bg-zinc-900 text-white border-t border-zinc-900">
+                <div className="p-4 text-center bg-white dark:bg-gradient-to-t dark:from-[#0a0a0c] dark:to-[#0a0a0c]/80 text-slate-900 dark:text-white border-t border-slate-100 dark:border-white/5">
                   <h4 className="font-extrabold text-[12px] tracking-tight">{defaultHandymen[1].name}</h4>
                   <div className="flex items-center justify-center gap-0.5 mt-1 text-amber-400">
                     <Star className="w-3 h-3 fill-current" />
@@ -2940,11 +2950,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Daniel Williams card (Right) */}
-              <div className="absolute right-[2%] bottom-[12%] w-[150px] md:w-[170px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[28px] overflow-hidden shadow-2xl z-10 transition-transform duration-500 hover:scale-[1.05] hover:z-20">
+              <div className="absolute right-[2%] bottom-[12%] w-[150px] md:w-[170px] bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-[32px] overflow-hidden shadow-2xl dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] z-10 transition-all duration-500 hover:scale-[1.08] hover:shadow-indigo-500/20 dark:hover:shadow-[0_30px_60px_-15px_rgba(94,92,230,0.3)] hover:z-20 hover:border-indigo-500/30 dark:hover:border-white/20">
                 <div className="relative h-[210px] bg-teal-100 dark:bg-teal-950/40">
                   <img src={defaultHandymen[2].image} alt="Daniel Williams" className="w-full h-full object-cover object-top" />
                 </div>
-                <div className="p-3 text-center bg-zinc-950 dark:bg-zinc-900 text-white border-t border-zinc-900">
+                <div className="p-4 text-center bg-white dark:bg-gradient-to-t dark:from-[#0a0a0c] dark:to-[#0a0a0c]/80 text-slate-900 dark:text-white border-t border-slate-100 dark:border-white/5">
                   <h4 className="font-extrabold text-[12px] tracking-tight">{defaultHandymen[2].name}</h4>
                   <div className="flex items-center justify-center gap-0.5 mt-1 text-amber-400">
                     <Star className="w-3 h-3 fill-current" />
@@ -2958,10 +2968,10 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Trust Metrics Counter Bar */}
-        <section className="py-10 px-4 md:px-12 bg-white dark:bg-zinc-900 border-y border-slate-200/50 dark:border-zinc-800 transition-colors duration-300">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} className="py-10 px-4 md:px-12 bg-white dark:bg-zinc-900 border-y border-slate-200/50 dark:border-zinc-800 transition-colors duration-300">
           <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               { value: "500+", label: "Expert Handymen", icon: "👷" },
@@ -2976,10 +2986,10 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </section>
+        </motion.section>
 
         {/* Categories Section */}
-        <section id="categories" className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} id="categories" className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-end mb-10">
               <div>
@@ -3014,26 +3024,22 @@ export default function DashboardPage() {
               {displayCategories.map((cat: any) => (
                 <div 
                   key={cat.id || cat.name}
-                  onClick={() => { setSelectedCategoryFilter(cat.name); }}
-                  className={`cursor-pointer p-6 rounded-3xl text-center border transition-all duration-300 ${
-                    selectedCategoryFilter === cat.name
-                      ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-lg shadow-indigo-600/5'
-                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-850/30 hover:scale-[1.03] hover:border-slate-300 dark:hover:border-zinc-700'
-                  }`}
+                  onClick={() => { router.push(`/categories/${encodeURIComponent(cat.name)}`); }}
+                  className="group cursor-pointer relative bg-white/50 dark:bg-white/5 backdrop-blur-3xl border border-slate-200/50 dark:border-white/10 rounded-3xl p-6 shadow-sm hover:shadow-2xl dark:hover:shadow-[0_20px_40px_-15px_rgba(94,92,230,0.3)] transition-all duration-500 hover:-translate-y-1 hover:border-indigo-500/30 dark:hover:border-white/20 text-center"
                 >
-                  <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-                    {cat.name.includes("AC") ? "❄️" : cat.name.includes("Plumb") ? "🪠" : cat.name.includes("Security") ? "🛡️" : "⚙️"}
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-indigo-500/10">
+                    {cat.name.includes("AC") ? <Wind className="w-6 h-6" /> : cat.name.includes("Clean") || cat.name.includes("Sanitiz") ? <Sparkles className="w-6 h-6" /> : cat.name.includes("Wire") || cat.name.includes("Electric") ? <Zap className="w-6 h-6" /> : cat.name.includes("Guard") || cat.name.includes("Secur") ? <Shield className="w-6 h-6" /> : <Wrench className="w-6 h-6" />}
                   </div>
-                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-white truncate">{cat.name}</h3>
+                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{cat.name}</h3>
                   <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{cat.description || "Browse all service listings"}</p>
                 </div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Services Section */}
-        <section id="services" className="py-16 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} id="services" className="py-16 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
               <div>
@@ -3119,10 +3125,10 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* Featured Services Section */}
-        <section className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-end mb-10">
               <div>
@@ -3152,10 +3158,10 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* How It Works Section */}
-        <section className="py-24 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300 relative overflow-hidden">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} className="py-24 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300 relative overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
@@ -3980,10 +3986,10 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
         {/* Shops Section */}
-        <section id="shops" className="py-16 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} id="shops" className="py-16 px-4 md:px-12 bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-end mb-10">
               <div>
@@ -4015,10 +4021,10 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Promotional App Section */}
-        <section id="download" className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
+        <motion.section initial={{ opacity: 0, y: 100, scale: 0.95, filter: "blur(15px)" }} whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} viewport={{ once: false, amount: 0.15 }} transition={{ duration: 1.2, type: "spring", bounce: 0.2 }} id="download" className="py-16 px-4 md:px-12 bg-white dark:bg-zinc-900 transition-colors duration-300">
           <div className="max-w-5xl mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[38px] p-8 md:p-14 text-white relative overflow-hidden shadow-xl shadow-indigo-600/10">
             <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
             <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -4045,7 +4051,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Footer */}
         <footer className="bg-zinc-950 text-zinc-400 pt-16 pb-8 border-t border-zinc-900 transition-colors">

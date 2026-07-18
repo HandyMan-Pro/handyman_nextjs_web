@@ -125,12 +125,15 @@ export default function CouponsListPage() {
   ];
 
   return (
-    <div className="space-y-6 text-zinc-300">
+    <div className="space-y-8 relative text-zinc-300">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-[#5E5CE6]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {/* Page Title & Navigation Tabs */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 flex items-center gap-3">
               <Tag className="w-5.5 h-5.5 text-[#5E5CE6]" />
               Coupon Management
             </h1>
@@ -141,7 +144,7 @@ export default function CouponsListPage() {
 
           <button
             onClick={() => router.push('/dashboard/admin/promotions/coupons/add')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-bold text-xs transition-colors"
+            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 text-white font-extrabold text-sm transition-all shadow-[0_0_20px_rgba(94,92,230,0.3)] hover:shadow-[0_0_25px_rgba(94,92,230,0.5)] hover:-translate-y-0.5 active:scale-95"
           >
             <Plus className="w-4 h-4" />
             Add Coupon
@@ -167,7 +170,7 @@ export default function CouponsListPage() {
       </div>
 
       {/* Search Filter Bar */}
-      <div className="p-3 bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-md rounded-xl flex items-center gap-3">
+      <div className="p-4 bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-2xl flex items-center gap-3 shadow-lg relative z-10">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
           <input
@@ -175,13 +178,13 @@ export default function CouponsListPage() {
             placeholder="Search coupons by code or type..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-950/60 border border-zinc-800/60 rounded-lg pl-9 pr-4 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#5E5CE6] transition-colors"
+            className="w-full bg-[#0a0a0c]/80 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#5E5CE6]/50 transition-all shadow-inner"
           />
         </div>
       </div>
 
       {/* Main Glassmorphic Panel */}
-      <div className="bg-zinc-900/50 border border-zinc-800/60 backdrop-blur-md rounded-xl overflow-hidden">
+      <div className="bg-[#0a0a0c]/60 border border-white/5 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] relative z-10">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" />
@@ -193,14 +196,14 @@ export default function CouponsListPage() {
             <span className="text-xs">Failed to load coupons.</span>
           </div>
         ) : filteredCoupons.length === 0 ? (
-          <div className="p-12 text-center text-zinc-500 text-xs">
+          <div className="p-16 text-center text-zinc-400 font-medium text-sm bg-[#0a0a0c]/40">
             No coupons found matching your search.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#5E5CE6]/90 text-white text-[11px] font-extrabold uppercase tracking-wider">
+                <tr className="bg-white/5 border-b border-white/5 text-white text-[11px] font-extrabold uppercase tracking-widest">
                   <th className="py-3 px-4 rounded-tl-xl">Code</th>
                   <th className="py-3 px-4">Type</th>
                   <th className="py-3 px-4">Discount Value</th>
@@ -211,7 +214,7 @@ export default function CouponsListPage() {
               </thead>
               <tbody className="divide-y divide-zinc-800/50 text-xs">
                 {filteredCoupons.map((c) => (
-                  <tr key={c.id} className="hover:bg-zinc-850/20 transition-colors">
+                  <tr key={c.id} className="hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0 hover:shadow-lg">
                     {/* Upper case Coupon Code */}
                     <td className="py-4 px-4 font-mono font-bold text-white tracking-wider">
                       <span className="bg-[#5E5CE6]/10 px-2 py-0.5 rounded border border-[#5E5CE6]/20">

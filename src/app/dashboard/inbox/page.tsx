@@ -229,7 +229,7 @@ export default function UnifiedInboxPage() {
               onClick={() => { setActiveTab('client'); setSearchQuery(''); }}
               className={`flex-1 h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'client'
-                  ? 'bg-primary text-white shadow-md shadow-primary/10'
+                  ? 'bg-primary text-zinc-950 shadow-md shadow-primary/10'
                   : 'text-zinc-400 hover:text-zinc-200 bg-zinc-950/40'
               }`}
             >
@@ -240,7 +240,7 @@ export default function UnifiedInboxPage() {
               onClick={() => { setActiveTab('handyman'); setSearchQuery(''); }}
               className={`flex-1 h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'handyman'
-                  ? 'bg-primary text-white shadow-md shadow-primary/10'
+                  ? 'bg-primary text-zinc-950 shadow-md shadow-primary/10'
                   : 'text-zinc-400 hover:text-zinc-200 bg-zinc-950/40'
               }`}
             >
@@ -296,7 +296,7 @@ export default function UnifiedInboxPage() {
                     )}
                   </div>
                   {c.unread > 0 && (
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center shadow-lg shadow-primary/20">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-zinc-950 text-[9px] font-bold flex items-center justify-center shadow-lg shadow-primary/20">
                       {c.unread}
                     </span>
                   )}
@@ -355,7 +355,7 @@ export default function UnifiedInboxPage() {
                 >
                   <div className={`max-w-[70%] rounded-2xl p-3 shadow-md ${
                     isMe
-                      ? 'bg-primary text-white rounded-tr-none'
+                      ? 'bg-primary text-zinc-950 rounded-tr-none'
                       : 'bg-zinc-855 text-zinc-200 rounded-tl-none border border-zinc-800'
                   }`}>
                     <p className="text-xs leading-relaxed font-medium break-words">{m.text}</p>
@@ -429,7 +429,7 @@ export default function UnifiedInboxPage() {
             />
             <button
               type="submit"
-              className="w-10 h-10 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all shadow-md shadow-primary/10 active:scale-95 flex-shrink-0"
+              className="w-10 h-10 bg-primary hover:bg-primary/95 text-zinc-950 rounded-xl flex items-center justify-center transition-all shadow-md shadow-primary/10 active:scale-95 flex-shrink-0"
             >
               <Send className="w-4 h-4" />
             </button>

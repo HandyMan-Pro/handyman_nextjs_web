@@ -404,11 +404,15 @@ export default function BookingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 relative">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none -z-10" />
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">Bookings</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
             {currentUser?.user_type === 'provider'
               ? 'Manage incoming booking requests and your scheduled upcoming services.'
@@ -421,7 +425,7 @@ export default function BookingsPage() {
               <button
                 onClick={() => setProviderTab('requests')}
                 className={`flex items-center gap-1.5 h-8 px-4 rounded-lg text-xs font-semibold transition-all relative ${
-                  providerTab === 'requests' ? 'bg-primary text-white shadow-md' : 'text-zinc-400 hover:text-white'
+                  providerTab === 'requests' ? 'bg-primary text-zinc-950 shadow-md' : 'text-zinc-400 hover:text-zinc-950'
                 }`}
               >
                 Requests
@@ -434,7 +438,7 @@ export default function BookingsPage() {
               <button
                 onClick={() => setProviderTab('upcoming')}
                 className={`flex items-center gap-1.5 h-8 px-4 rounded-lg text-xs font-semibold transition-all relative ${
-                  providerTab === 'upcoming' ? 'bg-primary text-white shadow-md' : 'text-zinc-400 hover:text-white'
+                  providerTab === 'upcoming' ? 'bg-primary text-zinc-950 shadow-md' : 'text-zinc-400 hover:text-zinc-950'
                 }`}
               >
                 Upcoming
@@ -447,11 +451,11 @@ export default function BookingsPage() {
             </div>
           ) : (
             /* View Mode Toggle for Admin */
-            <div className="flex bg-zinc-900 border border-zinc-800 p-0.75 rounded-xl">
+            <div className="flex bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 p-1 rounded-xl shadow-lg">
               <button
                 onClick={() => { setViewMode('list'); setSelectedCalendarDay(null); }}
                 className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  viewMode === 'list' ? 'bg-primary text-white' : 'text-zinc-400 hover:text-white'
+                  viewMode === 'list' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-white'
                 }`}
               >
                 <Grid className="w-3.5 h-3.5" />
@@ -460,7 +464,7 @@ export default function BookingsPage() {
               <button
                 onClick={() => setViewMode('calendar')}
                 className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  viewMode === 'calendar' ? 'bg-primary text-white' : 'text-zinc-400 hover:text-white'
+                  viewMode === 'calendar' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-white'
                 }`}
               >
                 <CalendarIcon className="w-3.5 h-3.5" />
@@ -471,9 +475,9 @@ export default function BookingsPage() {
 
           <button
             onClick={fetchBookingsAndPartners}
-            className="flex items-center justify-center gap-2 h-10 px-4 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all"
+            className="group flex items-center justify-center gap-2.5 h-10 px-5 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white rounded-xl transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)] active:scale-95 font-semibold"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors animate-spin-hover" />
             Refresh
           </button>
         </div>
@@ -524,9 +528,9 @@ export default function BookingsPage() {
                   <button
                     key={status}
                     onClick={() => setProviderStatusFilter(status)}
-                    className={`flex items-center gap-1.5 h-8.5 px-4 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                    className={`flex items-center justify-center h-9 px-5 rounded-lg text-xs font-bold transition-all shrink-0 ${
                       providerStatusFilter === status
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                        ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/20'
                         : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
                     }`}
                   >
@@ -554,10 +558,10 @@ export default function BookingsPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-zinc-800/40 bg-zinc-900/20 backdrop-blur-md shadow-xl">
+            <div className="overflow-x-auto rounded-[28px] border border-white/5 bg-[#0a0a0c]/60 backdrop-blur-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] relative z-10">
               <table className="w-full text-left border-collapse text-sm min-w-[900px]">
                 <thead>
-                  <tr className="bg-zinc-950/40 border-b border-zinc-800/80">
+                  <tr className="border-b border-white/5">
                     <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[25%]">Customer & Date</th>
                     <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[25%]">Service Name</th>
                     <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[20%]">Assigned Handyman</th>
@@ -570,7 +574,7 @@ export default function BookingsPage() {
                   {filteredProviderBookings.map((b) => {
                     const statusLower = b.status.toLowerCase();
                     return (
-                      <tr key={b.id} className="hover:bg-zinc-800/25 transition-colors group">
+                      <tr key={b.id} className="hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0">
                         {/* Customer & Date */}
                         <td className="px-6 py-4.5 vertical-align-middle">
                           <div className="font-bold text-zinc-105 group-hover:text-white transition-colors">{b.customer_name}</div>
@@ -726,29 +730,30 @@ export default function BookingsPage() {
         /* SUPER ADMIN SPECIFIC MASTER BOOKINGS SCREEN */
         <div className="space-y-6">
           {/* Search & Filter Bar */}
-          <div className="flex flex-col xl:flex-row gap-4 border-b border-zinc-800/60 pb-6 items-stretch xl:items-center justify-between">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <div className="flex flex-col xl:flex-row gap-4 pb-6 items-stretch xl:items-center justify-between relative z-10">
+            <div className="relative flex-1 w-full group">
+              <div className="absolute inset-0 bg-primary/20 blur-md rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary transition-colors z-10" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search bookings by customer, service or handyman..."
-                className="w-full h-11 pl-10 pr-4 bg-zinc-900/40 border border-zinc-850 rounded-xl text-sm text-zinc-300 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                className="relative z-10 w-full h-12 pl-11 pr-4 bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 transition-all shadow-lg"
               />
             </div>
             
             {/* Filter Tab Bar */}
-            <div className="flex bg-zinc-950/60 border border-zinc-850 p-1 rounded-xl gap-1 overflow-x-auto w-full xl:w-auto scrollbar-none">
+            <div className="flex bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/10 p-1.5 rounded-xl gap-1.5 overflow-x-auto w-full xl:w-auto scrollbar-none shadow-lg z-10">
               {['All', 'Pending', 'Accepted', 'Ongoing', 'Completed', 'Cancelled'].map((status) => {
                 return (
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
-                    className={`flex items-center gap-1.5 h-8.5 px-4 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                    className={`flex items-center justify-center h-9 px-5 rounded-lg text-xs font-bold transition-all shrink-0 ${
                       statusFilter === status
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+                        ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(228,253,151,0.2)]'
+                        : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
                     }`}
                   >
                     {status}
@@ -768,10 +773,10 @@ export default function BookingsPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-zinc-800/40 bg-zinc-900/20 backdrop-blur-md shadow-xl">
+            <div className="overflow-x-auto rounded-[28px] border border-white/5 bg-[#0a0a0c]/60 backdrop-blur-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] relative z-10">
               <table className="w-full text-left border-collapse text-sm min-w-[900px]">
                 <thead>
-                  <tr className="bg-zinc-950/40 border-b border-zinc-800/80">
+                  <tr className="border-b border-white/5">
                     <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[15%]">Booking ID</th>
                     <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[25%]">Customer & Date</th>
                     <th className="px-6 py-4.5 text-zinc-400 font-semibold uppercase tracking-wider text-[10px] w-[20%]">Service Name</th>
@@ -785,7 +790,7 @@ export default function BookingsPage() {
                   {adminBookings.map((b) => {
                     const mappedBooking = mapAdminBookingToBooking(b);
                     return (
-                      <tr key={b.id} className="hover:bg-zinc-800/25 transition-colors group">
+                      <tr key={b.id} className="hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0">
                         {/* Booking ID */}
                         <td className="px-6 py-4.5 vertical-align-middle font-mono text-xs text-zinc-500">
                           #{b.id.substring(Math.max(0, b.id.length - 8))}
@@ -846,7 +851,7 @@ export default function BookingsPage() {
                               value={b.status}
                               disabled={updatingStatusIds[b.id]}
                               onChange={(e) => handleAdminStatusOverride(b.id, e.target.value)}
-                              className={`h-8 px-2 bg-zinc-950/60 border rounded-lg text-xs font-semibold focus:outline-none transition-colors cursor-pointer ${getStatusStyle(b.status)}`}
+                              className={`h-9 px-3 bg-[#0a0a0c]/90 border border-white/10 rounded-xl text-xs font-bold focus:outline-none focus:border-white/30 transition-all cursor-pointer shadow-lg ${getStatusStyle(b.status)}`}
                             >
                               {['Pending', 'Accepted', 'Ongoing', 'Completed', 'Cancelled'].map((st) => (
                                 <option key={st} value={st} className="bg-zinc-900 text-zinc-350">{st}</option>
@@ -1089,7 +1094,7 @@ export default function BookingsPage() {
                     onClick={() => setStatusFilter(status)}
                     className={`h-10 px-4 rounded-xl text-xs font-semibold border transition-all whitespace-nowrap ${
                       statusFilter === status
-                        ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                        ? 'bg-primary border-primary text-zinc-950 shadow-lg shadow-primary/20'
                         : 'bg-zinc-900 border-zinc-800/60 text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -1298,7 +1303,7 @@ export default function BookingsPage() {
                 <button
                   type="submit"
                   disabled={assigning}
-                  className="flex-1 h-11 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 h-11 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
                 >
                   {assigning && <Loader2 className="w-4 h-4 animate-spin" />}
                   Confirm

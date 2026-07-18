@@ -156,7 +156,7 @@ export default function CouponsPage() {
           </button>
           <button
             onClick={openAddModal}
-            className="flex items-center justify-center gap-2 h-10 px-4 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl text-xs shadow-lg shadow-primary/20 hover:shadow-primary/35 transition-all"
+            className="flex items-center justify-center gap-2 h-10 px-4 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl text-xs shadow-lg shadow-primary/20 hover:shadow-primary/35 transition-all"
           >
             <Plus className="w-4 h-4" />
             New Coupon
@@ -384,7 +384,7 @@ export default function CouponsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 h-11 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 h-11 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Save Coupon

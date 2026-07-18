@@ -423,7 +423,7 @@ export default function FavoritesPage() {
                         <button
                           type="button"
                           onClick={() => setIsAIAssistOpen(true)}
-                          className="inline-flex items-center gap-1 text-[10px] font-extrabold text-primary hover:text-white transition-all bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/45 px-2 py-0.5 rounded-lg active:scale-95 cursor-pointer"
+                          className="inline-flex items-center gap-1 text-[10px] font-extrabold text-primary hover:text-zinc-950 transition-all bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/45 px-2 py-0.5 rounded-lg active:scale-95 cursor-pointer"
                         >
                           <Sparkles className="w-3 h-3 text-primary animate-pulse" />
                           <span>AI Assist</span>

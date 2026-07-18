@@ -64,13 +64,16 @@ export default function TemplatesPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6 bg-[#09090b] min-h-screen text-zinc-100">
+    <div className="p-6 space-y-8 relative min-h-screen text-zinc-100">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-[#5E5CE6]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {/* Header section */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-[#5E5CE6]" />
+            <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-[#5E5CE6]" />
               SYSTEM MANAGEMENT
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
@@ -98,7 +101,7 @@ export default function TemplatesPage() {
       </div>
 
       {/* Templates List Table */}
-      <div className="bg-zinc-900/50 border border-zinc-800/60 backdrop-blur-md rounded-xl overflow-hidden">
+      <div className="bg-[#0a0a0c]/60 border border-white/5 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] relative z-10">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 text-[#5E5CE6] animate-spin" />
@@ -110,13 +113,13 @@ export default function TemplatesPage() {
             <span className="text-xs">{fetchError}</span>
           </div>
         ) : templates.length === 0 ? (
-          <div className="p-12 text-center text-zinc-500 text-xs">
+          <div className="p-16 text-center text-zinc-400 font-medium text-sm bg-[#0a0a0c]/40">
             No notification templates configured.
           </div>
         ) : (
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#5E5CE6]/90 text-[11px] font-bold text-white uppercase tracking-wider">
+              <tr className="bg-white/5 border-b border-white/5 text-white text-[11px] font-extrabold uppercase tracking-widest">
                 <th className="py-3 px-4 rounded-tl-xl">Template Name</th>
                 <th className="py-3 px-4">Subject Line / Default Content</th>
                 <th className="py-3 px-4">Active Channels</th>
@@ -126,12 +129,12 @@ export default function TemplatesPage() {
             </thead>
             <tbody className="divide-y divide-zinc-800/50 text-xs">
               {templates.map((tpl) => (
-                <tr key={tpl.id} className="bg-[#18181b] border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
+                <tr key={tpl.id} className="hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0 hover:shadow-lg">
                   <td className="py-4 px-4 font-bold text-zinc-200">{tpl.name}</td>
                   <td className="py-4 px-4 text-zinc-400 italic max-w-xs truncate">{tpl.subject || 'N/A'}</td>
                   <td className="py-4 px-4">
                     <div className="flex gap-1.5 flex-wrap">
-                      {tpl.channels.map((ch) => (
+                      {(tpl.channels || []).map((ch) => (
                         <span key={ch} className="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-400 font-mono text-[9px] uppercase tracking-wider">
                           {ch}
                         </span>
@@ -140,7 +143,7 @@ export default function TemplatesPage() {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex gap-1 flex-wrap max-w-xs">
-                      {tpl.variables.map((v) => (
+                      {(tpl.variables || []).map((v) => (
                         <span key={v} className="px-1 py-0.5 rounded bg-[#5E5CE6]/10 text-[#8C8AFF] text-[9px] font-mono">
                           {"{" + v + "}"}
                         </span>

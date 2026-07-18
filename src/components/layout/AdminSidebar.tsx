@@ -68,8 +68,8 @@ export default function AdminSidebar({
   }, [pathname]);
 
   const isActive = (href: string) => {
-    if (href === '/dashboard/admin') {
-      return pathname === '/dashboard/admin';
+    if (href === '/dashboard') {
+      return pathname === '/dashboard';
     }
     return pathname.startsWith(href);
   };
@@ -163,32 +163,32 @@ export default function AdminSidebar({
               </div>
             )}
             <button
-              onClick={() => handleNavigation('/dashboard/admin')}
-              className={navItemClass(isActive('/dashboard/admin'))}
+              onClick={() => handleNavigation('/dashboard')}
+              className={navItemClass(isActive('/dashboard'))}
               title={collapsed ? t('Dashboard') : undefined}
             >
               <LayoutGrid className="w-[18px] h-[18px] flex-shrink-0" />
               {!collapsed && <span>{t('Dashboard')}</span>}
             </button>
             <button
-              onClick={() => handleNavigation('/dashboard/admin/bookings')}
-              className={navItemClass(isActive('/dashboard/admin/bookings'))}
+              onClick={() => handleNavigation('/dashboard/bookings')}
+              className={navItemClass(isActive('/dashboard/bookings'))}
               title={collapsed ? t('Bookings') : undefined}
             >
               <CalendarCheck className="w-[18px] h-[18px] flex-shrink-0" />
               {!collapsed && <span>{t('Bookings')}</span>}
             </button>
             <button
-              onClick={() => handleNavigation('/dashboard/admin/blogs')}
-              className={navItemClass(isActive('/dashboard/admin/blogs'))}
+              onClick={() => handleNavigation('/dashboard/blogs')}
+              className={navItemClass(isActive('/dashboard/blogs'))}
               title={collapsed ? t('Blogs') : undefined}
             >
               <MessageSquare className="w-[18px] h-[18px] flex-shrink-0" />
               {!collapsed && <span>{t('Blogs')}</span>}
             </button>
             <button
-              onClick={() => handleNavigation('/dashboard/admin/notifications')}
-              className={navItemClass(isActive('/dashboard/admin/notifications'))}
+              onClick={() => handleNavigation('/dashboard/notifications')}
+              className={navItemClass(isActive('/dashboard/notifications'))}
               title={collapsed ? t('Notifications') : undefined}
             >
               <Megaphone className="w-[18px] h-[18px] flex-shrink-0" />
@@ -402,16 +402,16 @@ export default function AdminSidebar({
               </div>
             )}
             <button
-              onClick={() => handleNavigation('/dashboard/admin/finance')}
-              className={navItemClass(isActive('/dashboard/admin/finance'))}
+              onClick={() => handleNavigation('/dashboard/finance')}
+              className={navItemClass(isActive('/dashboard/finance'))}
               title={collapsed ? t('Finance') : undefined}
             >
               <DollarSign className="w-[18px] h-[18px] flex-shrink-0" />
               {!collapsed && <span>{t('Finance')}</span>}
             </button>
             <button
-              onClick={() => handleNavigation('/dashboard/admin/coupons')}
-              className={navItemClass(isActive('/dashboard/admin/coupons'))}
+              onClick={() => handleNavigation('/dashboard/admin/promotions/coupons/list')}
+              className={navItemClass(isActive('/dashboard/admin/promotions/coupons/list'))}
               title={collapsed ? t('Coupons') : undefined}
             >
               <Tag className="w-[18px] h-[18px] flex-shrink-0" />
@@ -427,8 +427,8 @@ export default function AdminSidebar({
               </div>
             )}
             <button
-              onClick={() => handleNavigation('/dashboard/admin/settings')}
-              className={navItemClass(isActive('/dashboard/admin/settings'))}
+              onClick={() => handleNavigation('/dashboard/admin/system/settings')}
+              className={navItemClass(isActive('/dashboard/admin/system/settings'))}
               title={collapsed ? t('Settings') : undefined}
             >
               <Settings className="w-[18px] h-[18px] flex-shrink-0" />

@@ -344,7 +344,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="h-11 px-6 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/35"
+              className="h-11 px-6 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/35"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Save Configuration Settings

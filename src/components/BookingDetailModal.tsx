@@ -180,7 +180,7 @@ export default function BookingDetailModal({ booking, onClose, onRefresh, handym
                     <div key={step.key} className="flex flex-col items-center z-10 relative">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                         isCurrent
-                          ? 'bg-primary text-white ring-4 ring-primary/20 shadow-lg shadow-primary/30'
+                          ? 'bg-primary text-zinc-950 ring-4 ring-primary/20 shadow-lg shadow-primary/30'
                           : isCompleted
                             ? 'bg-primary/20 text-primary'
                             : 'bg-zinc-800 text-zinc-600'
@@ -392,7 +392,7 @@ export default function BookingDetailModal({ booking, onClose, onRefresh, handym
                   <button
                     disabled={actionLoading}
                     onClick={() => handleAction('accept')}
-                    className="h-10 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                    className="h-10 px-6 bg-primary hover:bg-primary/90 text-zinc-950 rounded-xl text-xs font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
                   >
                     {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     <CheckCircle className="w-3.5 h-3.5" />

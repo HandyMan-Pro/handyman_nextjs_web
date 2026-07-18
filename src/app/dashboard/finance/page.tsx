@@ -245,11 +245,14 @@ export default function FinancePage() {
   const activeCommissions = commissions.filter(c => c.status === 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 relative">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Finance & Earnings</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">Finance & Earnings</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
             {role === 'admin' 
               ? 'UPI intent tracking, provider wallet balance payouts, and document verifications.'
@@ -258,7 +261,7 @@ export default function FinancePage() {
         </div>
         <button
           onClick={fetchFinanceData}
-          className="flex items-center justify-center gap-2 h-10 px-4 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all"
+          className="group flex items-center justify-center gap-2.5 h-10 px-5 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white rounded-xl transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)] active:scale-95 font-semibold"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh Stats
@@ -282,7 +285,7 @@ export default function FinancePage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+        <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl flex items-center justify-between relative z-10 hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.8)]">
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block">
               {role === 'admin' ? 'Total Platform Volume' : 'Total Earnings'}
@@ -297,7 +300,7 @@ export default function FinancePage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+        <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl flex items-center justify-between relative z-10 hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.8)]">
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block">
               {role === 'admin' ? 'Total Payouts Done' : 'Withdrawable Wallet Balance'}
@@ -315,7 +318,7 @@ export default function FinancePage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+        <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl flex items-center justify-between relative z-10 hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.8)]">
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block">
               {role === 'admin' ? 'Pending Withdrawals' : 'In-Review Withdrawals'}
@@ -338,7 +341,7 @@ export default function FinancePage() {
         <div className="space-y-6 lg:col-span-1">
           {role === 'admin' ? (
             /* ADMIN: Manual payout trigger form */
-            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+            <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <ArrowUpRight className="w-5 h-5 text-red-400" />
                 Process Wallet Payout
@@ -350,7 +353,7 @@ export default function FinancePage() {
                     value={selectedProviderId}
                     onChange={(e) => setSelectedProviderId(e.target.value)}
                     required
-                    className="w-full h-11 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    className="w-full h-11 px-3 bg-[#0a0a0c]/90 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 shadow-inner focus:outline-none focus:ring-1 focus:ring-primary/50"
                   >
                     <option value="">-- Select Provider --</option>
                     {providers.map(p => (
@@ -370,14 +373,14 @@ export default function FinancePage() {
                     value={payoutAmount}
                     onChange={(e) => setPayoutAmount(e.target.value)}
                     placeholder="e.g. 1000"
-                    className="w-full h-11 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    className="w-full h-11 px-3 bg-[#0a0a0c]/90 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 shadow-inner placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={processingPayout}
-                  className="w-full h-11 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
+                  className="w-full h-11 bg-primary hover:bg-primary/95 text-zinc-950 font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
                 >
                   {processingPayout && <Loader2 className="w-4 h-4 animate-spin" />}
                   Send UPI Settlement
@@ -386,7 +389,7 @@ export default function FinancePage() {
             </div>
           ) : (
             /* PROVIDER: Request wallet withdrawal form */
-            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+            <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <Send className="w-4.5 h-4.5 text-primary" />
                 Request Withdrawal
@@ -444,7 +447,7 @@ export default function FinancePage() {
                 <button
                   type="submit"
                   disabled={requestingWithdrawal || Number(withdrawalAmount) > walletBalance || walletBalance < 100}
-                  className="w-full h-10 bg-primary hover:bg-primary/95 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
+                  className="w-full h-10 bg-primary hover:bg-primary/95 disabled:bg-zinc-800 disabled:text-zinc-500 text-zinc-950 font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
                 >
                   {requestingWithdrawal && <Loader2 className="w-4 h-4 animate-spin" />}
                   Submit Request
@@ -454,7 +457,7 @@ export default function FinancePage() {
           )}
 
           {/* Commissions settings card */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
             <h2 className="text-base font-bold flex items-center gap-2">
               <Percent className="w-4.5 h-4.5 text-primary" />
               Platform Commission Rates
@@ -482,7 +485,7 @@ export default function FinancePage() {
             /* ADMIN view: Document approvals & Withdrawal requests */
             <>
               {/* Document verifications */}
-              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
                 <h2 className="text-base font-bold flex items-center gap-2">
                   <Award className="w-5 h-5 text-primary" />
                   Verification Documents ({documents.length})
@@ -539,7 +542,7 @@ export default function FinancePage() {
               </div>
 
               {/* Withdrawal Requests */}
-              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
                 <h2 className="text-base font-bold flex items-center gap-2">
                   <Clock className="w-5 h-5 text-amber-455" />
                   Withdrawal Requests ({withdrawals.length})
@@ -593,7 +596,7 @@ export default function FinancePage() {
             </>
           ) : (
             /* PROVIDER view: Withdrawal Requests Status */
-            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+            <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <Clock className="w-4.5 h-4.5 text-primary" />
                 Withdrawal Requests & History
@@ -629,7 +632,7 @@ export default function FinancePage() {
       </div>
 
       {/* Transactions list */}
-      <div className="bg-zinc-900/80 border border-zinc-800/60 rounded-2xl overflow-hidden shadow-xl">
+      <div className="overflow-x-auto rounded-[28px] border border-white/5 bg-[#0a0a0c]/60 backdrop-blur-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] relative z-10">
         <div className="p-4 border-b border-zinc-800/60 flex items-center justify-between gap-4">
           <h2 className="font-bold text-sm text-zinc-300">Transaction History Log</h2>
           <div className="relative w-72">
@@ -639,14 +642,14 @@ export default function FinancePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by description or UTR..."
-              className="w-full h-9 pl-9 pr-4 bg-zinc-900/60 border border-zinc-800/50 rounded-xl text-xs text-zinc-355 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+              className="relative z-10 w-full h-11 pl-10 pr-4 bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 transition-all shadow-lg"
             />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
-              <tr className="border-b border-zinc-800/60 bg-zinc-900/40 text-left">
+              <tr className="border-b border-white/5 text-left">
                 <th className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-6 py-3">Description</th>
                 <th className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">Type</th>
                 <th className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">Date</th>

@@ -72,13 +72,16 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6 bg-[#09090b] min-h-screen text-zinc-100">
+    <div className="p-6 space-y-8 relative min-h-screen text-zinc-100">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-[#5E5CE6]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {/* Header section */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-[#5E5CE6]" />
+            <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-[#5E5CE6]" />
               SYSTEM MANAGEMENT
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
@@ -116,9 +119,9 @@ export default function SettingsPage() {
           <span className="text-xs">{fetchError}</span>
         </div>
       ) : (
-        <form onSubmit={handleSave} className="max-w-2xl bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-6 space-y-6 backdrop-blur-md">
-          <div className="border-b border-zinc-800 pb-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+        <form onSubmit={handleSave} className="max-w-2xl bg-[#0a0a0c]/60 border border-white/5 backdrop-blur-2xl rounded-[28px] p-8 space-y-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] relative z-10 hover:-translate-y-1 transition-all duration-300 hover:shadow-2xl">
+          <div className="border-b border-white/10 pb-5">
+            <h3 className="text-[13px] font-extrabold text-white uppercase tracking-widest flex items-center gap-2.5">
               <Settings className="w-4 h-4 text-[#5E5CE6]" />
               Global Settings Configuration
             </h3>
@@ -136,7 +139,7 @@ export default function SettingsPage() {
                 max="100"
                 value={commissionRate}
                 onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
-                className="w-full max-w-xs bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#5E5CE6] transition-colors"
+                className="w-full max-w-xs bg-[#0a0a0c]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#5E5CE6]/50 transition-all shadow-inner"
                 required
               />
               <p className="text-[10px] text-zinc-500 mt-1">
@@ -153,7 +156,7 @@ export default function SettingsPage() {
                 type="email"
                 value={supportEmail}
                 onChange={(e) => setSupportEmail(e.target.value)}
-                className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#5E5CE6] transition-colors"
+                className="w-full max-w-md bg-[#0a0a0c]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#5E5CE6]/50 transition-all shadow-inner"
                 required
               />
             </div>
@@ -166,7 +169,7 @@ export default function SettingsPage() {
               <select
                 value={paymentGatewayMode}
                 onChange={(e) => setPaymentGatewayMode(e.target.value)}
-                className="w-full max-w-xs bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#5E5CE6] transition-colors"
+                className="w-full max-w-xs bg-[#0a0a0c]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#5E5CE6]/50 transition-all shadow-inner"
               >
                 <option value="sandbox">Sandbox / Testing Mode</option>
                 <option value="production">Live / Production Mode</option>
@@ -181,7 +184,7 @@ export default function SettingsPage() {
               <select
                 value={smsGatewayProvider}
                 onChange={(e) => setSmsGatewayProvider(e.target.value)}
-                className="w-full max-w-xs bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#5E5CE6] transition-colors"
+                className="w-full max-w-xs bg-[#0a0a0c]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#5E5CE6]/50 transition-all shadow-inner"
               >
                 <option value="twilio">Twilio SMS Gateway</option>
                 <option value="vonage">Vonage (Nexmo)</option>
@@ -189,11 +192,11 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="border-t border-zinc-800 pt-4 flex justify-end">
+          <div className="border-t border-white/10 pt-6 flex justify-end">
             <button
               type="submit"
               disabled={isSaving}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-[#5E5CE6]/20"
+              className="group flex items-center gap-2 px-6 py-3 rounded-xl bg-[#5E5CE6] hover:bg-[#5E5CE6]/90 disabled:opacity-50 text-white text-sm font-extrabold transition-all shadow-[0_0_20px_rgba(94,92,230,0.3)] hover:shadow-[0_0_25px_rgba(94,92,230,0.5)] hover:-translate-y-0.5 active:scale-95"
             >
               {isSaving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

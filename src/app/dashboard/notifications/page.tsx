@@ -69,18 +69,21 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 relative">
+      {/* Background ambient glows */}
+      <div className="fixed top-0 left-[20%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[10%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Push Notifications</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">Push Notifications</h1>
           <p className="text-zinc-500 text-sm mt-0.5">Send real-time bulk alerts & announcements to mobile application users.</p>
         </div>
         <button
           onClick={fetchNotificationLogs}
-          className="flex items-center justify-center gap-2 h-10 px-4 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all"
+          className="group flex items-center justify-center gap-2.5 h-10 px-5 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white rounded-xl transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)] active:scale-95 font-semibold"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors animate-spin-hover" />
           Refresh Log
         </button>
       </div>
@@ -102,7 +105,7 @@ export default function NotificationsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Send Broadcast form */}
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl space-y-4">
+        <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl space-y-6 relative z-10">
           <h2 className="text-base font-bold flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-primary" />
             Send Bulk Alert
@@ -113,7 +116,7 @@ export default function NotificationsPage() {
               <select
                 value={userType}
                 onChange={(e) => setUserType(e.target.value)}
-                className="w-full h-11 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full h-11 px-3 bg-[#0a0a0c]/90 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 shadow-inner"
               >
                 <option value="all">All Users & Partners</option>
                 <option value="user">Customers Only</option>
@@ -130,7 +133,7 @@ export default function NotificationsPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Festival Season discount!"
-                className="w-full h-11 px-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full h-11 px-3 bg-[#0a0a0c]/90 border border-white/10 rounded-xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 shadow-inner"
               />
             </div>
 
@@ -142,14 +145,14 @@ export default function NotificationsPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
                 placeholder="Write your push notification message details here..."
-                className="w-full p-3 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-100 placeholder:text-zinc-650 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full p-3 bg-[#0a0a0c]/90 border border-white/10 rounded-xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 shadow-inner"
               />
             </div>
 
             <button
               type="submit"
               disabled={sending}
-              className="w-full h-11 bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20 hover:shadow-primary/35"
+              className="group w-full h-12 bg-primary hover:bg-primary/90 text-zinc-950 font-extrabold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(228,253,151,0.3)] hover:shadow-[0_0_25px_rgba(228,253,151,0.5)] hover:-translate-y-0.5 active:scale-95"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Send Broadcast Push
@@ -158,17 +161,17 @@ export default function NotificationsPage() {
         </div>
 
         {/* History log */}
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5 shadow-xl lg:col-span-2 space-y-4">
+        <div className="bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/5 rounded-[24px] p-6 shadow-2xl lg:col-span-2 space-y-6 relative z-10">
           <h2 className="text-base font-bold flex items-center gap-2 text-zinc-200">
             <Clock className="w-5 h-5 text-primary" />
             Broadcast Log History
           </h2>
           <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
             {logs.map((log) => (
-              <div key={log.id} className="bg-zinc-800/30 border border-zinc-800/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div key={log.id} className="group bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 transition-all hover:-translate-y-0.5">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-sm text-zinc-200">{log.title}</h4>
+                    <h4 className="font-bold text-base text-white group-hover:text-primary transition-colors">{log.title}</h4>
                     <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase border ${
                       log.user_type === 'all' ? 'bg-primary/10 text-primary border-primary/20' :
                       log.user_type === 'user' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -193,9 +196,10 @@ export default function NotificationsPage() {
               </div>
             ))}
             {logs.length === 0 && (
-              <div className="text-center py-20">
-                <MessageSquare className="w-10 h-10 text-zinc-650 mx-auto mb-2" />
-                <p className="text-xs text-zinc-500">No push notification broadcasts sent yet.</p>
+              <div className="text-center py-20 bg-[#0a0a0c]/40 rounded-[20px] border border-white/5">
+                <MessageSquare className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-white tracking-tight">No broadcasts sent yet</h3>
+                <p className="text-sm text-zinc-500 mt-1">When you send push notifications, they will appear here.</p>
               </div>
             )}
           </div>
